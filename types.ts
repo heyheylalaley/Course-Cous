@@ -1,0 +1,76 @@
+export interface Course {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  link: string;
+  minEnglishLevel?: EnglishLevel; // Minimum English level required for this course
+  isActive?: boolean; // Whether the course is active and visible
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface Message {
+  id: string;
+  role: 'user' | 'model';
+  content: string;
+  timestamp: Date;
+  isStreaming?: boolean;
+  isError?: boolean;
+}
+
+export interface ChatState {
+  messages: Message[];
+  isLoading: boolean;
+  error: string | null;
+}
+
+export type EnglishLevel = 'None' | 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
+export type Language = 'en' | 'ua' | 'ru' | 'ar';
+export type Theme = 'light' | 'dark';
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  englishLevel: EnglishLevel;
+  name?: string; // Deprecated - use firstName and lastName instead
+  firstName?: string;
+  lastName?: string;
+  mobileNumber?: string;
+  address?: string;
+  eircode?: string;
+  dateOfBirth?: string; // ISO date string (YYYY-MM-DD)
+  isAdmin?: boolean; // Admin access flag
+}
+
+export interface AdminCourseStats {
+  courseId: string;
+  courseTitle: string;
+  registrantCount: number;
+}
+
+export interface AdminStudentDetail {
+  userId: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  mobileNumber?: string;
+  address?: string;
+  eircode?: string;
+  dateOfBirth?: string;
+  englishLevel: EnglishLevel;
+  registeredAt: Date;
+  priority: number;
+}
+
+export interface Registration {
+  courseId: string;
+  registeredAt: Date;
+  priority?: number; // 1 = highest priority, 2, 3
+}
+
+export interface CourseQueue {
+  courseId: string;
+  queueLength: number; // количество людей в очереди
+}

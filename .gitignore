@@ -1,0 +1,76 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies
+node_modules
+dist
+dist-ssr
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS files
+Thumbs.db
+.DS_Store
+AppData/
+*.dat
+*.ini
+NTUSER.*
+*.regtrans-ms
+*.LOG*
+*.TMContainer*
+*.jtx
+
+# System directories
+3D Objects/
+Contacts/
+Downloads/
+Favorites/
+Links/
+Music/
+Saved Games/
+Searches/
+Videos/
+OneDrive - Cork City Partnership/
+Cork City Partnership/
+Auto_Jobs_Applier_AIHawk/
+Course-Cous-main/
+Course-Cous.zip
+ODBA/
+
+# Cache and temp files
+.cache/
+.idlerc/
+*.xlsx
+*.spec
+debug.txt
+temp_*
+metadata.json
+CHECKLIST.md
+DEPLOY.md
+SETUP.md
+supabase-schema.sql
+
+# Build outputs
+build
+out
