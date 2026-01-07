@@ -6,10 +6,6 @@
 
 AI-powered course counselor with chat support, course registration, and admin panel. Built with React 19, TypeScript, Vite, Tailwind CSS, and Supabase.
 
-## 🌐 Demo
-
-**[https://heyheylalaley.github.io/Course-Cous/](https://heyheylalaley.github.io/Course-Cous/)**
-
 ## ✨ Key Features
 
 - 🤖 **AI Assistant** powered by Google Gemini with streaming responses
