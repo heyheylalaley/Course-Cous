@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { X, User } from 'lucide-react';
 import { Language } from '../types';
 import { TRANSLATIONS } from '../translations';
@@ -26,11 +26,29 @@ export const NameModal: React.FC<NameModalProps> = ({
   const t = TRANSLATIONS[language];
   const isRtl = language === 'ar';
 
-  // Update names when modal opens
+  // Track initialization to prevent resetting form on tab switch
+  const initializedNamesRef = useRef<string>('');
+  const wasOpenRef = useRef<boolean>(false);
+
+  // Update names when modal opens (only on first open or when names actually change externally)
   React.useEffect(() => {
-    if (isOpen) {
+    const currentNamesKey = `${currentFirstName ?? ''}|${currentLastName ?? ''}`;
+    const shouldInitialize = isOpen && (
+      !wasOpenRef.current || // Modal just opened
+      initializedNamesRef.current !== currentNamesKey // Names changed externally
+    );
+    
+    if (shouldInitialize) {
       setFirstName(currentFirstName ?? '');
       setLastName(currentLastName ?? '');
+      initializedNamesRef.current = currentNamesKey;
+    }
+    
+    wasOpenRef.current = isOpen;
+    
+    // Reset refs when modal closes
+    if (!isOpen) {
+      initializedNamesRef.current = '';
     }
   }, [isOpen, currentFirstName, currentLastName]);
 

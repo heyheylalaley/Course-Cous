@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Course, Language, EnglishLevel } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { X, Save, BookOpen } from 'lucide-react';
@@ -39,9 +39,19 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
   const t = TRANSLATIONS[language];
   const isRtl = language === 'ar';
   
-  // Sync form data when modal opens or course changes
+  // Track which course ID was initialized to prevent resetting form on tab switch
+  const initializedCourseIdRef = useRef<string | null>(null);
+  const wasOpenRef = useRef<boolean>(false);
+  
+  // Sync form data when modal opens or course changes (only on actual course change, not on tab switch)
   useEffect(() => {
-    if (isOpen) {
+    const currentCourseId = course?.id || null;
+    const shouldInitialize = isOpen && (
+      !wasOpenRef.current || // Modal just opened
+      initializedCourseIdRef.current !== currentCourseId // Different course selected
+    );
+    
+    if (shouldInitialize) {
       if (course) {
         setTitle(course.title);
         setCategory(course.category);
@@ -50,6 +60,7 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
         setLink(course.link);
         setMinEnglishLevel(course.minEnglishLevel || '');
         setIsActive(course.isActive !== false);
+        initializedCourseIdRef.current = course.id;
       } else {
         // Reset for new course
         setTitle('');
@@ -59,10 +70,18 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
         setLink('#');
         setMinEnglishLevel('');
         setIsActive(true);
+        initializedCourseIdRef.current = null;
       }
       setError(null);
     }
-  }, [isOpen, course]);
+    
+    wasOpenRef.current = isOpen;
+    
+    // Reset refs when modal closes
+    if (!isOpen) {
+      initializedCourseIdRef.current = null;
+    }
+  }, [isOpen, course?.id]);
 
   if (!isOpen) return null;
 

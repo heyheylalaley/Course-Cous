@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { X, User, GraduationCap, ArrowRight } from 'lucide-react';
 import { EnglishLevel, Language } from '../types';
 import { TRANSLATIONS } from '../translations';
@@ -86,8 +86,18 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   const tOnboarding = TRANSLATIONS_ONBOARDING[language];
   const isRtl = language === 'ar';
 
+  // Track initialization to prevent resetting form on tab switch
+  const initializedDataRef = useRef<string>('');
+  const wasOpenRef = useRef<boolean>(false);
+
   React.useEffect(() => {
-    if (isOpen) {
+    const currentDataKey = `${currentFirstName ?? ''}|${currentLastName ?? ''}|${currentEnglishLevel ?? ''}`;
+    const shouldInitialize = isOpen && (
+      !wasOpenRef.current || // Modal just opened
+      initializedDataRef.current !== currentDataKey // Data changed externally
+    );
+    
+    if (shouldInitialize) {
       setFirstName(currentFirstName ?? '');
       setLastName(currentLastName ?? '');
       setSelectedLevel(currentEnglishLevel && currentEnglishLevel !== 'None' ? currentEnglishLevel : null);
@@ -97,6 +107,14 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
       } else {
         setStep('name');
       }
+      initializedDataRef.current = currentDataKey;
+    }
+    
+    wasOpenRef.current = isOpen;
+    
+    // Reset refs when modal closes
+    if (!isOpen) {
+      initializedDataRef.current = '';
     }
   }, [isOpen, currentFirstName, currentLastName, currentEnglishLevel]);
 

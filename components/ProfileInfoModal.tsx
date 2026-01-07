@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, User, Save } from 'lucide-react';
 import { Language, UserProfile } from '../types';
 import { TRANSLATIONS } from '../translations';
@@ -30,9 +30,19 @@ export const ProfileInfoModal: React.FC<ProfileInfoModalProps> = ({
   const t = TRANSLATIONS[language];
   const isRtl = language === 'ar';
 
-  // Update form when modal opens or profile changes
+  // Track which profile ID was initialized to prevent resetting form on tab switch
+  const initializedProfileIdRef = useRef<string | null>(null);
+  const wasOpenRef = useRef<boolean>(false);
+
+  // Update form when modal opens or profile changes (only on actual profile change, not on tab switch)
   useEffect(() => {
-    if (isOpen) {
+    const currentProfileId = currentProfile?.id || null;
+    const shouldInitialize = isOpen && (
+      !wasOpenRef.current || // Modal just opened
+      initializedProfileIdRef.current !== currentProfileId // Different profile selected
+    );
+    
+    if (shouldInitialize) {
       setFirstName(currentProfile.firstName || '');
       setLastName(currentProfile.lastName || '');
       setMobileNumber(currentProfile.mobileNumber || '');
@@ -40,8 +50,16 @@ export const ProfileInfoModal: React.FC<ProfileInfoModalProps> = ({
       setEircode(currentProfile.eircode || '');
       setDateOfBirth(currentProfile.dateOfBirth || '');
       setError(null);
+      initializedProfileIdRef.current = currentProfileId;
     }
-  }, [isOpen, currentProfile]);
+    
+    wasOpenRef.current = isOpen;
+    
+    // Reset refs when modal closes
+    if (!isOpen) {
+      initializedProfileIdRef.current = null;
+    }
+  }, [isOpen, currentProfile?.id]);
 
   if (!isOpen) {
     return null;
