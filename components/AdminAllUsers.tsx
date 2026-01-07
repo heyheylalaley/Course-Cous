@@ -3,9 +3,10 @@ import { Language, EnglishLevel, Course } from '../types';
 import { db } from '../services/db';
 import { useCourses } from '../hooks/useCourses';
 import { TRANSLATIONS } from '../translations';
+import { ConfirmationModal } from './ConfirmationModal';
 import { 
   Users, FileSpreadsheet, FileText, Mail, Phone, Calendar, GraduationCap, 
-  ArrowUp, ArrowDown, Filter, Search, CheckCircle, X, BookOpen, Award
+  ArrowUp, ArrowDown, Filter, Search, CheckCircle, X, BookOpen, Award, ChevronDown, ChevronUp, Trash2
 } from 'lucide-react';
 
 interface AdminAllUsersProps {
@@ -52,6 +53,13 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
   // Sorting
   const [sortField, setSortField] = useState<SortField>('createdAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  // Expanded rows for managing completed courses
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  
+  // Confirmation modal for removing completion
+  const [completionToRemove, setCompletionToRemove] = useState<{ userId: string; courseId: string; courseTitle: string; userName: string } | null>(null);
+  const [isRemovingCompletion, setIsRemovingCompletion] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -328,6 +336,34 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
 
   const hasActiveFilters = searchQuery || englishLevelFilter !== 'all' || profileCompleteFilter !== 'all' || courseFilter !== 'all' || hasRegistrationsFilter !== 'all';
 
+  // Toggle expanded row
+  const toggleExpanded = (userId: string) => {
+    setExpandedUserId(prev => prev === userId ? null : userId);
+  };
+
+  // Handle removing a completion
+  const handleRemoveCompletionClick = (userId: string, courseId: string, userName: string) => {
+    const courseTitle = getCourseTitle(courseId);
+    setCompletionToRemove({ userId, courseId, courseTitle, userName });
+  };
+
+  const handleConfirmRemoveCompletion = async () => {
+    if (!completionToRemove) return;
+    
+    setIsRemovingCompletion(true);
+    try {
+      await db.unmarkCourseCompleted(completionToRemove.userId, completionToRemove.courseId);
+      // Reload users to reflect the change
+      await loadUsers();
+      setCompletionToRemove(null);
+    } catch (err: any) {
+      console.error('Failed to remove completion:', err);
+      setError(err.message || 'Failed to remove completion');
+    } finally {
+      setIsRemovingCompletion(false);
+    }
+  };
+
   // Stats
   const totalUsers = users.length;
   const usersWithRegistrations = users.filter(u => u.registeredCourses.length > 0).length;
@@ -498,7 +534,7 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
               >
                 <option value="all">{t.adminAllRegistrations || 'All'}</option>
                 <option value="yes">{t.adminHasRegistrations || 'Has Courses'}</option>
-                <option value="no">{t.adminNoRegistrations || 'No Courses'}</option>
+                <option value="no">{t.adminNoCoursesFilter || 'No Courses'}</option>
               </select>
             </div>
 
@@ -600,83 +636,136 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredAndSortedUsers.map((user) => (
-                  <tr 
-                    key={user.userId} 
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                  >
-                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
-                      {user.firstName || '-'}
-                      {user.isAdmin && (
-                        <span className="ml-2 px-1.5 py-0.5 text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded">
-                          Admin
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
-                      {user.lastName || '-'}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                      <div className="flex items-center gap-1">
-                        <Mail size={14} className="text-gray-400" />
-                        <span className="truncate max-w-[200px]">{user.email}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                      {user.mobileNumber ? (
-                        <div className="flex items-center gap-1">
-                          <Phone size={14} className="text-gray-400" />
-                          {user.mobileNumber}
-                        </div>
-                      ) : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-                        <GraduationCap size={14} />
-                        {user.englishLevel}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      <div className="flex items-center gap-2">
-                        {user.registeredCourses.length > 0 && (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs">
-                            <BookOpen size={12} />
-                            {user.registeredCourses.length}
+                {filteredAndSortedUsers.map((user) => {
+                  const isExpanded = expandedUserId === user.userId;
+                  const hasCompletedCourses = user.completedCourses.length > 0;
+                  const userName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email;
+                  
+                  return (
+                    <React.Fragment key={user.userId}>
+                      <tr 
+                        className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${hasCompletedCourses ? 'cursor-pointer' : ''}`}
+                        onClick={() => hasCompletedCourses && toggleExpanded(user.userId)}
+                      >
+                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                          <div className="flex items-center gap-2">
+                            {hasCompletedCourses && (
+                              <span className="text-gray-400">
+                                {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                              </span>
+                            )}
+                            {user.firstName || '-'}
+                            {user.isAdmin && (
+                              <span className="ml-2 px-1.5 py-0.5 text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded">
+                                Admin
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                          {user.lastName || '-'}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                          <div className="flex items-center gap-1">
+                            <Mail size={14} className="text-gray-400" />
+                            <span className="truncate max-w-[200px]">{user.email}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                          {user.mobileNumber ? (
+                            <div className="flex items-center gap-1">
+                              <Phone size={14} className="text-gray-400" />
+                              {user.mobileNumber}
+                            </div>
+                          ) : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                            <GraduationCap size={14} />
+                            {user.englishLevel}
                           </span>
-                        )}
-                        {user.completedCourses.length > 0 && (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs">
-                            <Award size={12} />
-                            {user.completedCourses.length}
-                          </span>
-                        )}
-                        {user.registeredCourses.length === 0 && user.completedCourses.length === 0 && (
-                          <span className="text-gray-400 dark:text-gray-500">-</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      {user.isProfileComplete ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
-                          <CheckCircle size={14} />
-                          {t.adminYes || 'Yes'}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300">
-                          {t.adminNo || 'No'}
-                        </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <div className="flex items-center gap-2">
+                            {user.registeredCourses.length > 0 && (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs">
+                                <BookOpen size={12} />
+                                {user.registeredCourses.length}
+                              </span>
+                            )}
+                            {user.completedCourses.length > 0 && (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs">
+                                <Award size={12} />
+                                {user.completedCourses.length}
+                              </span>
+                            )}
+                            {user.registeredCourses.length === 0 && user.completedCourses.length === 0 && (
+                              <span className="text-gray-400 dark:text-gray-500">-</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {user.isProfileComplete ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
+                              <CheckCircle size={14} />
+                              {t.adminYes || 'Yes'}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300">
+                              {t.adminNo || 'No'}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                          {user.createdAt ? (
+                            <div className="flex items-center gap-1">
+                              <Calendar size={14} className="text-gray-400" />
+                              {formatDate(user.createdAt)}
+                            </div>
+                          ) : '-'}
+                        </td>
+                      </tr>
+                      
+                      {/* Expanded row showing completed courses */}
+                      {isExpanded && hasCompletedCourses && (
+                        <tr className="bg-green-50 dark:bg-green-900/10">
+                          <td colSpan={8} className="px-4 py-3">
+                            <div className="ml-6">
+                              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                                <Award size={16} className="text-green-600 dark:text-green-400" />
+                                {t.adminCompletedCourses || 'Completed Courses'}:
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {user.completedCourses.map(courseId => (
+                                  <div 
+                                    key={courseId}
+                                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-green-200 dark:border-green-800 text-sm"
+                                  >
+                                    <CheckCircle size={14} className="text-green-600 dark:text-green-400" />
+                                    <span className="text-gray-800 dark:text-gray-200">{getCourseTitle(courseId)}</span>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRemoveCompletionClick(user.userId, courseId, userName);
+                                      }}
+                                      className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 dark:text-red-400 transition-colors"
+                                      title={t.adminRemoveCompletion || 'Remove completion status'}
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                {t.adminRemoveCompletionHint || 'Click the trash icon to allow user to re-register for this course'}
+                              </p>
+                            </div>
+                          </td>
+                        </tr>
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                      {user.createdAt ? (
-                        <div className="flex items-center gap-1">
-                          <Calendar size={14} className="text-gray-400" />
-                          {formatDate(user.createdAt)}
-                        </div>
-                      ) : '-'}
-                    </td>
-                  </tr>
-                ))}
+                    </React.Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -689,6 +778,25 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
           </div>
         </div>
       )}
+
+      {/* Confirmation Modal for removing completion */}
+      <ConfirmationModal
+        isOpen={!!completionToRemove}
+        onClose={() => setCompletionToRemove(null)}
+        onConfirm={handleConfirmRemoveCompletion}
+        title={t.adminRemoveCompletionTitle || 'Remove Completion Status'}
+        message={
+          completionToRemove 
+            ? (t.adminRemoveCompletionConfirm || 'Are you sure you want to remove the completion status for "{course}" from {user}? This will allow them to register for this course again.')
+                .replace('{course}', completionToRemove.courseTitle)
+                .replace('{user}', completionToRemove.userName)
+            : ''
+        }
+        confirmText={t.adminRemoveCompletionBtn || 'Remove Completion'}
+        language={language}
+        type="warning"
+        isLoading={isRemovingCompletion}
+      />
     </div>
   );
 };

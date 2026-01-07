@@ -513,6 +513,12 @@ export const db = {
       throw new Error('Please complete your profile before registering for courses.');
     }
 
+    // Check if course is already completed - prevent re-registration
+    const isCompleted = await db.isUserCourseCompleted(session.id, courseId);
+    if (isCompleted) {
+      throw new Error('This course has already been completed. You cannot register for it again.');
+    }
+
     if (supabase) {
       // Check current registrations count
       const currentRegs = await db.getRegistrations();

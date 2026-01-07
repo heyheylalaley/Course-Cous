@@ -38,7 +38,7 @@ const getAiClient = () => {
 };
 
 // Check if we need to reinitialize the chat session
-const shouldReinitialize = async (language: Language): Promise<{ needsReinit: boolean; courses: Course[]; profile: UserProfile | null }> => {
+const shouldReinitialize = async (language: Language): Promise<{ needsReinit: boolean; courses: Course[]; profile: UserProfile | null; completedCourseIds: string[] }> => {
   // Load courses from database
   let availableCourses: Course[] = [];
   try {
@@ -53,8 +53,12 @@ const shouldReinitialize = async (language: Language): Promise<{ needsReinit: bo
 
   // Load user profile from database (same pattern as courses)
   let userProfile: UserProfile | null = null;
+  let completedCourseIds: string[] = [];
   try {
     userProfile = await db.getProfile();
+    // Load user's completed courses
+    const completedCourses = await db.getUserCompletedCourses();
+    completedCourseIds = completedCourses.map(c => c.courseId);
   } catch (error) {
     // User might not be authenticated - that's ok
     if (import.meta.env.DEV) {
@@ -79,10 +83,10 @@ const shouldReinitialize = async (language: Language): Promise<{ needsReinit: bo
     console.log(`[Gemini] Reinitializing chat session (reason: ${reason}, user level: ${currentEnglishLevel})`);
   }
   
-  return { needsReinit, courses: availableCourses, profile: userProfile };
+  return { needsReinit, courses: availableCourses, profile: userProfile, completedCourseIds };
 };
 
-export const initializeChat = async (userProfile?: UserProfile, language: Language = 'en', forcedCourses?: Course[]): Promise<Chat> => {
+export const initializeChat = async (userProfile?: UserProfile, language: Language = 'en', forcedCourses?: Course[], completedCourseIds?: string[]): Promise<Chat> => {
   const ai = getAiClient();
   
   // Use provided courses or load from database
@@ -96,16 +100,36 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
     }
   })();
 
+  // Load completed courses if not provided
+  const completedIds = completedCourseIds || await (async () => {
+    try {
+      const completed = await db.getUserCompletedCourses();
+      return completed.map(c => c.courseId);
+    } catch (error) {
+      return [];
+    }
+  })();
+
   if (import.meta.env.DEV && availableCourses.length > 0) {
     console.log(`[Gemini] Bot has ${availableCourses.length} courses available`);
   }
 
   // Build compact course list for bot (saves ~60% tokens vs JSON)
-  const courseListForBot = availableCourses.map(c => {
+  // Filter out completed courses from the recommendation list
+  const availableForRecommendation = availableCourses.filter(c => !completedIds.includes(c.id));
+  const courseListForBot = availableForRecommendation.map(c => {
     const level = c.minEnglishLevel || 'None';
     const levelStr = level === 'None' ? '' : ` [${level}+]`;
     return `• **${c.title}**${levelStr} — ${c.description}`;
   }).join('\n');
+
+  // Build list of completed courses to inform bot
+  const completedCoursesList = completedIds.length > 0 
+    ? availableCourses
+        .filter(c => completedIds.includes(c.id))
+        .map(c => `• ${c.title}`)
+        .join('\n')
+    : '';
 
   // Load bot instructions from database
   let mainInstructions = '';
@@ -141,6 +165,11 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
   let instructions = mainInstructions
     .replace(/\{\{COURSES_LIST\}\}/g, courseListForBot)
     .replace(/\{\{USER_ENGLISH_LEVEL\}\}/g, userLevel);
+
+  // Add completed courses info to instructions
+  if (completedCoursesList) {
+    instructions += `\n\n🏆 ALREADY COMPLETED COURSES (DO NOT recommend these again, user has already completed them):\n${completedCoursesList}\n\nIf user asks about these courses, congratulate them on completing and suggest other courses instead.`;
+  }
 
   // Append contact info if provided (uses {{CONTACTS}} placeholder or appends)
   if (contactsInstructions && contactsInstructions.trim()) {
@@ -198,12 +227,12 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
 
 export const sendMessageToGemini = async function* (message: string, _userProfile?: UserProfile, language: Language = 'en') {
   // Check if we need to reinitialize - loads fresh profile from database
-  const { needsReinit, courses, profile } = await shouldReinitialize(language);
+  const { needsReinit, courses, profile, completedCourseIds } = await shouldReinitialize(language);
   
   if (needsReinit) {
     try {
       // Use the fresh profile from database, not the passed parameter
-      chatSession = await initializeChat(profile || undefined, language, courses);
+      chatSession = await initializeChat(profile || undefined, language, courses, completedCourseIds);
     } catch (error) {
       console.error('Failed to initialize chat:', error);
       if (!chatSession) {
@@ -235,8 +264,8 @@ export const sendMessageToGemini = async function* (message: string, _userProfil
       lastCoursesHash = ''; // Force courses reload
       
       try {
-        const { courses: freshCourses, profile: freshProfile } = await shouldReinitialize(language);
-        chatSession = await initializeChat(freshProfile || undefined, language, freshCourses);
+        const { courses: freshCourses, profile: freshProfile, completedCourseIds: freshCompleted } = await shouldReinitialize(language);
+        chatSession = await initializeChat(freshProfile || undefined, language, freshCourses, freshCompleted);
         
         // Retry the message
         const retryStream = await chatSession.sendMessageStream({ message });

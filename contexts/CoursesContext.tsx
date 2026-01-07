@@ -6,6 +6,7 @@ import { TRANSLATIONS } from '../translations';
 interface CoursesContextValue {
   courses: Course[];
   registrations: string[];
+  completedCourses: string[];
   courseQueues: Map<string, number>;
   isLoading: boolean;
   error: string | null;
@@ -63,14 +64,17 @@ const sortCoursesWithRegistrations = (courses: Course[], registeredIds: string[]
 export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, language }) => {
   const [rawCourses, setRawCourses] = useState<Course[]>([]);
   const [registrations, setRegistrations] = useState<string[]>([]);
+  const [completedCourses, setCompletedCourses] = useState<string[]>([]);
   const [courseQueues, setCourseQueues] = useState<Map<string, number>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Memoized sorted courses: registered first, then by difficulty
+  // Filter out completed courses - users shouldn't see them in the catalog
   const courses = useMemo(() => {
-    return sortCoursesWithRegistrations(rawCourses, registrations);
-  }, [rawCourses, registrations]);
+    const filteredCourses = rawCourses.filter(c => !completedCourses.includes(c.id));
+    return sortCoursesWithRegistrations(filteredCourses, registrations);
+  }, [rawCourses, registrations, completedCourses]);
 
   const loadCourses = useCallback(async () => {
     try {
@@ -92,6 +96,17 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
     } catch (err: any) {
       if (import.meta.env.DEV) {
         console.error('Failed to load registrations:', err);
+      }
+    }
+  }, []);
+
+  const loadCompletedCourses = useCallback(async () => {
+    try {
+      const completed = await db.getUserCompletedCourses();
+      setCompletedCourses(completed.map(c => c.courseId));
+    } catch (err: any) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to load completed courses:', err);
       }
     }
   }, []);
@@ -118,8 +133,8 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
   }, [loadCourses]);
 
   const refreshRegistrations = useCallback(async () => {
-    await Promise.all([loadRegistrations(), loadQueues()]);
-  }, [loadRegistrations, loadQueues]);
+    await Promise.all([loadRegistrations(), loadQueues(), loadCompletedCourses()]);
+  }, [loadRegistrations, loadQueues, loadCompletedCourses]);
 
   // Initial load and Supabase Realtime setup
   useEffect(() => {
@@ -127,7 +142,7 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
 
     const init = async () => {
       setIsLoading(true);
-      await Promise.all([loadCourses(), loadRegistrations(), loadQueues()]);
+      await Promise.all([loadCourses(), loadRegistrations(), loadQueues(), loadCompletedCourses()]);
       setIsLoading(false);
     };
 
@@ -157,7 +172,7 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
         supabase.removeChannel(channel);
       }
     };
-  }, [loadCourses, loadRegistrations, loadQueues]);
+  }, [loadCourses, loadRegistrations, loadQueues, loadCompletedCourses]);
 
   // Reload courses when language changes
   useEffect(() => {
@@ -165,8 +180,14 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
   }, [language, loadCourses]);
 
   const toggleRegistration = useCallback(async (courseId: string, language: Language): Promise<{ success: boolean; error?: string }> => {
-    const t = TRANSLATIONS[language];
+    const t = TRANSLATIONS[language] as any;
     const isRegistered = registrations.includes(courseId);
+    const isCompleted = completedCourses.includes(courseId);
+    
+    // Check if course is already completed - prevent re-registration
+    if (!isRegistered && isCompleted) {
+      return { success: false, error: t.courseAlreadyCompleted || 'This course has already been completed. You cannot register for it again.' };
+    }
     
     // Optimistic update
     if (isRegistered) {
@@ -212,7 +233,7 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
       await Promise.all([loadRegistrations(), loadQueues()]);
       return { success: false, error: err.message || 'Failed to update registration' };
     }
-  }, [registrations, loadRegistrations, loadQueues]);
+  }, [registrations, completedCourses, loadRegistrations, loadQueues]);
 
   const updatePriority = useCallback(async (courseId: string, newPriority: number) => {
     try {
@@ -228,6 +249,7 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
   const value: CoursesContextValue = {
     courses,
     registrations,
+    completedCourses,
     courseQueues,
     isLoading,
     error,

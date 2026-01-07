@@ -138,6 +138,19 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
   // Handle course click for registration
   const handleCourseClick = useCallback(async (courseId: string, courseTitle: string) => {
     try {
+      // Check if course is already completed
+      const completedCourses = await db.getUserCompletedCourses();
+      const alreadyCompleted = completedCourses.some(c => c.courseId === courseId);
+      
+      if (alreadyCompleted) {
+        setAlertModal({
+          isOpen: true,
+          message: t.courseAlreadyCompleted || `Congratulations! You have already completed "${courseTitle}". You cannot register for this course again.`,
+          type: 'success'
+        });
+        return;
+      }
+      
       // Check if already registered
       const registrations = await db.getRegistrations();
       const alreadyRegistered = registrations.some(r => r.courseId === courseId);
@@ -181,6 +194,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
             onClick: () => setActiveTab('dashboard')
           }
         });
+      } else if (errorMessage.includes('completed') || errorMessage.includes('already been completed')) {
+        setAlertModal({
+          isOpen: true,
+          message: t.courseAlreadyCompleted || 'You have already completed this course.',
+          type: 'success'
+        });
       } else {
         setAlertModal({
           isOpen: true,
@@ -189,7 +208,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
         });
       }
     }
-  }, [t]);
+  }, [t, setActiveTab]);
 
   // Handle chat clear
   const handleClearChat = useCallback(async () => {
