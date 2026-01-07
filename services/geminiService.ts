@@ -6,6 +6,7 @@ import { db } from './db';
 let chatSession: Chat | null = null;
 let lastCoursesHash: string = '';
 let lastLanguage: Language = 'en';
+let lastEnglishLevel: EnglishLevel = 'None';
 
 // Helper function to create a simple hash of courses for change detection
 const createCoursesHash = (courses: Course[]): string => {
@@ -37,7 +38,7 @@ const getAiClient = () => {
 };
 
 // Check if we need to reinitialize the chat session
-const shouldReinitialize = async (language: Language): Promise<{ needsReinit: boolean; courses: Course[] }> => {
+const shouldReinitialize = async (language: Language, userProfile?: UserProfile): Promise<{ needsReinit: boolean; courses: Course[] }> => {
   // Load courses from database
   let availableCourses: Course[] = [];
   try {
@@ -51,16 +52,19 @@ const shouldReinitialize = async (language: Language): Promise<{ needsReinit: bo
   }
 
   const currentHash = createCoursesHash(availableCourses);
+  const currentEnglishLevel = userProfile?.englishLevel || 'None';
   
-  // Check if courses changed or language changed or no session exists
+  // Check if courses changed, language changed, English level changed, or no session exists
   const needsReinit = !chatSession || 
                       currentHash !== lastCoursesHash || 
-                      language !== lastLanguage;
+                      language !== lastLanguage ||
+                      currentEnglishLevel !== lastEnglishLevel;
   
   if (import.meta.env.DEV && needsReinit) {
     const reason = !chatSession ? 'no session' : 
                    currentHash !== lastCoursesHash ? 'courses changed' : 
-                   'language changed';
+                   language !== lastLanguage ? 'language changed' :
+                   'English level changed';
     console.log(`[Gemini] Reinitializing chat session (reason: ${reason})`);
   }
   
@@ -134,8 +138,18 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
     instructions += `\n\n🔗 External Resources:\n${externalLinksInstructions}`;
   }
 
+  // Add user's English level to help bot make appropriate recommendations
+  if (userProfile?.englishLevel) {
+    const userLevel = userProfile.englishLevel;
+    instructions += `\n\n👤 USER'S ENGLISH LEVEL: ${userLevel}`;
+    instructions += `\nWhen recommending courses, compare user's level (${userLevel}) with course requirements [A1+], [A2+], [B1+], [B2+].`;
+    instructions += `\nIf user's level is BELOW the requirement: still suggest the course, but kindly note they should improve their English first. Recommend ETB Cork for free English courses.`;
+    instructions += `\nIf user's level is SUFFICIENT: recommend the course without English warnings.`;
+    instructions += `\nLevel hierarchy: None < A1 < A2 < B1 < B2 < C1 < C2`;
+  }
+
   if (import.meta.env.DEV) {
-    console.log(`[Gemini] Instructions prepared with ${availableCourses.length} courses`);
+    console.log(`[Gemini] Instructions prepared with ${availableCourses.length} courses, user level: ${userProfile?.englishLevel || 'unknown'}`);
   }
 
   if (availableCourses.length === 0) {
@@ -165,13 +179,14 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
   // Update cache
   lastCoursesHash = createCoursesHash(availableCourses);
   lastLanguage = language;
+  lastEnglishLevel = userProfile?.englishLevel || 'None';
   
   return chatSession;
 };
 
 export const sendMessageToGemini = async function* (message: string, userProfile?: UserProfile, language: Language = 'en') {
-  // Check if we need to reinitialize
-  const { needsReinit, courses } = await shouldReinitialize(language);
+  // Check if we need to reinitialize (pass userProfile to check English level changes)
+  const { needsReinit, courses } = await shouldReinitialize(language, userProfile);
   
   if (needsReinit) {
     try {
@@ -207,7 +222,7 @@ export const sendMessageToGemini = async function* (message: string, userProfile
       lastCoursesHash = ''; // Force courses reload
       
       try {
-        const { courses: freshCourses } = await shouldReinitialize(language);
+        const { courses: freshCourses } = await shouldReinitialize(language, userProfile);
         chatSession = await initializeChat(userProfile, language, freshCourses);
         
         // Retry the message
@@ -243,6 +258,7 @@ export const sendMessageToGemini = async function* (message: string, userProfile
 export const invalidateChatCache = () => {
   chatSession = null;
   lastCoursesHash = '';
+  lastEnglishLevel = 'None';
   if (import.meta.env.DEV) {
     console.log('[Gemini] Chat cache invalidated');
   }
