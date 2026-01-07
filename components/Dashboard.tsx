@@ -3,7 +3,7 @@ import { UserProfile, EnglishLevel, Language, Registration, Course } from '../ty
 import { AVAILABLE_COURSES } from '../constants';
 import { useCourses } from '../hooks/useCourses';
 import { CourseCard } from './CourseCard';
-import { Save, User, BookCheck, ArrowUp, ArrowDown, Edit2, Menu, Mail, CheckCircle } from 'lucide-react';
+import { Save, User, BookCheck, ArrowUp, ArrowDown, Edit2, Menu, Mail, CheckCircle, Award, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
 import { db } from '../services/db';
 import { TRANSLATIONS } from '../translations';
 import { ProfileInfoModal } from './ProfileInfoModal';
@@ -70,6 +70,8 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
   const [isRemoving, setIsRemoving] = useState(false);
   // Sensitive data is always masked and cannot be revealed
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [completedCourses, setCompletedCourses] = useState<Array<{ courseId: string; completedAt: Date }>>([]);
+  const [showCompletedSection, setShowCompletedSection] = useState(false);
   const { courses: availableCourses } = useCourses(false, language);
   const { setSidebarOpen } = useUI();
   const t = TRANSLATIONS[language] as any;
@@ -114,6 +116,15 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
         // Check if profile is complete
         const complete = await db.isProfileComplete();
         setIsProfileComplete(complete);
+
+        // Load completed courses
+        try {
+          const completed = await db.getUserCompletedCourses();
+          setCompletedCourses(completed);
+        } catch (err) {
+          // Silently fail - completions might not be available
+          console.error("Failed to load completed courses", err);
+        }
       } catch (error) {
         console.error("Failed to load data", error);
       }
@@ -426,6 +437,66 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
             </div>
           )}
         </section>
+
+        {/* Completed Courses Section */}
+        {completedCourses.length > 0 && (
+          <section className="mt-6">
+            <button
+              onClick={() => setShowCompletedSection(!showCompletedSection)}
+              className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 rounded-lg">
+                  <Award size={20} />
+                </div>
+                <h2 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-white">
+                  {t.completedCourses || 'Completed Courses'}
+                </h2>
+                <span className="bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-xs font-bold px-2 py-1 rounded-full">
+                  {completedCourses.length}
+                </span>
+              </div>
+              {showCompletedSection ? (
+                <ChevronUp className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+              )}
+            </button>
+
+            {showCompletedSection && (
+              <div className="mt-3 space-y-3">
+                {completedCourses.map(({ courseId, completedAt }) => {
+                  const course = availableCourses.find(c => c.id === courseId);
+                  if (!course) return null;
+                  
+                  return (
+                    <div 
+                      key={courseId} 
+                      className="bg-white dark:bg-gray-800 rounded-xl border border-green-200 dark:border-green-800 p-4 shadow-sm"
+                    >
+                      <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-100 dark:border-gray-700">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                          <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                            {t.courseCompleted || 'Completed'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                          <Calendar size={14} />
+                          {completedAt.toLocaleDateString(language === 'en' ? 'en-GB' : language === 'ua' ? 'uk-UA' : language === 'ru' ? 'ru-RU' : 'ar-SA')}
+                        </div>
+                      </div>
+                      <div className="opacity-75">
+                        <h3 className="font-semibold text-gray-900 dark:text-white mb-1">{course.title}</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{course.description}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
 
         </div>
       </div>

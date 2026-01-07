@@ -1012,6 +1012,109 @@ export const db = {
     return [];
   },
 
+  // Get all users with registrations and completions (admin only)
+  getAllUsersWithDetails: async (): Promise<Array<{
+    userId: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    mobileNumber?: string;
+    address?: string;
+    eircode?: string;
+    dateOfBirth?: string;
+    englishLevel: EnglishLevel;
+    isAdmin?: boolean;
+    createdAt?: Date;
+    registeredCourses: string[];
+    completedCourses: string[];
+    isProfileComplete: boolean;
+  }>> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    if (supabase) {
+      // Get all profiles
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (profilesError) throw new Error(profilesError.message);
+
+      // Get all registrations
+      const { data: registrations, error: regError } = await supabase
+        .from('registrations')
+        .select('user_id, course_id');
+
+      if (regError) throw new Error(regError.message);
+
+      // Get all completions
+      const { data: completions, error: compError } = await supabase
+        .from('course_completions')
+        .select('user_id, course_id');
+
+      // Build maps for quick lookup
+      const registrationsMap = new Map<string, string[]>();
+      (registrations || []).forEach((r: any) => {
+        if (!registrationsMap.has(r.user_id)) {
+          registrationsMap.set(r.user_id, []);
+        }
+        registrationsMap.get(r.user_id)!.push(r.course_id);
+      });
+
+      const completionsMap = new Map<string, string[]>();
+      (completions || []).forEach((c: any) => {
+        if (!completionsMap.has(c.user_id)) {
+          completionsMap.set(c.user_id, []);
+        }
+        completionsMap.get(c.user_id)!.push(c.course_id);
+      });
+
+      return (profiles || []).map((p: any) => {
+        let firstName = p.first_name;
+        let lastName = p.last_name;
+        if (!firstName && !lastName && p.name) {
+          const nameParts = p.name.trim().split(/\s+/);
+          firstName = nameParts[0] || '';
+          lastName = nameParts.slice(1).join(' ') || '';
+        }
+
+        const isProfileComplete = !!(
+          firstName && firstName.trim() &&
+          lastName && lastName.trim() &&
+          p.mobile_number && p.mobile_number.trim() &&
+          p.address && p.address.trim() &&
+          p.eircode && p.eircode.trim() &&
+          p.date_of_birth
+        );
+
+        return {
+          userId: p.id,
+          email: p.email,
+          firstName: firstName || undefined,
+          lastName: lastName || undefined,
+          mobileNumber: p.mobile_number || undefined,
+          address: p.address || undefined,
+          eircode: p.eircode || undefined,
+          dateOfBirth: p.date_of_birth ? new Date(p.date_of_birth).toISOString().split('T')[0] : undefined,
+          englishLevel: (p.english_level as EnglishLevel) || 'None',
+          isAdmin: p.is_admin || false,
+          createdAt: p.created_at ? new Date(p.created_at) : undefined,
+          registeredCourses: registrationsMap.get(p.id) || [],
+          completedCourses: completionsMap.get(p.id) || [],
+          isProfileComplete
+        };
+      });
+    }
+
+    return [];
+  },
+
   getAdminStudentDetails: async (courseId: string): Promise<AdminStudentDetail[]> => {
     const session = db.getCurrentSession();
     if (!session) throw new Error("Not authenticated");
@@ -1716,5 +1819,171 @@ export const db = {
     // Mock fallback
     const storageKey = `bot_instruction_${section}_${language}`;
     localStorage.setItem(storageKey, content);
+  },
+
+  // --- Course Completion Methods (Admin only) ---
+  markCourseCompleted: async (userId: string, courseId: string): Promise<void> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    // Check if user is admin
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    if (supabase) {
+      const { error } = await supabase
+        .from('course_completions')
+        .insert({
+          user_id: userId,
+          course_id: courseId,
+          marked_by: session.id
+        });
+
+      if (error) {
+        // If already exists, ignore
+        if (error.code === '23505') return;
+        throw new Error(error.message);
+      }
+
+      // Also remove the user's registration for this course
+      await supabase
+        .from('registrations')
+        .delete()
+        .eq('user_id', userId)
+        .eq('course_id', courseId);
+      
+      return;
+    }
+
+    // Mock fallback
+    const storageKey = `course_completion_${userId}_${courseId}`;
+    localStorage.setItem(storageKey, JSON.stringify({
+      userId,
+      courseId,
+      completedAt: new Date().toISOString(),
+      markedBy: session.id
+    }));
+  },
+
+  unmarkCourseCompleted: async (userId: string, courseId: string): Promise<void> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    // Check if user is admin
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    if (supabase) {
+      const { error } = await supabase
+        .from('course_completions')
+        .delete()
+        .eq('user_id', userId)
+        .eq('course_id', courseId);
+
+      if (error) throw new Error(error.message);
+      return;
+    }
+
+    // Mock fallback
+    const storageKey = `course_completion_${userId}_${courseId}`;
+    localStorage.removeItem(storageKey);
+  },
+
+  getUserCompletedCourses: async (userId?: string): Promise<Array<{ courseId: string; completedAt: Date }>> => {
+    const session = db.getCurrentSession();
+    if (!session) return [];
+
+    const targetUserId = userId || session.id;
+
+    // If requesting another user's completions, must be admin
+    if (targetUserId !== session.id) {
+      const profile = await db.getProfile();
+      if (!profile.isAdmin) {
+        throw new Error("Admin access required to view other users' completions");
+      }
+    }
+
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('course_completions')
+        .select('course_id, completed_at')
+        .eq('user_id', targetUserId);
+
+      if (error) throw new Error(error.message);
+
+      return (data || []).map((c: any) => ({
+        courseId: c.course_id,
+        completedAt: new Date(c.completed_at)
+      }));
+    }
+
+    // Mock fallback
+    const completions: Array<{ courseId: string; completedAt: Date }> = [];
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith(`course_completion_${targetUserId}_`)) {
+        try {
+          const data = JSON.parse(localStorage.getItem(key) || '{}');
+          completions.push({
+            courseId: data.courseId,
+            completedAt: new Date(data.completedAt)
+          });
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+    }
+    return completions;
+  },
+
+  getAllCompletions: async (): Promise<Array<{ userId: string; courseId: string; completedAt: Date }>> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    // Check if user is admin
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('course_completions')
+        .select('user_id, course_id, completed_at');
+
+      if (error) throw new Error(error.message);
+
+      return (data || []).map((c: any) => ({
+        userId: c.user_id,
+        courseId: c.course_id,
+        completedAt: new Date(c.completed_at)
+      }));
+    }
+
+    // Mock fallback
+    const completions: Array<{ userId: string; courseId: string; completedAt: Date }> = [];
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith('course_completion_')) {
+        try {
+          const data = JSON.parse(localStorage.getItem(key) || '{}');
+          completions.push({
+            userId: data.userId,
+            courseId: data.courseId,
+            completedAt: new Date(data.completedAt)
+          });
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+    }
+    return completions;
+  },
+
+  isUserCourseCompleted: async (userId: string, courseId: string): Promise<boolean> => {
+    const completions = await db.getUserCompletedCourses(userId);
+    return completions.some(c => c.courseId === courseId);
   }
 };

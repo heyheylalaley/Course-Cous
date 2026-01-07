@@ -368,6 +368,45 @@ GRANT EXECUTE ON FUNCTION get_course_queue_counts() TO authenticated;
 GRANT EXECUTE ON FUNCTION get_course_queue_counts() TO anon;
 
 -- ============================================================================
+-- PART 8: Course Completions (Admin marks users as completed)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS course_completions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  course_id TEXT NOT NULL,
+  completed_at TIMESTAMPTZ DEFAULT NOW(),
+  marked_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, course_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_course_completions_user_id ON course_completions(user_id);
+CREATE INDEX IF NOT EXISTS idx_course_completions_course_id ON course_completions(course_id);
+
+ALTER TABLE course_completions ENABLE ROW LEVEL SECURITY;
+
+-- Users can read their own completions
+DROP POLICY IF EXISTS "Users can read own completions" ON course_completions;
+CREATE POLICY "Users can read own completions" ON course_completions
+  FOR SELECT USING (auth.uid() = user_id);
+
+-- Admins can read all completions
+DROP POLICY IF EXISTS "Admins can read all completions" ON course_completions;
+CREATE POLICY "Admins can read all completions" ON course_completions
+  FOR SELECT USING (is_admin_user() = TRUE);
+
+-- Admins can insert completions
+DROP POLICY IF EXISTS "Admins can insert completions" ON course_completions;
+CREATE POLICY "Admins can insert completions" ON course_completions
+  FOR INSERT WITH CHECK (is_admin_user() = TRUE);
+
+-- Admins can delete completions (unmark)
+DROP POLICY IF EXISTS "Admins can delete completions" ON course_completions;
+CREATE POLICY "Admins can delete completions" ON course_completions
+  FOR DELETE USING (is_admin_user() = TRUE);
+
+-- ============================================================================
 -- COMPLETE!
 -- ============================================================================
 

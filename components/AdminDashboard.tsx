@@ -7,7 +7,8 @@ import { AdminStudentList } from './AdminStudentList';
 import { AdminCourseManagement } from './AdminCourseManagement';
 import { AdminAnalytics } from './AdminAnalytics';
 import { AdminBotInstructions } from './AdminBotInstructions';
-import { Shield, Users, BookOpen, ArrowLeft, Settings, BarChart3, Bot, Menu } from 'lucide-react';
+import { AdminAllUsers } from './AdminAllUsers';
+import { Shield, Users, BookOpen, ArrowLeft, Settings, BarChart3, Bot, Menu, Database } from 'lucide-react';
 import { useUI } from '../contexts/UIContext';
 
 interface AdminDashboardProps {
@@ -19,10 +20,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = memo(({ language, o
   const [courseStats, setCourseStats] = useState<AdminCourseStats[]>([]);
   
   // Load saved state from localStorage
-  const getSavedActiveView = (): 'overview' | 'management' | 'analytics' | 'bot-instructions' => {
+  const getSavedActiveView = (): 'overview' | 'all-users' | 'management' | 'analytics' | 'bot-instructions' => {
     const saved = localStorage.getItem('adminActiveView');
-    if (saved && ['overview', 'management', 'analytics', 'bot-instructions'].includes(saved)) {
-      return saved as 'overview' | 'management' | 'analytics' | 'bot-instructions';
+    if (saved && ['overview', 'all-users', 'management', 'analytics', 'bot-instructions'].includes(saved)) {
+      return saved as 'overview' | 'all-users' | 'management' | 'analytics' | 'bot-instructions';
     }
     return 'overview';
   };
@@ -32,7 +33,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = memo(({ language, o
   };
 
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(getSavedSelectedCourseId());
-  const [activeView, setActiveView] = useState<'overview' | 'management' | 'analytics' | 'bot-instructions'>(getSavedActiveView());
+  const [activeView, setActiveView] = useState<'overview' | 'all-users' | 'management' | 'analytics' | 'bot-instructions'>(getSavedActiveView());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const t = TRANSLATIONS[language];
@@ -152,7 +153,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = memo(({ language, o
 
         {/* Tabs */}
         {!selectedCourseId && (
-          <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex flex-wrap gap-2 mb-6 border-b border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setActiveView('overview')}
               className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
@@ -161,8 +162,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = memo(({ language, o
                   : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
             >
-              <Users size={18} className="inline mr-2" />
-              {t.adminEnrollmentOverview || 'Enrollment Overview'}
+              <BookOpen size={18} className="inline mr-2" />
+              {t.adminEnrollmentOverview || 'Courses'}
+            </button>
+            <button
+              onClick={() => setActiveView('all-users')}
+              className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
+                activeView === 'all-users'
+                  ? 'border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              <Database size={18} className="inline mr-2" />
+              {t.adminAllUsers || 'All Users'}
             </button>
             <button
               onClick={() => setActiveView('management')}
@@ -173,7 +185,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = memo(({ language, o
               }`}
             >
               <Settings size={18} className="inline mr-2" />
-              {t.adminCourseManagement || 'Course Management'}
+              {t.adminCourseManagement || 'Manage Courses'}
             </button>
             <button
               onClick={() => setActiveView('analytics')}
@@ -195,7 +207,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = memo(({ language, o
               }`}
             >
               <Bot size={18} className="inline mr-2" />
-              {t.adminBotInstructions || 'Bot Instructions'}
+              {t.adminBotInstructions || 'Bot'}
             </button>
           </div>
         )}
@@ -213,6 +225,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = memo(({ language, o
             language={language}
             onCourseSelect={handleCourseSelect}
           />
+        ) : activeView === 'all-users' ? (
+          <AdminAllUsers language={language} />
         ) : activeView === 'analytics' ? (
           <AdminAnalytics language={language} />
         ) : activeView === 'bot-instructions' ? (

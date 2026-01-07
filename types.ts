@@ -62,6 +62,8 @@ export interface AdminStudentDetail {
   englishLevel: EnglishLevel;
   registeredAt: Date;
   priority: number;
+  isCompleted?: boolean; // Whether admin marked this course as completed for this user
+  completedAt?: Date;
 }
 
 export interface Registration {
@@ -73,4 +75,28 @@ export interface Registration {
 export interface CourseQueue {
   courseId: string;
   queueLength: number; // number of people in queue
+}
+
+export interface CourseCompletion {
+  userId: string;
+  courseId: string;
+  completedAt: Date;
+  markedBy?: string; // Admin who marked it as completed
+}
+
+export interface AdminUserDetail {
+  userId: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  mobileNumber?: string;
+  address?: string;
+  eircode?: string;
+  dateOfBirth?: string;
+  englishLevel: EnglishLevel;
+  isAdmin?: boolean;
+  createdAt?: Date;
+  registeredCourses: string[]; // Course IDs the user is registered for
+  completedCourses: string[]; // Course IDs marked as completed
+  isProfileComplete: boolean;
 }
