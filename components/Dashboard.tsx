@@ -3,7 +3,7 @@ import { UserProfile, EnglishLevel, Language, Registration, Course } from '../ty
 import { AVAILABLE_COURSES } from '../constants';
 import { useCourses } from '../hooks/useCourses';
 import { CourseCard } from './CourseCard';
-import { Save, User, BookCheck, ArrowUp, ArrowDown, Edit2, Menu, Eye, EyeOff, Mail, CheckCircle } from 'lucide-react';
+import { Save, User, BookCheck, ArrowUp, ArrowDown, Edit2, Menu, Mail, CheckCircle } from 'lucide-react';
 import { db } from '../services/db';
 import { TRANSLATIONS } from '../translations';
 import { ProfileInfoModal } from './ProfileInfoModal';
@@ -68,7 +68,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
   const [isProfileComplete, setIsProfileComplete] = useState(false);
   const [courseToRemove, setCourseToRemove] = useState<{ id: string; title: string } | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
-  const [showSensitiveData, setShowSensitiveData] = useState(false);
+  // Sensitive data is always masked and cannot be revealed
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const { courses: availableCourses } = useCourses(false, language);
   const { setSidebarOpen } = useUI();
@@ -248,22 +248,15 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {t.additionalInfoDesc}
               </p>
-              <button
-                onClick={() => setShowSensitiveData(!showSensitiveData)}
-                className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-              >
-                {showSensitiveData ? <EyeOff size={14} /> : <Eye size={14} />}
-                {showSensitiveData ? (t.hideData || 'Hide') : (t.tapToReveal || 'Show')}
-              </button>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-              {/* Email - always shown, but masked */}
+              {/* Email - always masked */}
               <div className="sm:col-span-2 flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                 <Mail size={16} className="text-gray-400 dark:text-gray-500" />
                 <span className="text-gray-500 dark:text-gray-400">{t.emailLabel || 'Email'}:</span>
                 <span className="ml-1 text-gray-900 dark:text-white font-medium">
-                  {showSensitiveData ? (userProfile.email || '-') : maskEmail(userProfile.email)}
+                  {maskEmail(userProfile.email)}
                 </span>
               </div>
               <div>
@@ -281,7 +274,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
               <div>
                 <span className="text-gray-500 dark:text-gray-400">{t.mobileNumberLabel}:</span>
                 <span className="ml-2 text-gray-900 dark:text-white font-medium">
-                  {showSensitiveData ? (userProfile.mobileNumber || '-') : maskPhone(userProfile.mobileNumber || '')}
+                  {maskPhone(userProfile.mobileNumber || '')}
                 </span>
               </div>
               <div>
@@ -293,7 +286,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
               <div className="sm:col-span-2">
                 <span className="text-gray-500 dark:text-gray-400">{t.addressLabel}:</span>
                 <span className="ml-2 text-gray-900 dark:text-white font-medium">
-                  {showSensitiveData ? (userProfile.address || '-') : maskAddress(userProfile.address || '')}
+                  {maskAddress(userProfile.address || '')}
                 </span>
               </div>
               <div>

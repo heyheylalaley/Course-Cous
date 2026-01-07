@@ -19,12 +19,13 @@ export const ProfileInfoModal: React.FC<ProfileInfoModalProps> = ({
   language,
   currentProfile
 }) => {
-  const [firstName, setFirstName] = useState(currentProfile.firstName || '');
-  const [lastName, setLastName] = useState(currentProfile.lastName || '');
-  const [mobileNumber, setMobileNumber] = useState(currentProfile.mobileNumber || '');
-  const [address, setAddress] = useState(currentProfile.address || '');
-  const [eircode, setEircode] = useState(currentProfile.eircode || '');
-  const [dateOfBirth, setDateOfBirth] = useState(currentProfile.dateOfBirth || '');
+  // Fields start empty - user enters new values that will overwrite existing data
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [mobileNumber, setMobileNumber] = useState('');
+  const [address, setAddress] = useState('');
+  const [eircode, setEircode] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const t = TRANSLATIONS[language];
@@ -34,7 +35,7 @@ export const ProfileInfoModal: React.FC<ProfileInfoModalProps> = ({
   const initializedProfileIdRef = useRef<string | null>(null);
   const wasOpenRef = useRef<boolean>(false);
 
-  // Update form when modal opens or profile changes (only on actual profile change, not on tab switch)
+  // Reset form to empty fields when modal opens (data is hidden, user enters new values to overwrite)
   useEffect(() => {
     const currentProfileId = currentProfile?.id || null;
     const shouldInitialize = isOpen && (
@@ -43,12 +44,13 @@ export const ProfileInfoModal: React.FC<ProfileInfoModalProps> = ({
     );
     
     if (shouldInitialize) {
-      setFirstName(currentProfile.firstName || '');
-      setLastName(currentProfile.lastName || '');
-      setMobileNumber(currentProfile.mobileNumber || '');
-      setAddress(currentProfile.address || '');
-      setEircode(currentProfile.eircode || '');
-      setDateOfBirth(currentProfile.dateOfBirth || '');
+      // Always start with empty fields - user cannot see existing data
+      setFirstName('');
+      setLastName('');
+      setMobileNumber('');
+      setAddress('');
+      setEircode('');
+      setDateOfBirth('');
       setError(null);
       initializedProfileIdRef.current = currentProfileId;
     }
