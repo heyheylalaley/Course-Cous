@@ -162,8 +162,12 @@ export const AdminBotInstructions: React.FC<AdminBotInstructionsProps> = ({ lang
                       <span>
                         {t.botInstructionsMainDesc || 'Main instructions for the bot. This is the core behavior description.'}
                         <br />
-                        <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 block">
-                          💡 <strong>Important:</strong> Use <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{"{{COURSES_LIST}}"}</code> placeholder where you want the dynamic course list to be inserted. The system will automatically replace it with the actual courses from the database.
+                        <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 block space-y-1">
+                          <span className="block">💡 <strong>Available placeholders:</strong></span>
+                          <span className="block">• <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{"{{COURSES_LIST}}"}</code> — inserts the list of active courses</span>
+                          <span className="block">• <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{"{{USER_ENGLISH_LEVEL}}"}</code> — inserts user's English level (None, A1, A2, B1, B2, C1, C2)</span>
+                          <span className="block">• <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{"{{CONTACTS}}"}</code> — inserts contact information (optional)</span>
+                          <span className="block">• <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{"{{EXTERNAL_LINKS}}"}</code> — inserts external links (optional)</span>
                         </span>
                       </span>
                     )}

@@ -134,31 +134,31 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
     throw new Error('Bot instructions are not configured. Please set up bot instructions in the admin panel.');
   }
 
-  // Build instructions with compact course list
-  let instructions = mainInstructions.replace('{{COURSES_LIST}}', courseListForBot);
-  
-  if (!mainInstructions.includes('{{COURSES_LIST}}')) {
-    instructions += `\n\n📚 Available courses:\n${courseListForBot}\n\n⚠️ ONLY recommend courses from this list.`;
-  }
-
-  if (contactsInstructions && contactsInstructions.trim()) {
-    instructions += `\n\n📇 Contact Information:\n${contactsInstructions}`;
-  }
-
-  if (externalLinksInstructions && externalLinksInstructions.trim()) {
-    instructions += `\n\n🔗 External Resources:\n${externalLinksInstructions}`;
-  }
-
-  // Add user's English level to help bot make appropriate recommendations
-  // Always include this section so bot knows the user's level
+  // Get user's English level
   const userLevel = userProfile?.englishLevel || 'None';
-  instructions += `\n\n🎯 THIS USER'S ENGLISH LEVEL: ${userLevel}`;
-  instructions += `\n⚠️ IMPORTANT: You KNOW this user's English level is ${userLevel}. This is FACT from their profile.`;
-  instructions += `\nWhen user asks about their English level, tell them: "Your English level is ${userLevel}"`;
-  instructions += `\nWhen recommending courses, compare ${userLevel} with requirements [A1+], [A2+], [B1+], [B2+].`;
-  instructions += `\nLevel hierarchy: None < A1 < A2 < B1 < B2 < C1 < C2`;
-  instructions += `\nIf ${userLevel} >= requirement: recommend without warnings.`;
-  instructions += `\nIf ${userLevel} < requirement: suggest course BUT recommend improving English first via ETB Cork.`;
+
+  // Build instructions by replacing placeholders
+  let instructions = mainInstructions
+    .replace(/\{\{COURSES_LIST\}\}/g, courseListForBot)
+    .replace(/\{\{USER_ENGLISH_LEVEL\}\}/g, userLevel);
+
+  // Append contact info if provided (uses {{CONTACTS}} placeholder or appends)
+  if (contactsInstructions && contactsInstructions.trim()) {
+    if (instructions.includes('{{CONTACTS}}')) {
+      instructions = instructions.replace(/\{\{CONTACTS\}\}/g, contactsInstructions);
+    } else {
+      instructions += `\n\n📇 Contact Information:\n${contactsInstructions}`;
+    }
+  }
+
+  // Append external links if provided (uses {{EXTERNAL_LINKS}} placeholder or appends)
+  if (externalLinksInstructions && externalLinksInstructions.trim()) {
+    if (instructions.includes('{{EXTERNAL_LINKS}}')) {
+      instructions = instructions.replace(/\{\{EXTERNAL_LINKS\}\}/g, externalLinksInstructions);
+    } else {
+      instructions += `\n\n🔗 External Resources:\n${externalLinksInstructions}`;
+    }
+  }
 
   if (import.meta.env.DEV) {
     console.log(`[Gemini] Instructions prepared with ${availableCourses.length} courses, user level: ${userProfile?.englishLevel || 'unknown'}`);
