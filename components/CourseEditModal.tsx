@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Course, Language, EnglishLevel } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { X, Save, BookOpen } from 'lucide-react';
@@ -39,6 +39,9 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
   const t = TRANSLATIONS[language];
   const isRtl = language === 'ar';
   
+  // Track if window is currently blurred (user Alt+Tabbed away)
+  const isWindowBlurredRef = useRef(false);
+  
   // Sync form data when modal opens or course changes
   useEffect(() => {
     if (isOpen) {
@@ -63,6 +66,31 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
       setError(null);
     }
   }, [isOpen, course]);
+
+  // Prevent modal from closing when window loses focus (Alt+Tab)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleBlur = () => {
+      isWindowBlurredRef.current = true;
+    };
+
+    const handleFocus = () => {
+      // Small delay to allow any pending events to clear
+      setTimeout(() => {
+        isWindowBlurredRef.current = false;
+      }, 100);
+    };
+
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('focus', handleFocus);
+      isWindowBlurredRef.current = false;
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -104,7 +132,8 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
   };
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget && !isSaving) {
+    // Don't close if window was recently blurred (user just Alt+Tabbed back)
+    if (e.target === e.currentTarget && !isSaving && !isWindowBlurredRef.current) {
       onClose();
     }
   };
