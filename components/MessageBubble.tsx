@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from 'react';
 import ReactMarkdown, { Components } from 'react-markdown';
 import { Message, Course } from '../types';
-import { Bot, User } from 'lucide-react';
+import { Bot, User, ExternalLink } from 'lucide-react';
 
 interface MessageBubbleProps {
   message: Message;
@@ -25,7 +25,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = memo(({ message, cour
     return map;
   }, [courses]);
 
-  // Custom markdown components to make course names clickable
+  // Custom markdown components to make course names clickable and style external links
   const markdownComponents: Components = useMemo(() => ({
     // Override strong (bold) elements to check if they're course names
     strong: ({ children, ...props }) => {
@@ -52,6 +52,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = memo(({ message, cour
       
       // Regular bold text
       return <strong {...props}>{children}</strong>;
+    },
+    // Override anchor elements to open in new tab and style prominently
+    a: ({ href, children, ...props }) => {
+      return (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-md hover:bg-blue-100 dark:hover:bg-blue-800/40 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 border border-blue-200 dark:border-blue-700/50 no-underline hover:no-underline"
+          {...props}
+        >
+          {children}
+          <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
+        </a>
+      );
     }
   }), [courseTitleMap, onCourseClick]);
 
