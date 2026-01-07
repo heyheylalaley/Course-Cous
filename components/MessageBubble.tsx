@@ -1,14 +1,59 @@
-import React, { memo } from 'react';
-import ReactMarkdown from 'react-markdown';
-import { Message } from '../types';
+import React, { memo, useMemo } from 'react';
+import ReactMarkdown, { Components } from 'react-markdown';
+import { Message, Course } from '../types';
 import { Bot, User } from 'lucide-react';
 
 interface MessageBubbleProps {
   message: Message;
+  courses?: Course[];
+  onCourseClick?: (courseId: string, courseTitle: string) => void;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = memo(({ message }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = memo(({ message, courses, onCourseClick }) => {
   const isBot = message.role === 'model';
+
+  // Create a map of course titles to course IDs for quick lookup
+  const courseTitleMap = useMemo(() => {
+    const map = new Map<string, { id: string; title: string }>();
+    if (courses) {
+      courses.forEach(course => {
+        // Add both exact title and lowercase version for matching
+        map.set(course.title.toLowerCase(), { id: course.id, title: course.title });
+        map.set(course.title, { id: course.id, title: course.title });
+      });
+    }
+    return map;
+  }, [courses]);
+
+  // Custom markdown components to make course names clickable
+  const markdownComponents: Components = useMemo(() => ({
+    // Override strong (bold) elements to check if they're course names
+    strong: ({ children, ...props }) => {
+      const text = typeof children === 'string' 
+        ? children 
+        : Array.isArray(children) 
+          ? children.map(c => typeof c === 'string' ? c : '').join('')
+          : '';
+      
+      // Check if this bold text matches a course title
+      const courseMatch = courseTitleMap.get(text) || courseTitleMap.get(text.toLowerCase());
+      
+      if (courseMatch && onCourseClick) {
+        return (
+          <button
+            onClick={() => onCourseClick(courseMatch.id, courseMatch.title)}
+            className="font-bold text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:underline cursor-pointer transition-colors inline"
+            title={`Нажмите, чтобы зарегистрироваться на курс "${courseMatch.title}"`}
+          >
+            {children}
+          </button>
+        );
+      }
+      
+      // Regular bold text
+      return <strong {...props}>{children}</strong>;
+    }
+  }), [courseTitleMap, onCourseClick]);
 
   return (
     <div className={`flex w-full mb-4 sm:mb-6 ${isBot ? 'justify-start' : 'justify-end'}`}>
@@ -30,7 +75,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = memo(({ message }) =>
         }`}>
           {isBot ? (
             <div className="markdown-content prose prose-sm dark:prose-invert max-w-none prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:font-semibold prose-p:my-1 prose-ul:my-2 prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-strong:text-gray-900 dark:prose-strong:text-gray-100 prose-strong:font-bold">
-              <ReactMarkdown>{message.content}</ReactMarkdown>
+              <ReactMarkdown components={markdownComponents}>{message.content}</ReactMarkdown>
             </div>
           ) : (
             <p className="whitespace-pre-wrap">{message.content}</p>

@@ -1,10 +1,12 @@
-import React, { useState, useRef, useEffect, memo } from 'react';
+import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
 import { Message, Language } from '../types';
 import { sendMessageToGemini, initializeChat } from '../services/geminiService';
 import { MessageBubble } from './MessageBubble';
+import { AlertModal } from './AlertModal';
 import { Send, Sparkles, Loader2, Menu } from 'lucide-react';
 import { db } from '../services/db';
 import { TRANSLATIONS } from '../translations';
+import { useCourses } from '../hooks/useCourses';
 
 interface ChatInterfaceProps {
   language: Language;
@@ -15,9 +17,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    message: string;
+    type: 'error' | 'warning' | 'info' | 'success';
+  }>({ isOpen: false, message: '', type: 'info' });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
-  const t = TRANSLATIONS[language];
+  const t = TRANSLATIONS[language] as any;
+  
+  // Load courses for clickable course names
+  const { courses } = useCourses(false, language);
 
   // Load chat history from database
   const loadChatHistory = async (): Promise<Message[]> => {
@@ -118,6 +128,58 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Handle course click for registration
+  const handleCourseClick = useCallback(async (courseId: string, courseTitle: string) => {
+    try {
+      // Check if already registered
+      const registrations = await db.getRegistrations();
+      const alreadyRegistered = registrations.some(r => r.courseId === courseId);
+      
+      if (alreadyRegistered) {
+        setAlertModal({
+          isOpen: true,
+          message: `${t.courseAlreadyRegistered}: "${courseTitle}"`,
+          type: 'info'
+        });
+        return;
+      }
+      
+      // Register for course
+      await db.addRegistration(courseId);
+      
+      setAlertModal({
+        isOpen: true,
+        message: `${t.courseRegistrationSuccess}: "${courseTitle}"`,
+        type: 'success'
+      });
+    } catch (error: any) {
+      console.error('Course registration error:', error);
+      
+      // Check for specific error messages
+      const errorMessage = error?.message || t.courseRegistrationError;
+      
+      if (errorMessage.includes('Maximum 3 courses') || errorMessage.includes('Максимум')) {
+        setAlertModal({
+          isOpen: true,
+          message: t.maxCoursesReached,
+          type: 'warning'
+        });
+      } else if (errorMessage.includes('profile') || errorMessage.includes('профиль') || errorMessage.includes('профіль')) {
+        setAlertModal({
+          isOpen: true,
+          message: t.profileIncompleteDesc,
+          type: 'warning'
+        });
+      } else {
+        setAlertModal({
+          isOpen: true,
+          message: `${t.courseRegistrationError}: ${errorMessage}`,
+          type: 'error'
+        });
+      }
+    }
+  }, [t]);
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -226,7 +288,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
       <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 bg-gray-50/50 dark:bg-gray-800/50">
         <div className="max-w-3xl mx-auto">
           {messages.map((msg) => (
-            <MessageBubble key={msg.id} message={msg} />
+            <MessageBubble 
+              key={msg.id} 
+              message={msg} 
+              courses={courses}
+              onCourseClick={handleCourseClick}
+            />
           ))}
           <div ref={messagesEndRef} />
         </div>
@@ -264,6 +331,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
           </p>
         </div>
       </div>
+
+      {/* Alert Modal for course registration feedback */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+        message={alertModal.message}
+        language={language}
+        type={alertModal.type}
+      />
     </div>
   );
 });

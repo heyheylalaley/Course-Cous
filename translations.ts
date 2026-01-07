@@ -64,6 +64,10 @@ export const TRANSLATIONS = {
     alertTitle: 'Error',
     alertWarningTitle: 'Warning',
     alertInfoTitle: 'Information',
+    alertSuccessTitle: 'Success',
+    courseRegistrationSuccess: 'You have been successfully registered for the course',
+    courseRegistrationError: 'Registration failed',
+    courseAlreadyRegistered: 'You are already registered for this course',
     // Admin
     adminDashboardTitle: 'Admin Dashboard',
     adminDashboardSubtitle: 'Student Enrollment Overview',
@@ -211,6 +215,10 @@ export const TRANSLATIONS = {
     alertTitle: 'Помилка',
     alertWarningTitle: 'Попередження',
     alertInfoTitle: 'Інформація',
+    alertSuccessTitle: 'Успіх',
+    courseRegistrationSuccess: 'Ви успішно зареєстровані на курс',
+    courseRegistrationError: 'Помилка реєстрації',
+    courseAlreadyRegistered: 'Ви вже зареєстровані на цей курс',
     // Admin
     adminDashboardTitle: 'Панель адміністратора',
     adminDashboardSubtitle: 'Огляд реєстрацій студентів',
@@ -358,6 +366,10 @@ export const TRANSLATIONS = {
     alertTitle: 'Ошибка',
     alertWarningTitle: 'Предупреждение',
     alertInfoTitle: 'Информация',
+    alertSuccessTitle: 'Успех',
+    courseRegistrationSuccess: 'Вы успешно зарегистрированы на курс',
+    courseRegistrationError: 'Ошибка регистрации',
+    courseAlreadyRegistered: 'Вы уже зарегистрированы на этот курс',
     // Admin
     adminDashboardTitle: 'Панель администратора',
     adminDashboardSubtitle: 'Обзор регистраций студентов',
@@ -505,6 +517,10 @@ export const TRANSLATIONS = {
     alertTitle: 'خطأ',
     alertWarningTitle: 'تحذير',
     alertInfoTitle: 'معلومات',
+    alertSuccessTitle: 'نجاح',
+    courseRegistrationSuccess: 'تم تسجيلك بنجاح في الدورة',
+    courseRegistrationError: 'فشل التسجيل',
+    courseAlreadyRegistered: 'أنت مسجل بالفعل في هذه الدورة',
     // Admin
     adminDashboardTitle: 'لوحة تحكم المسؤول',
     adminDashboardSubtitle: 'نظرة عامة على تسجيل الطلاب',

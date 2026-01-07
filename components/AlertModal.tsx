@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, AlertCircle } from 'lucide-react';
+import { X, AlertCircle, CheckCircle } from 'lucide-react';
 import { Language } from '../types';
 import { TRANSLATIONS } from '../translations';
 
@@ -8,7 +8,7 @@ interface AlertModalProps {
   onClose: () => void;
   message: string;
   language: Language;
-  type?: 'error' | 'warning' | 'info';
+  type?: 'error' | 'warning' | 'info' | 'success';
 }
 
 export const AlertModal: React.FC<AlertModalProps> = ({
@@ -33,6 +33,13 @@ export const AlertModal: React.FC<AlertModalProps> = ({
 
   const getTypeStyles = () => {
     switch (type) {
+      case 'success':
+        return {
+          iconBg: 'bg-green-100 dark:bg-green-900',
+          iconColor: 'text-green-600 dark:text-green-400',
+          borderColor: 'border-green-200 dark:border-green-800',
+          buttonBg: 'bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-600'
+        };
       case 'warning':
         return {
           iconBg: 'bg-yellow-100 dark:bg-yellow-900',
@@ -78,11 +85,12 @@ export const AlertModal: React.FC<AlertModalProps> = ({
 
         <div className="flex flex-col items-center mb-4 sm:mb-6">
           <div className={`w-12 h-12 ${styles.iconBg} ${styles.iconColor} rounded-xl flex items-center justify-center mb-3`}>
-            <AlertCircle size={24} />
+            {type === 'success' ? <CheckCircle size={24} /> : <AlertCircle size={24} />}
           </div>
           <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white text-center mb-2">
             {type === 'error' ? t.alertTitle || 'Error' : 
              type === 'warning' ? t.alertWarningTitle || 'Warning' : 
+             type === 'success' ? (t as any).alertSuccessTitle || 'Success' :
              t.alertInfoTitle || 'Information'}
           </h2>
           <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 text-center">
