@@ -51,8 +51,10 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       // Always open when prop says to open
-      internalIsOpenRef.current = true;
-      setInternalIsOpen(true);
+      if (!internalIsOpenRef.current) {
+        internalIsOpenRef.current = true;
+        setInternalIsOpen(true);
+      }
       userInitiatedCloseRef.current = false;
       
       if (course) {
@@ -74,7 +76,7 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
         setIsActive(true);
       }
       setError(null);
-    } else if (userInitiatedCloseRef.current) {
+    } else if (userInitiatedCloseRef.current && internalIsOpenRef.current) {
       // Only close if user initiated the close
       internalIsOpenRef.current = false;
       setInternalIsOpen(false);
@@ -147,10 +149,10 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
   useEffect(() => {
     if (!internalIsOpen) return;
 
-    // Store that modal should stay open
-    const modalShouldStayOpen = true;
+    let isMounted = true;
     
     const handleVisibilityChange = (e: Event) => {
+      if (!isMounted) return;
       // Prevent any default behavior
       e.preventDefault();
       e.stopPropagation();
@@ -158,6 +160,7 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
     };
 
     const handleBlur = (e: FocusEvent) => {
+      if (!isMounted) return;
       // Update last focus time
       lastFocusTimeRef.current = Date.now();
       // Prevent closing on window blur - stop all propagation
@@ -167,6 +170,7 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
     };
 
     const handleFocus = (e: FocusEvent) => {
+      if (!isMounted) return;
       // Update last focus time
       lastFocusTimeRef.current = Date.now();
       // Prevent any side effects on focus
@@ -180,6 +184,7 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
     
     // Also prevent ESC key from closing (optional, but helps)
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isMounted) return;
       // Only prevent ESC if it's not a user-initiated action
       // We'll allow ESC to work normally for user interaction
       if (e.key === 'Escape' && document.activeElement?.tagName === 'BODY') {
@@ -191,12 +196,13 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
     document.addEventListener('keydown', handleKeyDown, true);
 
     return () => {
+      isMounted = false;
       window.removeEventListener('blur', handleBlur, true);
       window.removeEventListener('focus', handleFocus, true);
       document.removeEventListener('visibilitychange', handleVisibilityChange, true);
       document.removeEventListener('keydown', handleKeyDown, true);
     };
-  }, [isOpen]);
+  }, [internalIsOpen]);
 
   return (
     <div
