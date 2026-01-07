@@ -42,19 +42,11 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
   // Track if modal was intentionally closed by user
   const userInitiatedCloseRef = useRef(false);
   const lastFocusTimeRef = useRef<number>(Date.now());
-  const internalIsOpenRef = useRef(isOpen);
+  const isClosingRef = useRef(false);
   
-  // Use internal state that persists even if parent tries to close it
-  const [internalIsOpen, setInternalIsOpen] = useState(isOpen);
-  
-  // Sync with prop only when user intentionally opens/closes, or when prop becomes true
+  // Sync form data when modal opens or course changes
   useEffect(() => {
-    if (isOpen) {
-      // Always open when prop says to open
-      if (!internalIsOpenRef.current) {
-        internalIsOpenRef.current = true;
-        setInternalIsOpen(true);
-      }
+    if (isOpen && !isClosingRef.current) {
       userInitiatedCloseRef.current = false;
       
       if (course) {
@@ -76,16 +68,10 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
         setIsActive(true);
       }
       setError(null);
-    } else if (userInitiatedCloseRef.current && internalIsOpenRef.current) {
-      // Only close if user initiated the close
-      internalIsOpenRef.current = false;
-      setInternalIsOpen(false);
-      userInitiatedCloseRef.current = false;
     }
-    // If isOpen becomes false but user didn't initiate, ignore it
   }, [isOpen, course]);
 
-  if (!internalIsOpen) return null;
+  if (!isOpen) return null;
 
   const handleSave = async () => {
     // Validation
@@ -139,10 +125,14 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
   };
   
   const handleClose = () => {
+    if (isClosingRef.current) return; // Prevent double close
+    isClosingRef.current = true;
     userInitiatedCloseRef.current = true;
-    internalIsOpenRef.current = false;
-    setInternalIsOpen(false);
     onClose();
+    // Reset flag after a delay to allow reopening
+    setTimeout(() => {
+      isClosingRef.current = false;
+    }, 100);
   };
 
   // Prevent modal from closing on window blur/focus events or any other unwanted events
@@ -202,7 +192,7 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
       document.removeEventListener('visibilitychange', handleVisibilityChange, true);
       document.removeEventListener('keydown', handleKeyDown, true);
     };
-  }, [internalIsOpen]);
+  }, [isOpen]);
 
   return (
     <div
