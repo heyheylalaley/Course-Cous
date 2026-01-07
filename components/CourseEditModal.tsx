@@ -43,10 +43,29 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
   const initializedCourseIdRef = useRef<string | null>(null);
   const wasOpenRef = useRef<boolean>(false);
   
+  // Wrap onClose with logging
+  const handleClose = () => {
+    console.log('[CourseEditModal] onClose called', {
+      timestamp: new Date().toISOString(),
+      stack: new Error().stack
+    });
+    onClose();
+  };
+  
   // Sync form data when modal opens or course changes (only on actual course change, not on tab switch)
   useEffect(() => {
+    console.log('[CourseEditModal] useEffect triggered', {
+      isOpen,
+      courseId: course?.id,
+      courseTitle: course?.title,
+      wasOpen: wasOpenRef.current,
+      initializedCourseId: initializedCourseIdRef.current,
+      timestamp: new Date().toISOString()
+    });
+    
     // Only process if modal is actually open
     if (!isOpen) {
+      console.log('[CourseEditModal] Modal closed - resetting refs');
       // Reset refs when modal closes
       if (wasOpenRef.current) {
         initializedCourseIdRef.current = null;
@@ -63,8 +82,16 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
     
     const shouldInitialize = !wasPreviouslyOpen || courseChanged;
     
+    console.log('[CourseEditModal] Initialization check', {
+      currentCourseId,
+      wasPreviouslyOpen,
+      courseChanged,
+      shouldInitialize
+    });
+    
     if (shouldInitialize) {
       if (course) {
+        console.log('[CourseEditModal] Initializing with course data', course.id);
         setTitle(course.title);
         setCategory(course.category);
         setDescription(course.description);
@@ -74,6 +101,7 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
         setIsActive(course.isActive !== false);
         initializedCourseIdRef.current = course.id;
       } else if (!wasPreviouslyOpen) {
+        console.log('[CourseEditModal] Initializing for new course');
         // Only reset for new course if modal just opened
         // Don't reset if we're editing and course becomes null temporarily
         setTitle('');
@@ -96,14 +124,33 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
     if (!isOpen) return;
     
     const handleVisibilityChange = () => {
-      // Do nothing - just prevent any side effects from visibility change
-      // The modal should stay open even when tab is switched
+      console.log('[CourseEditModal] visibilitychange event', {
+        hidden: document.hidden,
+        visibilityState: document.visibilityState,
+        timestamp: new Date().toISOString()
+      });
+    };
+    
+    const handleBlur = () => {
+      console.log('[CourseEditModal] window blur event', {
+        timestamp: new Date().toISOString()
+      });
+    };
+    
+    const handleFocus = () => {
+      console.log('[CourseEditModal] window focus event', {
+        timestamp: new Date().toISOString()
+      });
     };
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener('focus', handleFocus);
     
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('focus', handleFocus);
     };
   }, [isOpen]);
 
@@ -137,7 +184,8 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
         minEnglishLevel: minEnglishLevel || undefined,
         isActive
       });
-      onClose();
+      console.log('[CourseEditModal] Save successful - closing modal');
+      handleClose();
     } catch (err: any) {
       console.error('Failed to save course:', err);
       setError(err?.message || t.adminCourseSaveError || 'Failed to save course');
@@ -163,7 +211,10 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         <button
-          onClick={onClose}
+          onClick={() => {
+            console.log('[CourseEditModal] Close button clicked');
+            handleClose();
+          }}
           disabled={isSaving}
           className="absolute top-4 right-4 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -297,7 +348,10 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
 
         <div className="flex gap-3 mt-6">
           <button
-            onClick={onClose}
+            onClick={() => {
+              console.log('[CourseEditModal] Cancel button clicked');
+              handleClose();
+            }}
             disabled={isSaving}
             className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >

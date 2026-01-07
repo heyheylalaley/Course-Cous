@@ -21,6 +21,28 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
   // Get editing course from courses list to maintain reference stability
   const editingCourse = editingCourseId ? courses.find(c => c.id === editingCourseId) || null : null;
   
+  // Log when modal state changes
+  useEffect(() => {
+    console.log('[AdminCourseManagement] isEditModalOpen changed', {
+      isEditModalOpen,
+      editingCourseId,
+      editingCourse: editingCourse ? { id: editingCourse.id, title: editingCourse.title } : null,
+      coursesCount: courses.length,
+      timestamp: new Date().toISOString(),
+      stack: new Error().stack
+    });
+  }, [isEditModalOpen, editingCourseId, editingCourse, courses.length]);
+  
+  // Log when editingCourse changes
+  useEffect(() => {
+    console.log('[AdminCourseManagement] editingCourse changed', {
+      editingCourseId,
+      editingCourse: editingCourse ? { id: editingCourse.id, title: editingCourse.title } : null,
+      foundInCourses: editingCourseId ? courses.some(c => c.id === editingCourseId) : false,
+      timestamp: new Date().toISOString()
+    });
+  }, [editingCourse, editingCourseId, courses]);
+  
   const t = TRANSLATIONS[language];
   const isRtl = language === 'ar';
 
@@ -235,6 +257,10 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
       <CourseEditModal
         isOpen={isEditModalOpen}
         onClose={() => {
+          console.log('[AdminCourseManagement] Modal onClose called', {
+            timestamp: new Date().toISOString(),
+            stack: new Error().stack
+          });
           setIsEditModalOpen(false);
           setEditingCourseId(null);
         }}
