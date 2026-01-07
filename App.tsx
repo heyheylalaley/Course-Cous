@@ -34,6 +34,7 @@ const AppContent: React.FC = () => {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [showCourseDetails, setShowCourseDetails] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorActionButton, setErrorActionButton] = useState<{ text: string; onClick: () => void } | undefined>(undefined);
   const [courseSearchQuery, setCourseSearchQuery] = useState<string>('');
   const [showContactModal, setShowContactModal] = useState(false);
 
@@ -81,11 +82,19 @@ const AppContent: React.FC = () => {
 
   const handleToggleRegistration = useCallback(async (courseId: string) => {
     setErrorMessage(null);
+    setErrorActionButton(undefined);
     const result = await toggleRegistration(courseId, language);
     if (!result.success && result.error) {
       setErrorMessage(result.error);
+      // Check if error is about incomplete profile
+      if (result.error.includes('profile') || result.error.includes('профиль') || result.error.includes('профіль') || result.error.includes('الملف')) {
+        setErrorActionButton({
+          text: t.completeProfile || 'Complete Profile',
+          onClick: () => setActiveTab('dashboard')
+        });
+      }
     }
-  }, [toggleRegistration, language]);
+  }, [toggleRegistration, language, t.completeProfile, setActiveTab]);
 
   const handleViewCourseDetails = useCallback((course: Course) => {
     setSelectedCourse(course);
@@ -370,10 +379,14 @@ const AppContent: React.FC = () => {
         </div>
         <AlertModal
           isOpen={!!errorMessage}
-          onClose={() => setErrorMessage(null)}
+          onClose={() => {
+            setErrorMessage(null);
+            setErrorActionButton(undefined);
+          }}
           message={errorMessage || ''}
           language={language}
           type="error"
+          actionButton={errorActionButton}
         />
         <ContactModal 
           isOpen={showContactModal}
