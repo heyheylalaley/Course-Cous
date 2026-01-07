@@ -146,7 +146,7 @@ const AppContent: React.FC = () => {
         language={language}
         queueLength={selectedCourse ? (courseQueues.get(selectedCourse.id) || 0) : 0}
       />
-      <div className="flex h-screen w-full bg-gray-100 dark:bg-gray-900 overflow-hidden" dir={isRtl ? 'rtl' : 'ltr'}>
+      <div className="flex h-full w-full bg-gray-100 dark:bg-gray-900 overflow-hidden" dir={isRtl ? 'rtl' : 'ltr'}>
       
         {/* Sidebar */}
         <div 

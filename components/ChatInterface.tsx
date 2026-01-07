@@ -268,48 +268,51 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-white dark:bg-gray-900 relative">
-      {/* Header - Always visible */}
-      <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-green-600 to-green-700">
-        <div className="flex items-center gap-3">
-          {onOpenSidebar && (
-            <button
-              onClick={onOpenSidebar}
-              className="lg:hidden p-2.5 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors shadow-md active:scale-95"
-              aria-label="Open menu"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-          )}
-          <div className="p-2 bg-white/20 rounded-lg">
-            <Sparkles className="w-5 h-5 text-white" />
+      {/* Scrollable container with sticky header inside */}
+      <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
+        {/* Header - Sticky inside scroll container for mobile */}
+        <div className="sticky top-0 z-20 flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-green-600 to-green-700">
+          <div className="flex items-center gap-3">
+            {onOpenSidebar && (
+              <button
+                onClick={onOpenSidebar}
+                className="lg:hidden p-2.5 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors shadow-md active:scale-95"
+                aria-label="Open menu"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+            )}
+            <div className="p-2 bg-white/20 rounded-lg">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-white">{t.assistantName}</h2>
+              <p className="text-xs text-green-100 flex items-center font-medium">
+                <span className="w-2 h-2 rounded-full bg-green-300 mr-1.5"></span>
+                {t.online}
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-base font-bold text-white">{t.assistantName}</h2>
-            <p className="text-xs text-green-100 flex items-center font-medium">
-              <span className="w-2 h-2 rounded-full bg-green-300 mr-1.5"></span>
-              {t.online}
-            </p>
+        </div>
+
+        {/* Messages Area */}
+        <div className="flex-1 p-3 sm:p-4 md:p-6 bg-gray-50/50 dark:bg-gray-800/50">
+          <div className="max-w-3xl mx-auto">
+            {messages.map((msg) => (
+              <MessageBubble 
+                key={msg.id} 
+                message={msg} 
+                courses={courses}
+                onCourseClick={handleCourseClick}
+              />
+            ))}
+            <div ref={messagesEndRef} />
           </div>
         </div>
       </div>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 bg-gray-50/50 dark:bg-gray-800/50">
-        <div className="max-w-3xl mx-auto">
-          {messages.map((msg) => (
-            <MessageBubble 
-              key={msg.id} 
-              message={msg} 
-              courses={courses}
-              onCourseClick={handleCourseClick}
-            />
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
-      </div>
-
-      {/* Input Area */}
-      <div className="p-3 sm:p-4 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
+      {/* Input Area - Fixed at bottom */}
+      <div className="flex-shrink-0 p-3 sm:p-4 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
         <div className="max-w-3xl mx-auto">
           <form 
             onSubmit={handleSendMessage}
