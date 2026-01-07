@@ -18,8 +18,14 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
+  // Store editing course data separately to prevent modal from closing when courses list is temporarily empty
+  const [editingCourseData, setEditingCourseData] = useState<Course | null>(null);
+  
   // Get editing course from courses list to maintain reference stability
-  const editingCourse = editingCourseId ? courses.find(c => c.id === editingCourseId) || null : null;
+  // Fall back to stored data if course is not found (e.g., during re-render when courses list is temporarily empty)
+  const editingCourse = editingCourseId 
+    ? (courses.find(c => c.id === editingCourseId) || editingCourseData)
+    : null;
   
   // Log when modal state changes
   useEffect(() => {
@@ -39,9 +45,24 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
       editingCourseId,
       editingCourse: editingCourse ? { id: editingCourse.id, title: editingCourse.title } : null,
       foundInCourses: editingCourseId ? courses.some(c => c.id === editingCourseId) : false,
+      editingCourseData: editingCourseData ? { id: editingCourseData.id, title: editingCourseData.title } : null,
       timestamp: new Date().toISOString()
     });
-  }, [editingCourse, editingCourseId, courses]);
+  }, [editingCourse, editingCourseId, courses, editingCourseData]);
+  
+  // Update stored course data when courses list is updated and we're editing
+  useEffect(() => {
+    if (editingCourseId && courses.length > 0) {
+      const foundCourse = courses.find(c => c.id === editingCourseId);
+      if (foundCourse && (!editingCourseData || editingCourseData.id !== foundCourse.id)) {
+        console.log('[AdminCourseManagement] Updating stored course data', {
+          editingCourseId,
+          courseTitle: foundCourse.title
+        });
+        setEditingCourseData(foundCourse);
+      }
+    }
+  }, [courses, editingCourseId]);
   
   const t = TRANSLATIONS[language];
   const isRtl = language === 'ar';
@@ -65,13 +86,29 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
   };
 
   const handleCreateCourse = () => {
+    console.log('[AdminCourseManagement] handleCreateCourse called');
     setEditingCourseId(null);
+    setEditingCourseData(null);
     setIsEditModalOpen(true);
   };
 
   const handleEditCourse = (course: Course) => {
+    console.log('[AdminCourseManagement] handleEditCourse called', { courseId: course.id, courseTitle: course.title });
     setEditingCourseId(course.id);
-    setIsEditModalOpen(true);
+    setEditingCourseData(course); // Store course data to prevent loss during re-render
+    setIsEditModalOpenWithLogging(true);
+  };
+  
+  // Wrap setIsEditModalOpen to log all changes
+  const setIsEditModalOpenWithLogging = (value: boolean) => {
+    console.log('[AdminCourseManagement] setIsEditModalOpen called', {
+      newValue: value,
+      currentValue: isEditModalOpen,
+      editingCourseId,
+      timestamp: new Date().toISOString(),
+      stack: new Error().stack
+    });
+    setIsEditModalOpen(value);
   };
 
   const handleSaveCourse = async (courseData: Omit<Course, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -82,8 +119,9 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
         await db.createCourse(courseData);
       }
       await loadCourses();
-      setIsEditModalOpen(false);
+      setIsEditModalOpenWithLogging(false);
       setEditingCourseId(null);
+      setEditingCourseData(null);
     } catch (err: any) {
       throw err; // Let CourseEditModal handle the error
     }
@@ -261,8 +299,9 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
             timestamp: new Date().toISOString(),
             stack: new Error().stack
           });
-          setIsEditModalOpen(false);
+          setIsEditModalOpenWithLogging(false);
           setEditingCourseId(null);
+          setEditingCourseData(null);
         }}
         onSave={handleSaveCourse}
         language={language}
