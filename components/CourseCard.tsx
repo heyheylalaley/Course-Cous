@@ -8,6 +8,7 @@ interface CourseCardProps {
   isRegistered?: boolean;
   onToggleRegistration?: (courseId: string) => void;
   showRemoveOnly?: boolean;
+  allowUnregister?: boolean;
   language: Language;
   queueLength?: number;
   onViewDetails?: (course: Course) => void;
@@ -33,6 +34,7 @@ export const CourseCard: React.FC<CourseCardProps> = memo(({
   isRegistered = false, 
   onToggleRegistration,
   showRemoveOnly = false,
+  allowUnregister = true,
   language,
   queueLength = 0,
   onViewDetails
@@ -77,33 +79,41 @@ export const CourseCard: React.FC<CourseCardProps> = memo(({
         </button>
 
         {onToggleRegistration && (
-          <button
-            onClick={() => onToggleRegistration(course.id)}
-            className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0
-              ${showRemoveOnly 
-                ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30' 
-                : isRegistered 
+          showRemoveOnly ? (
+            <button
+              onClick={() => onToggleRegistration(course.id)}
+              className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              {t.remove}
+            </button>
+          ) : isRegistered && !allowUnregister ? (
+            <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400">
+              <CheckCircle className="w-3.5 h-3.5" />
+              {t.registered}
+            </div>
+          ) : (
+            <button
+              onClick={() => onToggleRegistration(course.id)}
+              className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0
+                ${isRegistered 
                   ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30' 
                   : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30'
-              }`}
-          >
-            {showRemoveOnly ? (
-              <>
-                <Trash2 className="w-3.5 h-3.5" />
-                {t.remove}
-              </>
-            ) : isRegistered ? (
-              <>
-                <CheckCircle className="w-3.5 h-3.5" />
-                {t.registered}
-              </>
-            ) : (
-              <>
-                <PlusCircle className="w-3.5 h-3.5" />
-                {t.register}
-              </>
-            )}
-          </button>
+                }`}
+            >
+              {isRegistered ? (
+                <>
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  {t.registered}
+                </>
+              ) : (
+                <>
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  {t.register}
+                </>
+              )}
+            </button>
+          )
         )}
       </div>
     </div>

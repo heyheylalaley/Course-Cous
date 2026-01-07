@@ -87,16 +87,29 @@ const AppContent: React.FC = () => {
     setErrorActionButton(undefined);
     const result = await toggleRegistration(courseId, language);
     if (!result.success && result.error) {
-      setErrorMessage(result.error);
+      // Check if error is about max courses reached - show extended message with dashboard link
+      if (result.error.includes('Maximum') || result.error.includes('Максимум') || result.error.includes('الحد الأقصى')) {
+        setErrorMessage(t.maxCoursesReachedModal || result.error);
+        setErrorActionButton({
+          text: t.goToDashboard || 'Go to Personal Cabinet',
+          onClick: () => {
+            setActiveTab('dashboard');
+            setSidebarOpen(false);
+          }
+        });
+      }
       // Check if error is about incomplete profile
-      if (result.error.includes('profile') || result.error.includes('профиль') || result.error.includes('профіль') || result.error.includes('الملف')) {
+      else if (result.error.includes('profile') || result.error.includes('профиль') || result.error.includes('профіль') || result.error.includes('الملف')) {
+        setErrorMessage(result.error);
         setErrorActionButton({
           text: t.completeProfile || 'Complete Profile',
           onClick: () => setActiveTab('dashboard')
         });
+      } else {
+        setErrorMessage(result.error);
       }
     }
-  }, [toggleRegistration, language, t.completeProfile, setActiveTab]);
+  }, [toggleRegistration, language, t.completeProfile, t.maxCoursesReachedModal, t.goToDashboard, setActiveTab, setSidebarOpen]);
 
   const handleViewCourseDetails = useCallback((course: Course) => {
     setSelectedCourse(course);
@@ -259,6 +272,7 @@ const AppContent: React.FC = () => {
                       course={course} 
                       isRegistered={registrations.includes(course.id)}
                       onToggleRegistration={handleToggleRegistration}
+                      allowUnregister={false}
                       language={language}
                       queueLength={courseQueues.get(course.id) || 0}
                       onViewDetails={handleViewCourseDetails}
