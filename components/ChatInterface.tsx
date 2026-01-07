@@ -7,6 +7,7 @@ import { Send, Sparkles, Loader2, Menu } from 'lucide-react';
 import { db } from '../services/db';
 import { TRANSLATIONS } from '../translations';
 import { useCourses } from '../contexts/CoursesContext';
+import { useUI } from '../contexts/UIContext';
 
 interface ChatInterfaceProps {
   language: Language;
@@ -21,6 +22,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
     isOpen: boolean;
     message: string;
     type: 'error' | 'warning' | 'info' | 'success';
+    actionButton?: { text: string; onClick: () => void };
   }>({ isOpen: false, message: '', type: 'info' });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
@@ -28,6 +30,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
   
   // Load courses for clickable course names and get refresh function
   const { courses, refreshRegistrations } = useCourses();
+  
+  // Get UI context for navigation
+  const { setActiveTab } = useUI();
 
   // Load chat history from database
   const loadChatHistory = async (): Promise<Message[]> => {
@@ -169,7 +174,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
         setAlertModal({
           isOpen: true,
           message: t.profileIncompleteDesc,
-          type: 'warning'
+          type: 'warning',
+          actionButton: {
+            text: t.completeProfile || 'Complete Profile',
+            onClick: () => setActiveTab('dashboard')
+          }
         });
       } else {
         setAlertModal({
@@ -345,6 +354,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
         message={alertModal.message}
         language={language}
         type={alertModal.type}
+        actionButton={alertModal.actionButton}
       />
     </div>
   );

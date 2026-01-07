@@ -9,6 +9,10 @@ interface AlertModalProps {
   message: string;
   language: Language;
   type?: 'error' | 'warning' | 'info' | 'success';
+  actionButton?: {
+    text: string;
+    onClick: () => void;
+  };
 }
 
 export const AlertModal: React.FC<AlertModalProps> = ({
@@ -16,7 +20,8 @@ export const AlertModal: React.FC<AlertModalProps> = ({
   onClose,
   message,
   language,
-  type = 'error'
+  type = 'error',
+  actionButton
 }) => {
   const t = TRANSLATIONS[language];
   const isRtl = language === 'ar';
@@ -99,12 +104,24 @@ export const AlertModal: React.FC<AlertModalProps> = ({
         </div>
 
         <div className="flex justify-center">
-          <button
-            onClick={onClose}
-            className={`px-6 py-2.5 rounded-lg font-medium text-white transition-all shadow-md ${styles.buttonBg}`}
-          >
-            {t.understand || 'Understand'}
-          </button>
+          {actionButton ? (
+            <button
+              onClick={() => {
+                actionButton.onClick();
+                onClose();
+              }}
+              className={`px-6 py-2.5 rounded-lg font-medium text-white transition-all shadow-md ${styles.buttonBg}`}
+            >
+              {actionButton.text}
+            </button>
+          ) : (
+            <button
+              onClick={onClose}
+              className={`px-6 py-2.5 rounded-lg font-medium text-white transition-all shadow-md ${styles.buttonBg}`}
+            >
+              {t.understand || 'Understand'}
+            </button>
+          )}
         </div>
       </div>
     </div>
