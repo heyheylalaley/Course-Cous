@@ -123,15 +123,15 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
   let instructions = mainInstructions.replace('{{COURSES_LIST}}', courseListForBot);
   
   if (!mainInstructions.includes('{{COURSES_LIST}}')) {
-    instructions += `\n\n📚 Доступные курсы:\n${courseListForBot}\n\n⚠️ Рекомендуй ТОЛЬКО курсы из этого списка.`;
+    instructions += `\n\n📚 Available courses:\n${courseListForBot}\n\n⚠️ ONLY recommend courses from this list.`;
   }
 
   if (contactsInstructions && contactsInstructions.trim()) {
-    instructions += `\n\n📇 Контакты:\n${contactsInstructions}`;
+    instructions += `\n\n📇 Contact Information:\n${contactsInstructions}`;
   }
 
   if (externalLinksInstructions && externalLinksInstructions.trim()) {
-    instructions += `\n\n🔗 Внешние ресурсы:\n${externalLinksInstructions}`;
+    instructions += `\n\n🔗 External Resources:\n${externalLinksInstructions}`;
   }
 
   if (import.meta.env.DEV) {
