@@ -89,17 +89,53 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
     document.body.removeChild(link);
   };
 
+  const loadXLSXLibrary = (): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      // First try to use the npm package if available
+      if (typeof window !== 'undefined' && (window as any).XLSX) {
+        resolve((window as any).XLSX);
+        return;
+      }
+
+      // Try dynamic import first
+      import('xlsx')
+        .then((XLSX) => {
+          resolve(XLSX);
+        })
+        .catch(() => {
+          // If npm import fails, load from CDN
+          if (typeof document !== 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js';
+            script.onload = () => {
+              if ((window as any).XLSX) {
+                resolve((window as any).XLSX);
+              } else {
+                reject(new Error('Failed to load XLSX library from CDN'));
+              }
+            };
+            script.onerror = () => {
+              reject(new Error('Failed to load XLSX library'));
+            };
+            document.head.appendChild(script);
+          } else {
+            reject(new Error('XLSX library not available'));
+          }
+        });
+    });
+  };
+
   const exportToExcel = async () => {
     if (students.length === 0) return;
 
     try {
-      // Dynamic import to ensure xlsx is loaded correctly
-      const XLSX = await import('xlsx');
+      // Load XLSX library (try npm package first, then CDN)
+      const XLSX = await loadXLSXLibrary();
       
       // Check if XLSX is available
       if (!XLSX || !XLSX.utils || !XLSX.writeFile) {
         console.error('XLSX library not available');
-        alert('Excel export is not available. Please ensure xlsx library is installed.');
+        alert('Excel export is not available. Please check your internet connection.');
         return;
       }
 
