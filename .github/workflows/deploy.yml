@@ -31,13 +31,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: |
-          if npm ci; then
-            echo "Dependencies installed successfully with npm ci"
-          else
-            echo "npm ci failed, updating package-lock.json and installing..."
-            npm install
-          fi
+        run: npm install --legacy-peer-deps
 
       - name: Verify build dependencies
         run: |
