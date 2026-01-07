@@ -38,10 +38,22 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ language, onOpenSi
     }
   };
 
+  // Track language to detect changes
+  const prevLanguageRef = useRef<Language>(language);
+  
   // Initialize chat and restore or create welcome message
   useEffect(() => {
-    // Prevent double initialization
-    if (initialized.current) return;
+    // Only reinitialize if language actually changed
+    const languageChanged = prevLanguageRef.current !== language;
+    
+    // Prevent double initialization unless language changed
+    if (initialized.current && !languageChanged) return;
+    
+    if (languageChanged) {
+      prevLanguageRef.current = language;
+      initialized.current = false; // Reset to allow reinitialization
+    }
+    
     initialized.current = true;
     
     const setup = async () => {
@@ -91,9 +103,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ language, onOpenSi
     
     // Reset initialization flag when component unmounts
     return () => {
-      initialized.current = false;
+      // Only reset if language didn't change (component is actually unmounting)
+      if (!languageChanged) {
+        initialized.current = false;
+      }
     };
-  }, [language, t.welcomeMessage]);
+  }, [language]); // Removed t.welcomeMessage dependency
 
   // Auto-scroll to bottom
   const scrollToBottom = () => {

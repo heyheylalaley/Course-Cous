@@ -87,8 +87,8 @@ export const useCourses = (includeInactive: boolean = false, language: Language 
     // Handle visibility change - pause polling when tab is hidden
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        // Tab became visible, reload courses and restart polling
-        loadCourses();
+        // Tab became visible, just restart polling (don't reload immediately)
+        // Data will be refreshed by the polling interval
         setupPolling();
       } else {
         // Tab is hidden, clear interval to stop polling

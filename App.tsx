@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ChatInterface } from './components/ChatInterface';
 import { CourseCard } from './components/CourseCard';
 import { Dashboard } from './components/Dashboard';
@@ -303,9 +303,23 @@ const App: React.FC = () => {
     setShowCourseDetails(true);
   };
 
-  const handleUpdateProfile = (newProfile: UserProfile) => {
-    setUserProfile(newProfile);
-  };
+  const handleUpdateProfile = React.useCallback((newProfile: UserProfile) => {
+    setUserProfile(prev => {
+      // Only update if profile actually changed
+      if (prev.id === newProfile.id && 
+          prev.email === newProfile.email &&
+          prev.englishLevel === newProfile.englishLevel &&
+          prev.firstName === newProfile.firstName &&
+          prev.lastName === newProfile.lastName &&
+          prev.address === newProfile.address &&
+          prev.eircode === newProfile.eircode &&
+          prev.mobileNumber === newProfile.mobileNumber &&
+          prev.dateOfBirth === newProfile.dateOfBirth) {
+        return prev; // Return same reference if nothing changed
+      }
+      return newProfile;
+    });
+  }, []);
 
   const handleUpdatePriority = async (courseId: string, newPriority: number) => {
     try {
