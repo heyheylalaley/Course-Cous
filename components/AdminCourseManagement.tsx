@@ -16,23 +16,7 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
   const [error, setError] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
-  
-  // Load saved modal state from localStorage to prevent closing on remount
-  const getSavedModalState = (): boolean => {
-    const saved = localStorage.getItem('adminEditModalOpen');
-    return saved === 'true';
-  };
-  
-  const [isEditModalOpen, setIsEditModalOpen] = useState(getSavedModalState());
-  
-  // Save modal state to localStorage
-  useEffect(() => {
-    if (isEditModalOpen) {
-      localStorage.setItem('adminEditModalOpen', 'true');
-    } else {
-      localStorage.removeItem('adminEditModalOpen');
-    }
-  }, [isEditModalOpen]);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const t = TRANSLATIONS[language];
   const isRtl = language === 'ar';
 
