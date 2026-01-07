@@ -162,7 +162,13 @@ export const db = {
     
     // Mock fallback
     const stored = localStorage.getItem(STORAGE_KEYS.SESSION);
-    return stored ? JSON.parse(stored) : null;
+    if (!stored) return null;
+    try {
+      return JSON.parse(stored);
+    } catch (e) {
+      console.error('Failed to parse session from localStorage:', e);
+      return null;
+    }
   },
 
   // --- Profile Methods ---
@@ -251,18 +257,37 @@ export const db = {
     // Mock fallback:
     const key = STORAGE_KEYS.PROFILE(session.id);
     const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : { 
-      id: session.id, 
-      email: session.email, 
-      englishLevel: 'None',
-      firstName: undefined,
-      lastName: undefined,
-      mobileNumber: undefined,
-      address: undefined,
-      eircode: undefined,
-      dateOfBirth: undefined,
-      isAdmin: false
-    };
+    if (!stored) {
+      return { 
+        id: session.id, 
+        email: session.email, 
+        englishLevel: 'None',
+        firstName: undefined,
+        lastName: undefined,
+        mobileNumber: undefined,
+        address: undefined,
+        eircode: undefined,
+        dateOfBirth: undefined,
+        isAdmin: false
+      };
+    }
+    try {
+      return JSON.parse(stored);
+    } catch (e) {
+      console.error('Failed to parse profile from localStorage:', e);
+      return { 
+        id: session.id, 
+        email: session.email, 
+        englishLevel: 'None',
+        firstName: undefined,
+        lastName: undefined,
+        mobileNumber: undefined,
+        address: undefined,
+        eircode: undefined,
+        dateOfBirth: undefined,
+        isAdmin: false
+      };
+    }
   },
 
   updateEnglishLevel: async (level: EnglishLevel): Promise<void> => {
@@ -449,9 +474,15 @@ export const db = {
     // Mock fallback:
     const key = STORAGE_KEYS.REGISTRATIONS(session.id);
     const stored = localStorage.getItem(key);
-    const regs = stored ? JSON.parse(stored) : [];
-    const parsed = regs.map((r: any) => ({ ...r, registeredAt: new Date(r.registeredAt) }));
-    return parsed.sort((a: Registration, b: Registration) => (a.priority || 999) - (b.priority || 999));
+    if (!stored) return [];
+    try {
+      const regs = JSON.parse(stored);
+      const parsed = regs.map((r: any) => ({ ...r, registeredAt: new Date(r.registeredAt) }));
+      return parsed.sort((a: Registration, b: Registration) => (a.priority || 999) - (b.priority || 999));
+    } catch (e) {
+      console.error('Failed to parse registrations from localStorage:', e);
+      return [];
+    }
   },
 
   isProfileComplete: async (): Promise<boolean> => {
@@ -744,9 +775,14 @@ export const db = {
     // Mock fallback:
     const stored = localStorage.getItem(STORAGE_KEYS.COURSE_QUEUES);
     if (!stored) return 0;
-    const queues: CourseQueue[] = JSON.parse(stored);
-    const queue = queues.find(q => q.courseId === courseId);
-    return queue?.queueLength || 0;
+    try {
+      const queues: CourseQueue[] = JSON.parse(stored);
+      const queue = queues.find(q => q.courseId === courseId);
+      return queue?.queueLength || 0;
+    } catch (e) {
+      console.error('Failed to parse course queues from localStorage:', e);
+      return 0;
+    }
   },
 
   // Async version for loading queues
@@ -1430,14 +1466,18 @@ export const db = {
 
     // Mock fallback: save to localStorage
     const storageKey = `chat_messages_${session.id}`;
-    const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
-    existing.push({
-      id: Date.now().toString(),
-      role,
-      content,
-      timestamp: new Date().toISOString()
-    });
-    localStorage.setItem(storageKey, JSON.stringify(existing));
+    try {
+      const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      existing.push({
+        id: Date.now().toString(),
+        role,
+        content,
+        timestamp: new Date().toISOString()
+      });
+      localStorage.setItem(storageKey, JSON.stringify(existing));
+    } catch (e) {
+      console.error('Failed to save chat message to localStorage:', e);
+    }
   },
 
   getChatHistory: async (): Promise<Message[]> => {
@@ -1466,13 +1506,18 @@ export const db = {
     const stored = localStorage.getItem(storageKey);
     if (!stored) return [];
 
-    const messages = JSON.parse(stored);
-    return messages.map((msg: any) => ({
-      id: msg.id,
-      role: msg.role as 'user' | 'model',
-      content: msg.content,
-      timestamp: new Date(msg.timestamp)
-    }));
+    try {
+      const messages = JSON.parse(stored);
+      return messages.map((msg: any) => ({
+        id: msg.id,
+        role: msg.role as 'user' | 'model',
+        content: msg.content,
+        timestamp: new Date(msg.timestamp)
+      }));
+    } catch (e) {
+      console.error('Failed to parse chat messages from localStorage:', e);
+      return [];
+    }
   },
 
   clearChatHistory: async (): Promise<void> => {
@@ -1532,8 +1577,13 @@ export const db = {
       const storageKey = `course_translations_${courseId}_${language}`;
       const stored = localStorage.getItem(storageKey);
       if (!stored) return null;
-      const data = JSON.parse(stored);
-      return { title: data.title, description: data.description };
+      try {
+        const data = JSON.parse(stored);
+        return { title: data.title, description: data.description };
+      } catch (e) {
+        console.error('Failed to parse course translation from localStorage:', e);
+        return null;
+      }
     }
 
     const { data, error } = await supabase
@@ -1561,8 +1611,12 @@ export const db = {
         const storageKey = `course_translations_${courseId}_${lang}`;
         const stored = localStorage.getItem(storageKey);
         if (stored) {
-          const data = JSON.parse(stored);
-          translations[lang] = { title: data.title, description: data.description };
+          try {
+            const data = JSON.parse(stored);
+            translations[lang] = { title: data.title, description: data.description };
+          } catch (e) {
+            console.error(`Failed to parse translation for ${lang} from localStorage:`, e);
+          }
         }
       }
       

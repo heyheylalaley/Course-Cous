@@ -182,10 +182,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 placeholder={t.namePlaceholder}
               />
               <button
-                onClick={() => {
-                  console.log('Edit name button clicked');
-                  setShowNameModal(true);
-                }}
+                onClick={() => setShowNameModal(true)}
                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
                 title={t.editName}
               >

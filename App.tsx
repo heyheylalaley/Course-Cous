@@ -87,8 +87,10 @@ const App: React.FC = () => {
             // Expected error on login page, don't log it
             return;
           }
-          // Only log unexpected errors
-          console.error('Failed to load course queues:', error);
+          // Only log unexpected errors in development
+          if (import.meta.env.DEV) {
+            console.error('Failed to load course queues:', error);
+          }
         }
       };
       
@@ -207,7 +209,10 @@ const App: React.FC = () => {
         setShowOnboardingModal(true);
       }
     } catch (e) {
-      console.error("Failed to load data", e);
+      // Only log in development mode
+      if (import.meta.env.DEV) {
+        console.error("Failed to load data", e);
+      }
     } finally {
       setIsLoadingData(false);
     }
@@ -235,7 +240,10 @@ const App: React.FC = () => {
       
       setShowOnboardingModal(false);
     } catch (error) {
-      console.error('Failed to save onboarding data:', error);
+      // Only log in development mode
+      if (import.meta.env.DEV) {
+        console.error('Failed to save onboarding data:', error);
+      }
     }
   };
 
@@ -328,7 +336,10 @@ const App: React.FC = () => {
       const regs = await db.getRegistrations();
       setRegistrations(regs.map(r => r.courseId));
     } catch (error) {
-      console.error("Failed to update priority", error);
+      // Only log in development mode
+      if (import.meta.env.DEV) {
+        console.error("Failed to update priority", error);
+      }
     }
   };
 
@@ -338,7 +349,10 @@ const App: React.FC = () => {
       setUserProfile(prev => ({ ...prev, englishLevel: level }));
       setShowLanguageLevelModal(false);
     } catch (error) {
-      console.error("Failed to update English level", error);
+      // Only log in development mode
+      if (import.meta.env.DEV) {
+        console.error("Failed to update English level", error);
+      }
     }
   };
 
