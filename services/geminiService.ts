@@ -152,11 +152,13 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
   // Add user's English level to help bot make appropriate recommendations
   // Always include this section so bot knows the user's level
   const userLevel = userProfile?.englishLevel || 'None';
-  instructions += `\n\n👤 USER'S CURRENT ENGLISH LEVEL: ${userLevel}`;
-  instructions += `\nCompare this user's level (${userLevel}) with course requirements [A1+], [A2+], [B1+], [B2+].`;
-  instructions += `\nIf user's level is BELOW the requirement: still suggest the course, but kindly note they should improve their English first. Recommend ETB Cork for free English courses.`;
-  instructions += `\nIf user's level is SUFFICIENT or higher: recommend the course without English warnings.`;
+  instructions += `\n\n🎯 THIS USER'S ENGLISH LEVEL: ${userLevel}`;
+  instructions += `\n⚠️ IMPORTANT: You KNOW this user's English level is ${userLevel}. This is FACT from their profile.`;
+  instructions += `\nWhen user asks about their English level, tell them: "Your English level is ${userLevel}"`;
+  instructions += `\nWhen recommending courses, compare ${userLevel} with requirements [A1+], [A2+], [B1+], [B2+].`;
   instructions += `\nLevel hierarchy: None < A1 < A2 < B1 < B2 < C1 < C2`;
+  instructions += `\nIf ${userLevel} >= requirement: recommend without warnings.`;
+  instructions += `\nIf ${userLevel} < requirement: suggest course BUT recommend improving English first via ETB Cork.`;
 
   if (import.meta.env.DEV) {
     console.log(`[Gemini] Instructions prepared with ${availableCourses.length} courses, user level: ${userProfile?.englishLevel || 'unknown'}`);
