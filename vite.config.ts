@@ -20,6 +20,14 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
+      },
+      optimizeDeps: {
+        include: ['xlsx']
+      },
+      build: {
+        commonjsOptions: {
+          include: [/xlsx/, /node_modules/]
+        }
       }
     };
 });
