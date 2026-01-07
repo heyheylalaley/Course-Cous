@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Course, Language } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { BookOpen, Shield, Coffee, Users, Globe, Stethoscope, HardHat, Warehouse, Sparkles, HeartPulse, CheckCircle, PlusCircle, Trash2, Users as UsersIcon } from 'lucide-react';
@@ -28,7 +28,7 @@ const getIcon = (category: string) => {
   }
 };
 
-export const CourseCard: React.FC<CourseCardProps> = ({ 
+export const CourseCard: React.FC<CourseCardProps> = memo(({ 
   course, 
   isRegistered = false, 
   onToggleRegistration,
@@ -108,4 +108,6 @@ export const CourseCard: React.FC<CourseCardProps> = ({
       </div>
     </div>
   );
-};
+});
+
+CourseCard.displayName = 'CourseCard';

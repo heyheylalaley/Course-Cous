@@ -1,35 +1,33 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Course, Language } from '../types';
 import { db, supabase } from '../services/db';
 import { AVAILABLE_COURSES } from '../constants';
 
+// Helper function to sort courses by difficulty (Beginner -> Intermediate -> Advanced)
+const sortCoursesByDifficulty = (courses: Course[]): Course[] => {
+  const difficultyOrder = { 'Beginner': 1, 'Intermediate': 2, 'Advanced': 3 };
+  return [...courses].sort((a, b) => {
+    const aOrder = difficultyOrder[a.difficulty] || 999;
+    const bOrder = difficultyOrder[b.difficulty] || 999;
+    return aOrder - bOrder;
+  });
+};
+
 export const useCourses = (includeInactive: boolean = false, language: Language = 'en') => {
-  const [courses, setCourses] = useState<Course[]>(AVAILABLE_COURSES);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Helper function to sort courses by difficulty (Beginner -> Intermediate -> Advanced)
-  const sortCoursesByDifficulty = (courses: Course[]): Course[] => {
-    const difficultyOrder = { 'Beginner': 1, 'Intermediate': 2, 'Advanced': 3 };
-    return [...courses].sort((a, b) => {
-      const aOrder = difficultyOrder[a.difficulty] || 999;
-      const bOrder = difficultyOrder[b.difficulty] || 999;
-      return aOrder - bOrder;
-    });
-  };
-
-  const loadCourses = async () => {
+  const loadCourses = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
       const loadedCourses = await db.getAllCourses(includeInactive, language);
-      // Sort courses by difficulty: Beginner -> Intermediate -> Advanced
       const sortedCourses = sortCoursesByDifficulty(loadedCourses);
       setCourses(sortedCourses);
     } catch (err: any) {
       // Don't log "Not authenticated" errors - they're expected on login page
       if (err?.message?.includes('Not authenticated') || err?.message?.includes('authentication')) {
-        // Use fallback courses silently
         const sortedFallback = sortCoursesByDifficulty(AVAILABLE_COURSES);
         setCourses(sortedFallback);
         setIsLoading(false);
@@ -37,53 +35,45 @@ export const useCourses = (includeInactive: boolean = false, language: Language 
       }
       console.error('Failed to load courses:', err);
       setError(err.message);
-      // Keep fallback courses on error, also sorted
       const sortedFallback = sortCoursesByDifficulty(AVAILABLE_COURSES);
       setCourses(sortedFallback);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [includeInactive, language]);
 
   useEffect(() => {
-    let intervalId: NodeJS.Timeout | null = null;
-    let channel: any = null;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
     
-    // Load courses initially
+    // Initial load
     loadCourses();
 
-    // Set up real-time updates using polling (every 30 seconds)
-    const setupPolling = () => {
-      if (intervalId) clearInterval(intervalId);
-      
-      intervalId = setInterval(() => {
-        loadCourses();
-      }, 30000); // 30 seconds
-    };
-    
-    setupPolling();
-
-    // Also try to use Supabase realtime if available
+    // Setup Supabase Realtime subscription (no polling)
     if (supabase) {
       channel = supabase
-        .channel('courses-changes')
+        .channel('courses-realtime')
         .on('postgres_changes', 
           { event: '*', schema: 'public', table: 'courses' },
           (payload) => {
-            // Course change detected (no need to log)
+            if (import.meta.env.DEV) {
+              console.log('[useCourses] Course change detected:', payload.eventType);
+            }
             loadCourses();
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          if (import.meta.env.DEV) {
+            console.log('[useCourses] Realtime subscription status:', status);
+          }
+        });
     }
 
     return () => {
-      if (intervalId) clearInterval(intervalId);
       if (channel && supabase) {
         supabase.removeChannel(channel);
       }
     };
-  }, [includeInactive, language]);
+  }, [loadCourses]);
 
   return { courses, isLoading, error, refreshCourses: loadCourses };
 };

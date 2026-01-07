@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Message } from '../types';
 import { Bot, User } from 'lucide-react';
@@ -7,7 +7,7 @@ interface MessageBubbleProps {
   message: Message;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = memo(({ message }) => {
   const isBot = message.role === 'model';
 
   return (
@@ -43,4 +43,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       </div>
     </div>
   );
-};
+});
+
+MessageBubble.displayName = 'MessageBubble';

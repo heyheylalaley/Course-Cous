@@ -1,370 +1,116 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { ChatInterface } from './components/ChatInterface';
+import React, { useState, useEffect, useCallback, Suspense, useMemo, lazy } from 'react';
 import { CourseCard } from './components/CourseCard';
-import { Dashboard } from './components/Dashboard';
-import { AdminDashboard } from './components/AdminDashboard';
 import { AuthScreen } from './components/AuthScreen';
 import { LanguageLevelModal } from './components/LanguageLevelModal';
 import { CourseDetailsModal } from './components/CourseDetailsModal';
-import { NameModal } from './components/NameModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { AlertModal } from './components/AlertModal';
-import { AVAILABLE_COURSES } from './constants';
-import { useCourses } from './hooks/useCourses';
-import { GraduationCap, Menu, X, Info, MessageSquare, LayoutDashboard, LogOut, Shield, Search } from 'lucide-react';
-import { db, supabase } from './services/db';
-import { UserProfile, Language, EnglishLevel, Course, Theme } from './types';
+import { ChatSkeleton, DashboardSkeleton, AdminDashboardSkeleton, SidebarCourseListSkeleton } from './components/Skeletons';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { CoursesProvider, useCourses } from './contexts/CoursesContext';
+import { UIProvider, useUI } from './contexts/UIContext';
+import { useDebounce } from './hooks/useDebounce';
+import { GraduationCap, Menu, X, MessageSquare, LayoutDashboard, LogOut, Shield } from 'lucide-react';
+import { db } from './services/db';
+import { EnglishLevel, Course } from './types';
 import { TRANSLATIONS } from './translations';
 import { Moon, Sun } from 'lucide-react';
 
-const App: React.FC = () => {
-  // Auth & Language State
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [language, setLanguage] = useState<Language>('en');
-  const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem('theme') as Theme;
-    return saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-  });
+// Lazy load heavy components
+const ChatInterface = lazy(() => import('./components/ChatInterface').then(m => ({ default: m.ChatInterface })));
+const Dashboard = lazy(() => import('./components/Dashboard').then(m => ({ default: m.Dashboard })));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 
-  // App UI State
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  
-  // Load saved activeTab from localStorage
-  const getSavedActiveTab = (): 'chat' | 'dashboard' | 'admin' => {
-    const saved = localStorage.getItem('appActiveTab');
-    if (saved && ['chat', 'dashboard', 'admin'].includes(saved)) {
-      return saved as 'chat' | 'dashboard' | 'admin';
-    }
-    return 'chat';
-  };
+// Main App Content (uses contexts)
+const AppContent: React.FC = () => {
+  const { isAuthenticated, userProfile, isLoading: authLoading, login, logout, updateProfile, updateEnglishLevel } = useAuth();
+  const { courses, registrations, courseQueues, isLoading: coursesLoading, toggleRegistration, refreshCourses, updatePriority } = useCourses();
+  const { language, theme, isSidebarOpen, activeTab, setLanguage, toggleTheme, setSidebarOpen, setActiveTab, isRtl } = useUI();
 
-  const [activeTab, setActiveTab] = useState<'chat' | 'dashboard' | 'admin'>(getSavedActiveTab());
-
-  // Save activeTab to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('appActiveTab', activeTab);
-  }, [activeTab]);
-  
-  // App Data State
-  const [registrations, setRegistrations] = useState<string[]>([]);
-  const [userProfile, setUserProfile] = useState<UserProfile>({ id: '', email: '', englishLevel: 'None' });
-  const [showNameModal, setShowNameModal] = useState(false);
-  const [courseQueues, setCourseQueues] = useState<Map<string, number>>(new Map());
-  const [isLoadingData, setIsLoadingData] = useState(false);
+  // Local UI state
   const [showLanguageLevelModal, setShowLanguageLevelModal] = useState(false);
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [showCourseDetails, setShowCourseDetails] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { courses: availableCourses, refreshCourses } = useCourses(false, language);
   const [courseSearchQuery, setCourseSearchQuery] = useState<string>('');
 
-  // Apply theme to document
+  // Debounced search query
+  const debouncedSearchQuery = useDebounce(courseSearchQuery, 300);
+
+  const t = TRANSLATIONS[language];
+
+  // Check if onboarding is needed
   useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  // Check Auth on Mount and load course queues
-  useEffect(() => {
-    const initApp = async () => {
-      // Load course queues only if user is authenticated or if it's public data
-      const loadQueues = async () => {
-        try {
-          const queues = await db.getCourseQueues();
-          const queueMap = new Map<string, number>();
-          queues.forEach(q => {
-            queueMap.set(q.courseId, q.queueLength);
-          });
-          setCourseQueues(queueMap);
-        } catch (error: any) {
-          // Silently fail if not authenticated - queues will load after login
-          if (error?.message?.includes('Not authenticated') || error?.message?.includes('authentication')) {
-            // Expected error on login page, don't log it
-            return;
-          }
-          // Only log unexpected errors in development
-          if (import.meta.env.DEV) {
-            console.error('Failed to load course queues:', error);
-          }
-        }
-      };
+    if (isAuthenticated && !authLoading && userProfile.id) {
+      const needsName = (!userProfile.firstName || !userProfile.lastName || 
+                        userProfile.firstName.trim() === '' || userProfile.lastName.trim() === '') && 
+                       (!userProfile.name || userProfile.name.trim() === '');
+      const needsLevel = userProfile.englishLevel === 'None';
       
-      // Only load queues if we have a session or if it's public data
-      if (supabase) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          await loadQueues();
-        }
-      } else {
-        // For mock mode, try to load queues
-        await loadQueues();
-      }
-
-      // Handle Supabase auth callback (email confirmation, magic link, etc.)
-      if (supabase) {
-        // Check for hash in URL (Supabase callback)
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
-        
-        if (accessToken && refreshToken) {
-          // Exchange tokens for session
-          const { data: { session }, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
-          });
-          
-          if (session && !error) {
-            // Clean up URL hash
-            window.history.replaceState({}, document.title, '/Course-Cous/');
-            setIsAuthenticated(true);
-            loadUserData();
-          }
-        }
-      }
-
-      // Check auth session (for Supabase, wait for session to be ready)
-      if (supabase) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          setIsAuthenticated(true);
-          loadUserData();
-        }
-      } else {
-        const session = db.getCurrentSession();
-        if (session) {
-          setIsAuthenticated(true);
-          loadUserData();
-        }
-      }
-
-      // Listen to auth state changes (for Supabase)
-      if (supabase) {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-          // Log only in development mode
-          if (import.meta.env.DEV) {
-            console.log('Auth state changed:', event);
-          }
-          
-          if (event === 'SIGNED_IN' && session) {
-            // Clean up URL hash if present
-            if (window.location.hash) {
-              window.history.replaceState({}, document.title, '/Course-Cous/');
-            }
-            setIsAuthenticated(true);
-            loadUserData();
-          } else if (event === 'SIGNED_OUT') {
-            setIsAuthenticated(false);
-            setRegistrations([]);
-            setUserProfile({ id: '', email: '', englishLevel: 'None' });
-          } else if (event === 'TOKEN_REFRESHED' && session) {
-            // Session refreshed, user still logged in
-            setIsAuthenticated(true);
-          }
-        });
-
-        return () => subscription.unsubscribe();
-      }
-    };
-
-    initApp();
-  }, []);
-
-  const loadUserData = async () => {
-    setIsLoadingData(true);
-    try {
-      const [profile, regs, queues] = await Promise.all([
-        db.getProfile(),
-        db.getRegistrations(),
-        db.getCourseQueues()
-      ]);
-      // Log only in development mode
-      if (import.meta.env.DEV) {
-        console.log('User profile loaded');
-      }
-      setUserProfile(profile);
-      setRegistrations(regs.map(r => r.courseId));
-      
-      // Load course queues
-      const queueMap = new Map<string, number>();
-      queues.forEach(q => {
-        queueMap.set(q.courseId, q.queueLength);
-      });
-      setCourseQueues(queueMap);
-      
-      // Refresh courses when loading user data (on login or page open)
-      if (refreshCourses) {
-        refreshCourses();
-      }
-      
-      // Show onboarding modal if name or level is not set
-      if ((!profile.firstName || !profile.lastName || profile.firstName.trim() === '' || profile.lastName.trim() === '') && (!profile.name || profile.name.trim() === '')) {
-        setShowOnboardingModal(true);
-      } else if (profile.englishLevel === 'None') {
+      if (needsName || needsLevel) {
         setShowOnboardingModal(true);
       }
-    } catch (e) {
-      // Only log in development mode
-      if (import.meta.env.DEV) {
-        console.error("Failed to load data", e);
-      }
-    } finally {
-      setIsLoadingData(false);
     }
-  };
+  }, [isAuthenticated, authLoading, userProfile]);
 
-  const handleSaveName = async (firstName: string, lastName: string) => {
-    await db.updateProfileInfo({ firstName, lastName });
-    const updatedProfile = await db.getProfile();
-    setUserProfile(updatedProfile);
-  };
+  // Refresh courses on login
+  useEffect(() => {
+    if (isAuthenticated) {
+      refreshCourses();
+    }
+  }, [isAuthenticated, refreshCourses]);
 
   const handleOnboardingComplete = async (firstName: string, lastName: string, englishLevel: EnglishLevel) => {
     try {
-      // Update name if provided
       if ((firstName && firstName.trim()) || (lastName && lastName.trim())) {
         await db.updateProfileInfo({ firstName, lastName });
       }
-      
-      // Update English level
-      await db.updateEnglishLevel(englishLevel);
-      
-      // Reload profile to get updated data
+      await updateEnglishLevel(englishLevel);
       const updatedProfile = await db.getProfile();
-      setUserProfile(updatedProfile);
-      
+      updateProfile(updatedProfile);
       setShowOnboardingModal(false);
     } catch (error) {
-      // Only log in development mode
       if (import.meta.env.DEV) {
         console.error('Failed to save onboarding data:', error);
       }
     }
   };
 
-  const handleLoginSuccess = () => {
-    setIsAuthenticated(true);
-    loadUserData();
-    // Refresh courses when user logs in
-    if (refreshCourses) {
-      refreshCourses();
+  const handleToggleRegistration = useCallback(async (courseId: string) => {
+    setErrorMessage(null);
+    const result = await toggleRegistration(courseId, language);
+    if (!result.success && result.error) {
+      setErrorMessage(result.error);
     }
-  };
+  }, [toggleRegistration, language]);
 
-  const handleLogout = async () => {
-    await db.signOut();
-    setIsAuthenticated(false);
-    setRegistrations([]);
-    setUserProfile({ id: '', email: '', englishLevel: 'None' });
-  };
-
-  const handleToggleRegistration = async (courseId: string) => {
-    try {
-      setErrorMessage(null);
-      if (registrations.includes(courseId)) {
-        await db.removeRegistration(courseId);
-        setRegistrations(prev => prev.filter(id => id !== courseId));
-      } else {
-        if (registrations.length >= 3) {
-          const t = TRANSLATIONS[language];
-          setErrorMessage(t.maxCoursesReached || 'Maximum 3 courses allowed');
-          return;
-        }
-        
-        // Check if profile is complete before allowing registration
-        const isComplete = await db.isProfileComplete();
-        if (!isComplete) {
-          const t = TRANSLATIONS[language];
-          setErrorMessage(t.profileIncompleteDesc || 'Please complete your profile before registering for courses.');
-          return;
-        }
-        
-        await db.addRegistration(courseId);
-        setRegistrations(prev => [...prev, courseId]);
-      }
-      
-      // Reload queues to ensure sync (count from registrations)
-      const queues = await db.getCourseQueues();
-      const queueMap = new Map<string, number>();
-      queues.forEach(q => {
-        queueMap.set(q.courseId, q.queueLength);
-      });
-      setCourseQueues(queueMap);
-    } catch (error: any) {
-      const t = TRANSLATIONS[language];
-      // Check if error is about incomplete profile
-      if (error.message && error.message.includes('complete your profile')) {
-        setErrorMessage(t.profileIncompleteDesc || error.message);
-      } else {
-        setErrorMessage(error.message || 'Failed to update registration');
-      }
-    }
-  };
-
-  const handleViewCourseDetails = (course: Course) => {
+  const handleViewCourseDetails = useCallback((course: Course) => {
     setSelectedCourse(course);
     setShowCourseDetails(true);
-  };
-
-  const handleUpdateProfile = React.useCallback((newProfile: UserProfile) => {
-    setUserProfile(prev => {
-      // Only update if profile actually changed
-      if (prev.id === newProfile.id && 
-          prev.email === newProfile.email &&
-          prev.englishLevel === newProfile.englishLevel &&
-          prev.firstName === newProfile.firstName &&
-          prev.lastName === newProfile.lastName &&
-          prev.address === newProfile.address &&
-          prev.eircode === newProfile.eircode &&
-          prev.mobileNumber === newProfile.mobileNumber &&
-          prev.dateOfBirth === newProfile.dateOfBirth) {
-        return prev; // Return same reference if nothing changed
-      }
-      return newProfile;
-    });
   }, []);
 
-  const handleUpdatePriority = async (courseId: string, newPriority: number) => {
-    try {
-      await db.updateRegistrationPriority(courseId, newPriority);
-      // Reload registrations to update order
-      const regs = await db.getRegistrations();
-      setRegistrations(regs.map(r => r.courseId));
-    } catch (error) {
-      // Only log in development mode
-      if (import.meta.env.DEV) {
-        console.error("Failed to update priority", error);
-      }
-    }
-  };
-
   const handleLanguageLevelSelect = async (level: EnglishLevel) => {
-    try {
-      await db.updateEnglishLevel(level);
-      setUserProfile(prev => ({ ...prev, englishLevel: level }));
-      setShowLanguageLevelModal(false);
-    } catch (error) {
-      // Only log in development mode
-      if (import.meta.env.DEV) {
-        console.error("Failed to update English level", error);
-      }
-    }
+    await updateEnglishLevel(level);
+    setShowLanguageLevelModal(false);
   };
 
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
-  };
+  // Memoized filtered courses
+  const filteredCourses = useMemo(() => {
+    if (!debouncedSearchQuery.trim()) return courses;
+    const query = debouncedSearchQuery.toLowerCase();
+    return courses.filter(course => 
+      course.title.toLowerCase().includes(query) ||
+      course.description.toLowerCase().includes(query) ||
+      course.category.toLowerCase().includes(query) ||
+      course.difficulty.toLowerCase().includes(query)
+    );
+  }, [courses, debouncedSearchQuery]);
 
-  const t = TRANSLATIONS[language];
-  const isRtl = language === 'ar';
+  const hasNoSearchResults = debouncedSearchQuery.trim() && filteredCourses.length === 0;
 
   if (!isAuthenticated) {
-    return <AuthScreen onLoginSuccess={handleLoginSuccess} language={language} setLanguage={setLanguage} theme={theme} />;
+    return <AuthScreen onLoginSuccess={login} language={language} setLanguage={setLanguage} theme={theme} />;
   }
 
   return (
@@ -391,31 +137,31 @@ const App: React.FC = () => {
       />
       <div className="flex h-screen w-full bg-gray-100 dark:bg-gray-900 overflow-hidden" dir={isRtl ? 'rtl' : 'ltr'}>
       
-      {/* Sidebar - Desktop: Static, Mobile: Drawer */}
-      <div 
-        className={`fixed inset-y-0 ${isRtl ? 'right-0 border-l' : 'left-0 border-r'} z-30 w-full sm:w-80 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static flex flex-col
-        ${isSidebarOpen ? 'translate-x-0' : (isRtl ? 'translate-x-full' : '-translate-x-full')}
-        `}
-      >
-        {/* Sidebar Header */}
-        <div className="h-16 flex items-center justify-between px-4 sm:px-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-          <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
-            <GraduationCap className="w-6 h-6" />
-            <span className="font-bold text-base sm:text-lg tracking-tight">{t.appTitle}</span>
-          </div>
-          <button 
-            onClick={() => setIsSidebarOpen(false)} 
-            className="lg:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
-            aria-label="Close menu"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Sidebar Navigation */}
-        <div className="p-4 space-y-2">
+        {/* Sidebar */}
+        <div 
+          className={`fixed inset-y-0 ${isRtl ? 'right-0 border-l' : 'left-0 border-r'} z-30 w-full sm:w-80 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static flex flex-col
+          ${isSidebarOpen ? 'translate-x-0' : (isRtl ? 'translate-x-full' : '-translate-x-full')}
+          `}
+        >
+          {/* Sidebar Header */}
+          <div className="h-16 flex items-center justify-between px-4 sm:px-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+            <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
+              <GraduationCap className="w-6 h-6" />
+              <span className="font-bold text-base sm:text-lg tracking-tight">{t.appTitle}</span>
+            </div>
             <button 
-              onClick={() => { setActiveTab('chat'); setIsSidebarOpen(false); }}
+              onClick={() => setSidebarOpen(false)} 
+              className="lg:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
+              aria-label="Close menu"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Sidebar Navigation */}
+          <div className="p-4 space-y-2">
+            <button 
+              onClick={() => setActiveTab('chat')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm
                 ${activeTab === 'chat' 
                   ? 'bg-indigo-600 dark:bg-indigo-700 text-white shadow-md' 
@@ -426,7 +172,7 @@ const App: React.FC = () => {
               {t.chatTab}
             </button>
             <button 
-              onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }}
+              onClick={() => setActiveTab('dashboard')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm
                 ${activeTab === 'dashboard' 
                   ? 'bg-indigo-600 dark:bg-indigo-700 text-white shadow-md' 
@@ -443,7 +189,7 @@ const App: React.FC = () => {
             </button>
             {userProfile.isAdmin && (
               <button 
-                onClick={() => { setActiveTab('admin'); setIsSidebarOpen(false); }}
+                onClick={() => setActiveTab('admin')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm
                   ${activeTab === 'admin' 
                     ? 'bg-purple-600 dark:bg-purple-700 text-white shadow-md' 
@@ -454,68 +200,54 @@ const App: React.FC = () => {
                 {t.adminPanel}
               </button>
             )}
-        </div>
+          </div>
 
-        {/* Available Courses List (Context for user) */}
-        <div className="flex-1 overflow-y-auto px-3 sm:px-4 pb-4 custom-scrollbar flex flex-col">
-          <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 px-1 mt-2">{t.quickCatalog}</h3>
+          {/* Course Catalog */}
+          <div className="flex-1 overflow-y-auto px-3 sm:px-4 pb-4 custom-scrollbar flex flex-col">
+            <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 px-1 mt-2">{t.quickCatalog}</h3>
+            
+            {/* Search Input */}
+            <div className="mb-3">
+              <input
+                type="text"
+                value={courseSearchQuery}
+                onChange={(e) => setCourseSearchQuery(e.target.value)}
+                placeholder={t.searchCourses}
+                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-transparent"
+              />
+            </div>
+
+            <div className="space-y-2 sm:space-y-3 flex-1">
+              {coursesLoading ? (
+                <SidebarCourseListSkeleton count={5} />
+              ) : (
+                <>
+                  {filteredCourses.map(course => (
+                    <CourseCard 
+                      key={course.id} 
+                      course={course} 
+                      isRegistered={registrations.includes(course.id)}
+                      onToggleRegistration={handleToggleRegistration}
+                      language={language}
+                      queueLength={courseQueues.get(course.id) || 0}
+                      onViewDetails={handleViewCourseDetails}
+                    />
+                  ))}
+                  {hasNoSearchResults && (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
+                      {language === 'ru' ? 'Курсы не найдены' : language === 'ua' ? 'Курси не знайдено' : language === 'ar' ? 'لم يتم العثور على دورات' : 'No courses found'}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
           
-          {/* Search Input */}
-          <div className="mb-3">
-            <input
-              type="text"
-              value={courseSearchQuery}
-              onChange={(e) => setCourseSearchQuery(e.target.value)}
-              placeholder={t.searchCourses}
-              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-transparent"
-            />
-          </div>
-
-          <div className="space-y-2 sm:space-y-3 flex-1">
-            {availableCourses
-              .filter(course => {
-                if (!courseSearchQuery.trim()) return true;
-                const query = courseSearchQuery.toLowerCase();
-                return (
-                  course.title.toLowerCase().includes(query) ||
-                  course.description.toLowerCase().includes(query) ||
-                  course.category.toLowerCase().includes(query) ||
-                  course.difficulty.toLowerCase().includes(query)
-                );
-              })
-              .map(course => (
-                <CourseCard 
-                  key={course.id} 
-                  course={course} 
-                  isRegistered={registrations.includes(course.id)}
-                  onToggleRegistration={handleToggleRegistration}
-                  language={language}
-                  queueLength={courseQueues.get(course.id) || 0}
-                  onViewDetails={handleViewCourseDetails}
-                />
-              ))}
-            {availableCourses.filter(course => {
-              if (!courseSearchQuery.trim()) return false;
-              const query = courseSearchQuery.toLowerCase();
-              return (
-                course.title.toLowerCase().includes(query) ||
-                course.description.toLowerCase().includes(query) ||
-                course.category.toLowerCase().includes(query) ||
-                course.difficulty.toLowerCase().includes(query)
-              );
-            }).length === 0 && courseSearchQuery.trim() && (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
-                {language === 'ru' ? 'Курсы не найдены' : language === 'ua' ? 'Курси не знайдено' : language === 'ar' ? 'لم يتم العثور على دورات' : 'No courses found'}
-              </div>
-            )}
-          </div>
-        </div>
-        
-        {/* Sidebar Footer with Language, Theme & Logout */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-          <div className="flex justify-between items-center mb-3">
-             <div className="flex gap-1">
-                {(['en', 'ua', 'ru', 'ar'] as Language[]).map((lang) => (
+          {/* Sidebar Footer */}
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+            <div className="flex justify-between items-center mb-3">
+              <div className="flex gap-1">
+                {(['en', 'ua', 'ru', 'ar'] as const).map((lang) => (
                   <button
                     key={lang}
                     onClick={() => setLanguage(lang)}
@@ -528,103 +260,121 @@ const App: React.FC = () => {
                     {lang.toUpperCase()}
                   </button>
                 ))}
-             </div>
-             <div className="flex gap-2">
-               <button 
-                 onClick={toggleTheme}
-                 className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                 title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-               >
-                 {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-               </button>
-               <button onClick={handleLogout} className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                <LogOut size={18} />
-             </button>
-             </div>
-          </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
-             &copy; {new Date().getFullYear()} {t.footer}
+              </div>
+              <div className="flex gap-2">
+                <button 
+                  onClick={toggleTheme}
+                  className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+                >
+                  {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+                </button>
+                <button 
+                  onClick={logout} 
+                  className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <LogOut size={18} />
+                </button>
+              </div>
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+              &copy; {new Date().getFullYear()} {t.footer}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-full relative">
-        {/* Mobile Overlay */}
-        {isSidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-black/20 dark:bg-black/40 z-20 lg:hidden"
-            onClick={() => setIsSidebarOpen(false)}
-          />
-        )}
-
-        {/* Mobile Header Toggle - Always visible on mobile */}
-        <div className="lg:hidden h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center px-4 justify-between shrink-0 z-20 sticky top-0">
-           <button 
-             onClick={() => setIsSidebarOpen(true)}
-             className="p-2.5 rounded-lg bg-indigo-600 dark:bg-indigo-700 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center"
-             aria-label="Open menu"
-           >
-             <Menu className="w-6 h-6" />
-           </button>
-           <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 font-bold">
-            <GraduationCap className="w-5 h-5" />
-            <span className="text-base sm:text-lg">{t.appTitle}</span>
-          </div>
-          <button 
-            onClick={toggleTheme}
-            className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 dark:text-white transition-colors shadow-sm hover:shadow-md active:scale-95"
-            aria-label="Toggle theme"
-          >
-            {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-          </button>
-        </div>
-
-        {/* Floating Menu Button - Always visible when sidebar is closed on mobile */}
-        {!isSidebarOpen && (
-          <button
-            onClick={() => setIsSidebarOpen(true)}
-            className="lg:hidden fixed top-4 left-4 z-40 p-3 bg-indigo-600 dark:bg-indigo-700 text-white rounded-full shadow-lg hover:shadow-xl hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-all active:scale-95"
-            aria-label="Open menu"
-          >
-            <Menu className="w-6 h-6" />
-          </button>
-        )}
-
-        {/* Main View */}
-        <div className="flex-1 h-full overflow-hidden bg-white dark:bg-gray-900">
-          {isLoadingData ? (
-             <div className="h-full flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 dark:border-indigo-400"></div>
-             </div>
-          ) : activeTab === 'chat' ? (
-            <ChatInterface language={language} onOpenSidebar={() => setIsSidebarOpen(true)} />
-          ) : activeTab === 'admin' ? (
-            <AdminDashboard 
-              language={language} 
-              onBack={() => setActiveTab('dashboard')}
-            />
-          ) : (
-            <Dashboard 
-              registrations={registrations} 
-              userProfile={userProfile}
-              onUpdateProfile={handleUpdateProfile}
-              onRemoveRegistration={(id) => handleToggleRegistration(id)}
-              onUpdatePriority={handleUpdatePriority}
-              language={language}
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col h-full relative">
+          {/* Mobile Overlay */}
+          {isSidebarOpen && (
+            <div 
+              className="fixed inset-0 bg-black/20 dark:bg-black/40 z-20 lg:hidden"
+              onClick={() => setSidebarOpen(false)}
             />
           )}
+
+          {/* Mobile Header - Only one menu button here */}
+          <div className="lg:hidden h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center px-4 justify-between shrink-0 z-20 sticky top-0">
+            <button 
+              onClick={() => setSidebarOpen(true)}
+              className="p-2.5 rounded-lg bg-indigo-600 dark:bg-indigo-700 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center"
+              aria-label="Open menu"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 font-bold">
+              <GraduationCap className="w-5 h-5" />
+              <span className="text-base sm:text-lg">{t.appTitle}</span>
+            </div>
+            <button 
+              onClick={toggleTheme}
+              className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors shadow-sm hover:shadow-md active:scale-95"
+              aria-label="Toggle theme"
+            >
+              {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+            </button>
+          </div>
+
+          {/* Main View with Lazy Loading */}
+          <div className="flex-1 h-full overflow-hidden bg-white dark:bg-gray-900">
+            {authLoading ? (
+              <ChatSkeleton />
+            ) : activeTab === 'chat' ? (
+              <Suspense fallback={<ChatSkeleton />}>
+                <ChatInterface language={language} onOpenSidebar={() => setSidebarOpen(true)} />
+              </Suspense>
+            ) : activeTab === 'admin' ? (
+              <Suspense fallback={<AdminDashboardSkeleton />}>
+                <AdminDashboard 
+                  language={language} 
+                  onBack={() => setActiveTab('dashboard')}
+                />
+              </Suspense>
+            ) : (
+              <Suspense fallback={<DashboardSkeleton />}>
+                <Dashboard 
+                  registrations={registrations} 
+                  userProfile={userProfile}
+                  onUpdateProfile={updateProfile}
+                  onRemoveRegistration={handleToggleRegistration}
+                  onUpdatePriority={updatePriority}
+                  language={language}
+                />
+              </Suspense>
+            )}
+          </div>
         </div>
+        <AlertModal
+          isOpen={!!errorMessage}
+          onClose={() => setErrorMessage(null)}
+          message={errorMessage || ''}
+          language={language}
+          type="error"
+        />
       </div>
-      <AlertModal
-        isOpen={!!errorMessage}
-        onClose={() => setErrorMessage(null)}
-        message={errorMessage || ''}
-        language={language}
-        type="error"
-      />
-    </div>
     </>
+  );
+};
+
+// Root App with Providers
+const App: React.FC = () => {
+  return (
+    <UIProvider>
+      <AuthProvider>
+        <AppWithCoursesProvider />
+      </AuthProvider>
+    </UIProvider>
+  );
+};
+
+// Separate component to use UIContext for language
+const AppWithCoursesProvider: React.FC = () => {
+  const { language } = useUI();
+  
+  return (
+    <CoursesProvider language={language}>
+      <AppContent />
+    </CoursesProvider>
   );
 };
 

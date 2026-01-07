@@ -1,7 +1,19 @@
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
-// Removed SYSTEM_INSTRUCTION import - we build instructions dynamically to avoid stale course data
 import { UserProfile, Language, Course, EnglishLevel } from '../types';
 import { db } from './db';
+
+// Cache for chat session and courses hash
+let chatSession: Chat | null = null;
+let lastCoursesHash: string = '';
+let lastLanguage: Language = 'en';
+
+// Helper function to create a simple hash of courses for change detection
+const createCoursesHash = (courses: Course[]): string => {
+  return courses
+    .map(c => `${c.id}:${c.title}:${c.isActive}`)
+    .sort()
+    .join('|');
+};
 
 // Helper function to compare English levels
 const compareEnglishLevels = (userLevel: EnglishLevel, requiredLevel: EnglishLevel): boolean => {
@@ -11,10 +23,7 @@ const compareEnglishLevels = (userLevel: EnglishLevel, requiredLevel: EnglishLev
   return userIndex >= requiredIndex;
 };
 
-let chatSession: Chat | null = null;
-
 const getAiClient = () => {
-  // Try multiple ways to get API key (for different build configurations)
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY || 
                  import.meta.env.GEMINI_API_KEY || 
                  (typeof process !== 'undefined' && process.env?.API_KEY) ||
@@ -27,55 +36,56 @@ const getAiClient = () => {
   return new GoogleGenAI({ apiKey });
 };
 
-export const initializeChat = async (userProfile?: UserProfile, language: Language = 'en'): Promise<Chat> => {
-  const ai = getAiClient();
-  
+// Check if we need to reinitialize the chat session
+const shouldReinitialize = async (language: Language): Promise<{ needsReinit: boolean; courses: Course[] }> => {
   // Load courses from database
   let availableCourses: Course[] = [];
   try {
-    // Use getActiveCourses which handles both authenticated and public access
-    // Use English for bot as it needs consistent language for recommendations
     availableCourses = await db.getActiveCourses('en');
-    // Log only in development mode
-    if (import.meta.env.DEV) {
-      console.log(`[Gemini] Loaded ${availableCourses.length} active courses from database`);
-    }
     
     // Verify no inactive courses slipped through
-    const inactiveCourses = availableCourses.filter(c => c.isActive === false);
-    if (inactiveCourses.length > 0) {
-      console.error(`[Gemini] ERROR: Found ${inactiveCourses.length} inactive courses in result:`, inactiveCourses.map(c => c.title));
-      availableCourses = availableCourses.filter(c => c.isActive !== false);
-    }
+    availableCourses = availableCourses.filter(c => c.isActive !== false);
   } catch (error) {
     console.error('Failed to load courses from database:', error);
-    // IMPORTANT: Don't use fallback if we can't load from DB
-    // This ensures we never show inactive courses
-    // If DB fails, return empty array - bot will say no courses available
     availableCourses = [];
-    console.warn(`[Gemini] Database load failed, using empty course list to prevent showing inactive courses`);
   }
 
-  // CRITICAL: Filter out inactive courses (double-check)
-  // This is a safety net - getAllCourses(false) should already filter, but we check again
-  availableCourses = availableCourses.filter(course => {
-    // Explicitly check isActive - if false or undefined but we want only active, exclude
-    // Since we called getAllCourses(false), all courses should be active, but double-check
-    if (course.isActive === false) {
-      console.warn(`[Gemini] Filtered out inactive course: ${course.title}`);
-      return false;
-    }
-    return true;
-  });
+  const currentHash = createCoursesHash(availableCourses);
+  
+  // Check if courses changed or language changed or no session exists
+  const needsReinit = !chatSession || 
+                      currentHash !== lastCoursesHash || 
+                      language !== lastLanguage;
+  
+  if (import.meta.env.DEV && needsReinit) {
+    const reason = !chatSession ? 'no session' : 
+                   currentHash !== lastCoursesHash ? 'courses changed' : 
+                   'language changed';
+    console.log(`[Gemini] Reinitializing chat session (reason: ${reason})`);
+  }
+  
+  return { needsReinit, courses: availableCourses };
+};
 
-  // DON'T filter courses - pass ALL courses to bot so it can mention them even if user's English is insufficient
-  // Bot will explain English requirements when needed
-  // Log only in development mode
+export const initializeChat = async (userProfile?: UserProfile, language: Language = 'en', forcedCourses?: Course[]): Promise<Chat> => {
+  const ai = getAiClient();
+  
+  // Use provided courses or load from database
+  const availableCourses = forcedCourses || await (async () => {
+    try {
+      const courses = await db.getActiveCourses('en');
+      return courses.filter(c => c.isActive !== false);
+    } catch (error) {
+      console.error('Failed to load courses from database:', error);
+      return [];
+    }
+  })();
+
   if (import.meta.env.DEV && availableCourses.length > 0) {
     console.log(`[Gemini] Bot has ${availableCourses.length} courses available`);
   }
 
-  // Build course list for bot with ALL courses
+  // Build course list for bot
   const courseListForBot = availableCourses.map(c => ({
     title: c.title,
     description: c.description,
@@ -107,50 +117,35 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
     }
   }
 
-  // Check if main instructions are configured
   if (!mainInstructions || mainInstructions.trim() === '') {
     throw new Error('Bot instructions are not configured. Please set up bot instructions in the admin panel.');
   }
 
-  // Replace {{COURSES_LIST}} placeholder with actual course list
+  // Build instructions
   const coursesListJson = JSON.stringify(courseListForBot, null, 2);
   let instructions = mainInstructions.replace('{{COURSES_LIST}}', coursesListJson);
   
-  // If template didn't have placeholder, append courses list at the end
   if (!mainInstructions.includes('{{COURSES_LIST}}')) {
     instructions += `\n\nAVAILABLE COURSES LIST:\n${coursesListJson}\n\nCRITICAL: Only recommend courses from this list.`;
   }
 
-  // Add contact information if configured
   if (contactsInstructions && contactsInstructions.trim()) {
     instructions += `\n\nCONTACT INFORMATION:\n${contactsInstructions}\n\nIMPORTANT: You can share this contact information with users when they ask for help, support, or need to reach the training center.`;
   }
 
-  // Add external links if configured
   if (externalLinksInstructions && externalLinksInstructions.trim()) {
-    instructions += `\n\nEXTERNAL RESOURCES AND LINKS:\n${externalLinksInstructions}\n\nIMPORTANT: When users ask about courses or services that are NOT in the AVAILABLE COURSES LIST, you can suggest these external resources. For example, if someone asks about English language courses and there are none in the available courses, you can mention ETB or FET links from the list above.`;
+    instructions += `\n\nEXTERNAL RESOURCES AND LINKS:\n${externalLinksInstructions}\n\nIMPORTANT: When users ask about courses or services that are NOT in the AVAILABLE COURSES LIST, you can suggest these external resources.`;
   }
 
-  // Log only in development mode
   if (import.meta.env.DEV) {
     console.log(`[Gemini] Instructions prepared with ${courseListForBot.length} courses`);
-    console.log(`[Gemini] Course titles in list:`, courseListForBot.map(c => c.title));
-    console.log(`[Gemini] Instructions length: ${instructions.length} characters`);
-    // Verify courses list is in instructions
-    if (!instructions.includes(coursesListJson)) {
-      console.error('[Gemini] ERROR: Course list not found in instructions!');
-    } else {
-      console.log('[Gemini] ✓ Course list successfully inserted into instructions');
-    }
   }
-  
-  // Verify that instructions contain the actual course list
-  // This is a safety check to ensure courses are passed correctly
+
   if (courseListForBot.length === 0) {
     console.warn('[Gemini] WARNING: No courses loaded! Bot will have no courses to recommend.');
   }
 
-  // Try gemini-3-flash-preview first, fallback to gemini-2.0-flash-exp if not available
+  // Create chat session
   try {
     chatSession = ai.chats.create({
       model: 'gemini-2.5-flash-lite',
@@ -170,19 +165,25 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
     });
   }
   
+  // Update cache
+  lastCoursesHash = createCoursesHash(availableCourses);
+  lastLanguage = language;
+  
   return chatSession;
 };
 
 export const sendMessageToGemini = async function* (message: string, userProfile?: UserProfile, language: Language = 'en') {
-  // Always reinitialize chat to get latest courses from database
-  // This ensures that when courses are updated/deactivated, bot uses the latest list
-  try {
-    chatSession = await initializeChat(userProfile, language);
-  } catch (error) {
-    console.error('Failed to initialize chat:', error);
-    // If initialization fails, try to use existing session
-    if (!chatSession) {
-      throw new Error("Failed to initialize chat session.");
+  // Check if we need to reinitialize
+  const { needsReinit, courses } = await shouldReinitialize(language);
+  
+  if (needsReinit) {
+    try {
+      chatSession = await initializeChat(userProfile, language, courses);
+    } catch (error) {
+      console.error('Failed to initialize chat:', error);
+      if (!chatSession) {
+        throw new Error("Failed to initialize chat session.");
+      }
     }
   }
 
@@ -202,7 +203,31 @@ export const sendMessageToGemini = async function* (message: string, userProfile
   } catch (error: any) {
     console.error("Error communicating with Gemini:", error);
     
-    // Provide more specific error messages
+    // If session error, try to reinitialize once
+    if (error?.message?.includes('session') || error?.status === 400) {
+      console.log('[Gemini] Session error, attempting to reinitialize...');
+      chatSession = null; // Force reinit
+      lastCoursesHash = ''; // Force courses reload
+      
+      try {
+        const { courses: freshCourses } = await shouldReinitialize(language);
+        chatSession = await initializeChat(userProfile, language, freshCourses);
+        
+        // Retry the message
+        const retryStream = await chatSession.sendMessageStream({ message });
+        for await (const chunk of retryStream) {
+          const c = chunk as GenerateContentResponse;
+          if (c.text) {
+            yield c.text;
+          }
+        }
+        return;
+      } catch (retryError) {
+        console.error('Retry also failed:', retryError);
+      }
+    }
+    
+    // Provide specific error messages
     if (error?.status === 403 || error?.code === 403) {
       throw new Error("API access forbidden. Please check your API key and permissions.");
     } else if (error?.status === 429 || error?.code === 429) {
@@ -214,5 +239,14 @@ export const sendMessageToGemini = async function* (message: string, userProfile
     } else {
       throw new Error("Connection error. Please check your internet connection and try again.");
     }
+  }
+};
+
+// Force reinitialize on next message (call when courses are updated)
+export const invalidateChatCache = () => {
+  chatSession = null;
+  lastCoursesHash = '';
+  if (import.meta.env.DEV) {
+    console.log('[Gemini] Chat cache invalidated');
   }
 };

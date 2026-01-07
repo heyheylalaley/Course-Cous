@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, memo } from 'react';
 import { Message, Language } from '../types';
 import { sendMessageToGemini, initializeChat } from '../services/geminiService';
 import { MessageBubble } from './MessageBubble';
@@ -11,7 +11,7 @@ interface ChatInterfaceProps {
   onOpenSidebar?: () => void;
 }
 
-export const ChatInterface: React.FC<ChatInterfaceProps> = ({ language, onOpenSidebar }) => {
+export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onOpenSidebar }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -266,4 +266,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ language, onOpenSi
       </div>
     </div>
   );
-};
+});
+
+ChatInterface.displayName = 'ChatInterface';
+
+export default ChatInterface;

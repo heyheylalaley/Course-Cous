@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, memo } from 'react';
 import { UserProfile, EnglishLevel, Language, Registration, Course } from '../types';
 import { AVAILABLE_COURSES } from '../constants';
 import { useCourses } from '../hooks/useCourses';
@@ -18,7 +18,7 @@ interface DashboardProps {
   language: Language;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ 
+export const Dashboard: React.FC<DashboardProps> = memo(({ 
   registrations, 
   userProfile, 
   onUpdateProfile,
@@ -385,4 +385,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     />
     </>
   );
-};
+});
+
+Dashboard.displayName = 'Dashboard';
+
+export default Dashboard;

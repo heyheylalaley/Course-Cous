@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { AdminCourseStats, Language } from '../types';
 import { db } from '../services/db';
 import { TRANSLATIONS } from '../translations';
@@ -14,7 +14,7 @@ interface AdminDashboardProps {
   onBack: () => void;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ language, onBack }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = memo(({ language, onBack }) => {
   const [courseStats, setCourseStats] = useState<AdminCourseStats[]>([]);
   
   // Load saved state from localStorage
@@ -213,4 +213,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ language, onBack
       </div>
     </div>
   );
-};
+});
+
+AdminDashboard.displayName = 'AdminDashboard';
+
+export default AdminDashboard;
