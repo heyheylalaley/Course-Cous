@@ -288,86 +288,90 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ language }) => {
           {getText('Registrations Over Last 30 Days', 'Регистрации за последние 30 дней', 'Реєстрації за останні 30 днів', 'التسجيلات خلال آخر 30 يومًا')}
         </h3>
         
-        {/* Chart container */}
-        <div className="relative h-40">
+        <div className="flex">
           {/* Y-axis labels */}
-          <div className="absolute left-0 top-0 bottom-0 w-6 flex flex-col justify-between text-[10px] text-gray-400 dark:text-gray-500 pr-1 text-right">
+          <div className="w-8 flex flex-col justify-between text-[10px] text-gray-400 dark:text-gray-500 text-right pr-2" style={{ height: '120px' }}>
             <span>{maxByDate}</span>
             <span>{Math.round(maxByDate / 2)}</span>
             <span>0</span>
           </div>
           
-          {/* Grid lines */}
-          <div className="absolute left-8 right-0 top-0 bottom-0">
-            <div className="absolute top-0 left-0 right-0 border-t border-gray-200 dark:border-gray-700"></div>
-            <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-gray-200 dark:border-gray-700"></div>
-            <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 dark:border-gray-700"></div>
-          </div>
-          
-          {/* Bars */}
-          <div className="absolute left-8 right-0 top-0 bottom-0 flex items-end">
-            {analytics.registrationsByDate.map((item, index) => {
-              const height = maxByDate > 0 ? (item.count / maxByDate) * 100 : 0;
-              const date = new Date(item.date);
-              const isToday = date.toDateString() === new Date().toDateString();
+          {/* Chart area */}
+          <div className="flex-1">
+            {/* Bars container */}
+            <div className="relative border-l border-b border-gray-200 dark:border-gray-700" style={{ height: '120px' }}>
+              {/* Middle grid line */}
+              <div className="absolute left-0 right-0 top-1/2 border-t border-dashed border-gray-200 dark:border-gray-700"></div>
               
-              return (
-                <div 
-                  key={index} 
-                  className="flex-1 flex items-end justify-center group relative px-[1px]"
-                >
-                  {/* Tooltip */}
-                  {item.count > 0 && (
-                    <div className="absolute bottom-full mb-1 hidden group-hover:block z-10 pointer-events-none">
-                      <div className="bg-gray-900 dark:bg-gray-600 text-white text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap">
-                        {date.getDate()}.{date.getMonth() + 1}: {item.count}
-                      </div>
-                    </div>
-                  )}
+              {/* Bars */}
+              <div className="absolute inset-0 flex items-end px-1">
+                {analytics.registrationsByDate.map((item, index) => {
+                  const barHeight = maxByDate > 0 ? Math.round((item.count / maxByDate) * 110) : 0;
+                  const date = new Date(item.date);
+                  const isToday = date.toDateString() === new Date().toDateString();
                   
-                  <div
-                    className={`w-full max-w-[8px] rounded-t transition-all ${
-                      isToday 
-                        ? 'bg-green-500 dark:bg-green-400' 
-                        : item.count > 0 
-                          ? 'bg-indigo-500 dark:bg-indigo-400' 
-                          : 'bg-transparent'
-                    }`}
-                    style={{ 
-                      height: item.count > 0 ? `${Math.max(height, 4)}%` : '0'
-                    }}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-        
-        {/* X-axis labels */}
-        <div className="flex ml-8 mt-1">
-          {analytics.registrationsByDate.map((item, index) => {
-            const date = new Date(item.date);
-            const showLabel = index === 0 || index === 9 || index === 19 || index === 29;
-            return (
-              <div key={index} className="flex-1 text-center">
-                {showLabel && (
-                  <span className="text-[10px] text-gray-400 dark:text-gray-500">
-                    {date.getDate()}/{date.getMonth() + 1}
-                  </span>
-                )}
+                  return (
+                    <div 
+                      key={index} 
+                      className="flex-1 flex items-end justify-center group relative"
+                      style={{ minWidth: '6px' }}
+                    >
+                      {/* Tooltip */}
+                      {item.count > 0 && (
+                        <div className="absolute bottom-full mb-1 hidden group-hover:block z-20 pointer-events-none">
+                          <div className="bg-gray-900 text-white text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap shadow-lg">
+                            {date.getDate()}.{date.getMonth() + 1}: {item.count}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div
+                        className={`rounded-t transition-all cursor-pointer ${
+                          isToday 
+                            ? 'bg-green-500 hover:bg-green-600' 
+                            : item.count > 0 
+                              ? 'bg-indigo-500 hover:bg-indigo-600' 
+                              : ''
+                        }`}
+                        style={{ 
+                          height: item.count > 0 ? `${Math.max(barHeight, 4)}px` : '0px',
+                          width: '80%',
+                          maxWidth: '12px'
+                        }}
+                      />
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+            
+            {/* X-axis labels */}
+            <div className="flex mt-1 px-1">
+              {analytics.registrationsByDate.map((item, index) => {
+                const date = new Date(item.date);
+                const showLabel = index === 0 || index === 9 || index === 19 || index === 29;
+                return (
+                  <div key={index} className="flex-1 text-center" style={{ minWidth: '6px' }}>
+                    {showLabel && (
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                        {date.getDate()}/{date.getMonth() + 1}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
         
         {/* Legend */}
-        <div className="flex gap-4 mt-3 text-xs text-gray-500 dark:text-gray-400">
-          <div className="flex items-center gap-1">
-            <div className="w-2.5 h-2.5 bg-indigo-500 dark:bg-indigo-400 rounded-sm"></div>
+        <div className="flex gap-4 mt-4 text-xs text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 bg-indigo-500 rounded-sm"></div>
             <span>{getText('Registrations', 'Регистрации', 'Реєстрації', 'التسجيلات')}</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2.5 h-2.5 bg-green-500 dark:bg-green-400 rounded-sm"></div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 bg-green-500 rounded-sm"></div>
             <span>{getText('Today', 'Сегодня', 'Сьогодні', 'اليوم')}</span>
           </div>
         </div>
