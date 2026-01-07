@@ -72,5 +72,5 @@ export interface Registration {
 
 export interface CourseQueue {
   courseId: string;
-  queueLength: number; // количество людей в очереди
+  queueLength: number; // number of people in queue
 }

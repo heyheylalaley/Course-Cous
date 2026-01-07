@@ -25,7 +25,7 @@ const STORAGE_KEYS = {
   SESSION: 'auth_session',
   PROFILE: (userId: string) => `user_profile_${userId}`,
   REGISTRATIONS: (userId: string) => `user_registrations_${userId}`,
-  COURSE_QUEUES: 'course_queues' // глобальная очередь для всех курсов
+  COURSE_QUEUES: 'course_queues' // global queue for all courses
 };
 
 export const db = {
