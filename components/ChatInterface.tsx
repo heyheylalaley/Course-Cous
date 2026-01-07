@@ -203,13 +203,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
           {onOpenSidebar && (
             <button
               onClick={onOpenSidebar}
-              className="lg:hidden p-2 rounded-lg bg-indigo-600 dark:bg-indigo-700 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors shadow-md active:scale-95"
+              className="lg:hidden p-2 rounded-lg bg-green-600 dark:bg-green-700 text-white hover:bg-green-700 dark:hover:bg-green-600 transition-colors shadow-md active:scale-95"
               aria-label="Open menu"
             >
               <Menu className="w-5 h-5" />
             </button>
           )}
-          <div className="p-2 bg-indigo-600 dark:bg-indigo-700 rounded-lg">
+          <div className="p-2 bg-green-600 dark:bg-green-700 rounded-lg">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -237,7 +237,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
         <div className="max-w-3xl mx-auto">
           <form 
             onSubmit={handleSendMessage}
-            className="flex items-center gap-2 sm:gap-3 bg-gray-50 dark:bg-gray-800 p-2 rounded-2xl border border-gray-200 dark:border-gray-700 focus-within:border-indigo-300 dark:focus-within:border-indigo-600 focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-900/30 transition-all"
+            className="flex items-center gap-2 sm:gap-3 bg-gray-50 dark:bg-gray-800 p-2 rounded-2xl border border-gray-200 dark:border-gray-700 focus-within:border-green-300 dark:focus-within:border-green-600 focus-within:ring-2 focus-within:ring-green-100 dark:focus-within:ring-green-900/30 transition-all"
           >
             <input
               type="text"
@@ -253,7 +253,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
               className={`p-2 sm:p-3 rounded-xl transition-all duration-200 flex items-center justify-center flex-shrink-0
                 ${!inputText.trim() || isLoading 
                   ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed' 
-                  : 'bg-indigo-600 dark:bg-indigo-700 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600 shadow-md hover:shadow-lg active:scale-95'
+                  : 'bg-green-600 dark:bg-green-700 text-white hover:bg-green-700 dark:hover:bg-green-600 shadow-md hover:shadow-lg active:scale-95'
                 }`}
             >
               {isLoading ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <Send className="w-4 h-4 sm:w-5 sm:h-5" />}

@@ -160,7 +160,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
         {/* Profile Section */}
         <section className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3 mb-4 border-b border-gray-100 dark:border-gray-700 pb-4">
-            <div className="p-2 bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 rounded-lg">
+            <div className="p-2 bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 rounded-lg">
               <User size={20} />
             </div>
             <h2 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-white">{t.profileTitle}</h2>
@@ -250,7 +250,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
 
             <button
               onClick={() => setShowProfileInfoModal(true)}
-              className="mt-3 flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 dark:bg-indigo-700 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600 text-sm font-medium transition-colors"
+              className="mt-3 flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 dark:bg-green-700 text-white hover:bg-green-700 dark:hover:bg-green-600 text-sm font-medium transition-colors"
             >
               <Edit2 size={16} />
               {t.editAdditionalInfo}
@@ -268,7 +268,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
               <select
                 value={level}
                 onChange={(e) => setLevel(e.target.value as EnglishLevel)}
-                className="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 border p-2.5 text-sm text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600"
+                className="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 border p-2.5 text-sm text-gray-900 dark:text-white focus:border-green-500 dark:focus:border-green-600 focus:ring-green-500 dark:focus:ring-green-600"
               >
                 <option value="None">{t.notSpecified}</option>
                 <option value="A1">A1 - Beginner</option>
@@ -284,7 +284,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
                 className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all
                   ${level === userProfile.englishLevel 
                     ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-default' 
-                    : 'bg-indigo-600 dark:bg-indigo-700 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600 shadow-sm'
+                    : 'bg-green-600 dark:bg-green-700 text-white hover:bg-green-700 dark:hover:bg-green-600 shadow-sm'
                   }`}
               >
                 <Save size={16} />
@@ -331,7 +331,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
                         >
                           <ArrowUp className="w-4 h-4" />
                         </button>
-                        <div className="text-xs font-bold text-indigo-600 dark:text-indigo-400 text-center py-1">
+                        <div className="text-xs font-bold text-green-600 dark:text-green-400 text-center py-1">
                           {priority}
                         </div>
                         <button

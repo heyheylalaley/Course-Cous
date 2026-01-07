@@ -10,7 +10,8 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CoursesProvider, useCourses } from './contexts/CoursesContext';
 import { UIProvider, useUI } from './contexts/UIContext';
 import { useDebounce } from './hooks/useDebounce';
-import { GraduationCap, Menu, X, MessageSquare, LayoutDashboard, LogOut, Shield } from 'lucide-react';
+import { Menu, X, MessageSquare, LayoutDashboard, LogOut, Shield, Info } from 'lucide-react';
+import { ContactModal } from './components/ContactModal';
 import { db } from './services/db';
 import { EnglishLevel, Course } from './types';
 import { TRANSLATIONS } from './translations';
@@ -34,6 +35,7 @@ const AppContent: React.FC = () => {
   const [showCourseDetails, setShowCourseDetails] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [courseSearchQuery, setCourseSearchQuery] = useState<string>('');
+  const [showContactModal, setShowContactModal] = useState(false);
 
   // Debounced search query
   const debouncedSearchQuery = useDebounce(courseSearchQuery, 300);
@@ -144,18 +146,27 @@ const AppContent: React.FC = () => {
           `}
         >
           {/* Sidebar Header */}
-          <div className="h-16 flex items-center justify-between px-4 sm:px-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-            <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
-              <GraduationCap className="w-6 h-6" />
-              <span className="font-bold text-base sm:text-lg tracking-tight">{t.appTitle}</span>
+          <div className="h-auto flex flex-col px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-green-600 to-green-700">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <img 
+                  src="/logo.svg" 
+                  alt="Cork City Partnership" 
+                  className="w-10 h-10 bg-white rounded-lg p-1"
+                />
+                <div>
+                  <span className="font-bold text-base sm:text-lg tracking-tight text-white block">{t.orgName}</span>
+                  <span className="text-green-100 text-xs">{t.appTitle}</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSidebarOpen(false)} 
+                className="lg:hidden p-2 rounded-md hover:bg-white/20 text-white transition-colors"
+                aria-label="Close menu"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <button 
-              onClick={() => setSidebarOpen(false)} 
-              className="lg:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
-              aria-label="Close menu"
-            >
-              <X className="w-5 h-5" />
-            </button>
           </div>
 
           {/* Sidebar Navigation */}
@@ -164,8 +175,8 @@ const AppContent: React.FC = () => {
               onClick={() => setActiveTab('chat')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm
                 ${activeTab === 'chat' 
-                  ? 'bg-indigo-600 dark:bg-indigo-700 text-white shadow-md' 
-                  : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-600 hover:text-indigo-600 dark:hover:text-indigo-400 border border-transparent'
+                  ? 'bg-green-600 dark:bg-green-700 text-white shadow-md' 
+                  : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-600 hover:text-green-600 dark:hover:text-green-400 border border-transparent'
                 }`}
             >
               <MessageSquare size={18} />
@@ -175,8 +186,8 @@ const AppContent: React.FC = () => {
               onClick={() => setActiveTab('dashboard')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm
                 ${activeTab === 'dashboard' 
-                  ? 'bg-indigo-600 dark:bg-indigo-700 text-white shadow-md' 
-                  : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-600 hover:text-indigo-600 dark:hover:text-indigo-400 border border-transparent'
+                  ? 'bg-green-600 dark:bg-green-700 text-white shadow-md' 
+                  : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-600 hover:text-green-600 dark:hover:text-green-400 border border-transparent'
                 }`}
             >
               <LayoutDashboard size={18} />
@@ -200,6 +211,15 @@ const AppContent: React.FC = () => {
                 {t.adminPanel}
               </button>
             )}
+            
+            {/* Contact Info Button */}
+            <button 
+              onClick={() => setShowContactModal(true)}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-600 hover:text-green-600 dark:hover:text-green-400 border border-transparent"
+            >
+              <Info size={18} />
+              {t.contactInfo}
+            </button>
           </div>
 
           {/* Course Catalog */}
@@ -253,7 +273,7 @@ const AppContent: React.FC = () => {
                     onClick={() => setLanguage(lang)}
                     className={`w-7 h-7 flex items-center justify-center text-[10px] font-bold rounded-full transition-colors border ${
                       language === lang 
-                        ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-700' 
+                        ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700' 
                         : 'bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-100 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
                     }`}
                   >
@@ -278,7 +298,7 @@ const AppContent: React.FC = () => {
               </div>
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
-              &copy; {new Date().getFullYear()} {t.footer}
+              &copy; {new Date().getFullYear()} {t.orgName}
             </div>
           </div>
         </div>
@@ -294,21 +314,25 @@ const AppContent: React.FC = () => {
           )}
 
           {/* Mobile Header - Only one menu button here */}
-          <div className="lg:hidden h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center px-4 justify-between shrink-0 z-20 sticky top-0">
+          <div className="lg:hidden h-14 bg-gradient-to-r from-green-600 to-green-700 border-b border-green-700 flex items-center px-4 justify-between shrink-0 z-20 sticky top-0">
             <button 
               onClick={() => setSidebarOpen(true)}
-              className="p-2.5 rounded-lg bg-indigo-600 dark:bg-indigo-700 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center"
+              className="p-2.5 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center"
               aria-label="Open menu"
             >
               <Menu className="w-6 h-6" />
             </button>
-            <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 font-bold">
-              <GraduationCap className="w-5 h-5" />
-              <span className="text-base sm:text-lg">{t.appTitle}</span>
+            <div className="flex items-center gap-2 text-white font-bold">
+              <img 
+                src="/logo.svg" 
+                alt="Cork City Partnership" 
+                className="w-8 h-8 bg-white rounded-lg p-0.5"
+              />
+              <span className="text-base sm:text-lg">{t.orgName}</span>
             </div>
             <button 
               onClick={toggleTheme}
-              className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors shadow-sm hover:shadow-md active:scale-95"
+              className="p-2.5 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors shadow-sm hover:shadow-md active:scale-95"
               aria-label="Toggle theme"
             >
               {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
@@ -350,6 +374,11 @@ const AppContent: React.FC = () => {
           message={errorMessage || ''}
           language={language}
           type="error"
+        />
+        <ContactModal 
+          isOpen={showContactModal}
+          onClose={() => setShowContactModal(false)}
+          language={language}
         />
       </div>
     </>

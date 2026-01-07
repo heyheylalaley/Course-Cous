@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { db } from '../services/db';
-import { GraduationCap, Loader2, Moon, Sun } from 'lucide-react';
+import { Loader2, Moon, Sun, Info } from 'lucide-react';
 import { Language, Theme } from '../types';
 import { TRANSLATIONS } from '../translations';
+import { ContactModal } from './ContactModal';
 
 interface AuthScreenProps {
   onLoginSuccess: () => void;
@@ -65,6 +66,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
 
   const isRtl = language === 'ar';
   const [localTheme, setLocalTheme] = useState<Theme>(theme);
+  const [showContactModal, setShowContactModal] = useState(false);
 
   const toggleTheme = () => {
     const newTheme = localTheme === 'light' ? 'dark' : 'light';
@@ -78,10 +80,18 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col justify-center items-center p-4 relative" dir={isRtl ? 'rtl' : 'ltr'}>
+    <>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex flex-col justify-center items-center p-4 relative" dir={isRtl ? 'rtl' : 'ltr'}>
       
       {/* Language Switcher & Theme Toggle (Top Right) */}
       <div className="absolute top-4 right-4 flex gap-2 items-center">
+        <button
+          onClick={() => setShowContactModal(true)}
+          className="p-2 rounded-lg bg-white dark:bg-gray-800 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 border border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-600 transition-colors"
+          title={t.contactInfo}
+        >
+          <Info size={18} />
+        </button>
         <button
           onClick={toggleTheme}
           className="p-2 rounded-lg bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
@@ -95,8 +105,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
             onClick={() => setLanguage(lang)}
             className={`px-3 py-1 text-xs font-bold rounded-full transition-colors ${
               language === lang 
-                ? 'bg-indigo-600 dark:bg-indigo-700 text-white' 
-                : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600'
+                ? 'bg-green-600 dark:bg-green-700 text-white' 
+                : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-600'
             }`}
           >
             {lang.toUpperCase()}
@@ -106,11 +116,14 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
 
       <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 sm:p-8 border border-gray-100 dark:border-gray-700">
         <div className="flex flex-col items-center mb-6 sm:mb-8">
-          <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center mb-4">
-            <GraduationCap size={32} />
-          </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{t.appTitle}</h1>
-          <h2 className="text-base sm:text-lg font-medium text-gray-600 dark:text-gray-300 mt-2">{t.loginTitle}</h2>
+          <img 
+            src="/logo.svg" 
+            alt="Cork City Partnership" 
+            className="w-16 h-16 mb-3"
+          />
+          <h1 className="text-xl sm:text-2xl font-bold text-green-700 dark:text-green-400">{t.orgName}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">{t.appTitle}</p>
+          <h2 className="text-base sm:text-lg font-medium text-gray-600 dark:text-gray-300">{t.loginTitle}</h2>
           <p className="text-xs sm:text-sm text-gray-400 dark:text-gray-500 mt-1 text-center">{t.loginSubtitle}</p>
         </div>
 
@@ -148,7 +161,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-indigo-600 dark:bg-indigo-700 text-white py-2.5 rounded-lg font-semibold hover:bg-indigo-700 dark:hover:bg-indigo-600 active:scale-[0.99] transition-all shadow-md flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-green-600 dark:bg-green-700 text-white py-2.5 rounded-lg font-semibold hover:bg-green-700 dark:hover:bg-green-600 active:scale-[0.99] transition-all shadow-md flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? <Loader2 className="animate-spin w-5 h-5" /> : (isLogin ? t.signInBtn : t.signUpBtn)}
           </button>
@@ -194,12 +207,24 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
         <div className="mt-6 text-center">
           <button
             onClick={() => { setIsLogin(!isLogin); setError(null); }}
-            className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium"
+            className="text-sm text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 font-medium"
           >
             {isLogin ? t.switchToSignUp : t.switchToSignIn}
           </button>
         </div>
       </div>
+      
+      {/* Footer with organization name */}
+      <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+        &copy; {new Date().getFullYear()} {t.orgName}. All rights reserved.
+      </div>
     </div>
+    
+    <ContactModal 
+      isOpen={showContactModal}
+      onClose={() => setShowContactModal(false)}
+      language={language}
+    />
+    </>
   );
 };
