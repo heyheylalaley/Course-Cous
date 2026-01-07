@@ -42,13 +42,79 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
   // Track which course ID was initialized to prevent resetting form on tab switch
   const initializedCourseIdRef = useRef<string | null>(null);
   const wasOpenRef = useRef<boolean>(false);
+  const isRestoringFormRef = useRef(false);
   
-  // Wrap onClose with logging
+  // Save form data to localStorage
+  const saveFormDataToStorage = () => {
+    if (!isOpen) return;
+    
+    const formData = {
+      title,
+      category,
+      description,
+      difficulty,
+      link,
+      minEnglishLevel,
+      isActive,
+      courseId: course?.id || null
+    };
+    
+    localStorage.setItem('courseEditFormData', JSON.stringify(formData));
+    console.log('[CourseEditModal] Saved form data to localStorage', formData);
+  };
+  
+  // Restore form data from localStorage
+  const restoreFormDataFromStorage = () => {
+    if (!isOpen) return;
+    
+    const savedFormData = localStorage.getItem('courseEditFormData');
+    if (savedFormData) {
+      try {
+        const formData = JSON.parse(savedFormData);
+        const currentCourseId = course?.id || null;
+        
+        // Only restore if it's for the same course (or both are null for new course)
+        if (formData.courseId === currentCourseId) {
+          console.log('[CourseEditModal] Restoring form data from localStorage', formData);
+          isRestoringFormRef.current = true;
+          setTitle(formData.title || '');
+          setCategory(formData.category || '');
+          setDescription(formData.description || '');
+          setDifficulty(formData.difficulty || 'Beginner');
+          setLink(formData.link || '#');
+          setMinEnglishLevel(formData.minEnglishLevel || '');
+          setIsActive(formData.isActive !== false);
+          setTimeout(() => {
+            isRestoringFormRef.current = false;
+          }, 100);
+          return true;
+        }
+      } catch (err) {
+        console.error('[CourseEditModal] Failed to restore form data', err);
+        localStorage.removeItem('courseEditFormData');
+      }
+    }
+    return false;
+  };
+  
+  // Save form data whenever it changes (debounced)
+  useEffect(() => {
+    if (!isOpen || isRestoringFormRef.current) return;
+    
+    const timeoutId = setTimeout(() => {
+      saveFormDataToStorage();
+    }, 300); // Debounce for 300ms
+    
+    return () => clearTimeout(timeoutId);
+  }, [isOpen, title, category, description, difficulty, link, minEnglishLevel, isActive, course?.id]);
+  
+  // Wrap onClose with logging and cleanup
   const handleClose = () => {
     console.log('[CourseEditModal] onClose called', {
       timestamp: new Date().toISOString(),
       stack: new Error().stack
     });
+    localStorage.removeItem('courseEditFormData');
     onClose();
   };
   
@@ -89,6 +155,19 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
       shouldInitialize
     });
     
+    // Always try to restore form data from localStorage first
+    const restored = restoreFormDataFromStorage();
+    
+    if (restored) {
+      // Form data was restored from localStorage
+      console.log('[CourseEditModal] Form data restored from localStorage');
+      initializedCourseIdRef.current = currentCourseId;
+      setError(null);
+      wasOpenRef.current = true;
+      return; // Don't reinitialize if we restored from localStorage
+    }
+    
+    // If no saved data, initialize from course or defaults
     if (shouldInitialize) {
       if (course) {
         console.log('[CourseEditModal] Initializing with course data', course.id);
@@ -185,6 +264,7 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
         isActive
       });
       console.log('[CourseEditModal] Save successful - closing modal');
+      localStorage.removeItem('courseEditFormData'); // Clear saved form data on successful save
       handleClose();
     } catch (err: any) {
       console.error('Failed to save course:', err);
