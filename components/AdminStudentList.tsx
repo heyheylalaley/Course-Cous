@@ -5,6 +5,7 @@ import { db } from '../services/db';
 import { useCourses } from '../hooks/useCourses';
 import { TRANSLATIONS } from '../translations';
 import { Users, Download, FileSpreadsheet, FileText, Mail, Phone, MapPin, Calendar, GraduationCap } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 interface AdminStudentListProps {
   courseId: string;
@@ -92,17 +93,38 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
   const exportToExcel = async () => {
     if (students.length === 0) return;
 
-    // For Excel export, we'll use CSV format with .xlsx extension
-    // For full Excel support, you would need to install a library like 'xlsx'
-    // For now, we'll create a CSV that Excel can open
-    exportToCSV();
+    const headers = [
+      t.adminExportFirstName || 'First Name',
+      t.adminExportLastName || 'Last Name',
+      t.adminExportEmail || 'Email',
+      t.adminExportMobile || 'Mobile Number',
+      t.adminExportAddress || 'Address',
+      t.adminExportEircode || 'Eircode',
+      t.adminExportDateOfBirth || 'Date of Birth',
+      t.adminExportEnglishLevel || 'English Level',
+      t.adminExportRegisteredAt || 'Registered At',
+      t.adminExportPriority || 'Priority'
+    ];
+
+    const data = students.map(student => ({
+      [headers[0]]: student.firstName || '',
+      [headers[1]]: student.lastName || '',
+      [headers[2]]: student.email || '',
+      [headers[3]]: student.mobileNumber || '',
+      [headers[4]]: student.address || '',
+      [headers[5]]: student.eircode || '',
+      [headers[6]]: student.dateOfBirth || '',
+      [headers[7]]: student.englishLevel || '',
+      [headers[8]]: student.registeredAt.toLocaleString(),
+      [headers[9]]: student.priority?.toString() || ''
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Students');
     
-    // Note: For true Excel format, install: npm install xlsx
-    // Then use: import * as XLSX from 'xlsx';
-    // const ws = XLSX.utils.json_to_sheet(students);
-    // const wb = XLSX.utils.book_new();
-    // XLSX.utils.book_append_sheet(wb, ws, 'Students');
-    // XLSX.writeFile(wb, `${course?.title}_students.xlsx`);
+    const fileName = `${course?.title || 'course'}_students_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, fileName);
   };
 
   const formatDate = (date: Date) => {
