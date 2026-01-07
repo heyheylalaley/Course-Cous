@@ -200,19 +200,19 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
   // Create chat session
   try {
     chatSession = ai.chats.create({
-      model: 'gemini-2.5-flash-lite',
+      model: 'gemini-2.0-flash',
       config: {
         systemInstruction: instructions,
-        temperature: 0.7,
+        temperature: 0.8,
       },
     });
   } catch (error) {
-    console.warn('gemini-2.5-flash-lite not available, trying gemini-3-flash-preview');
+    console.warn('gemini-2.0-flash not available, trying gemini-1.5-flash');
     chatSession = ai.chats.create({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-1.5-flash',
       config: {
         systemInstruction: instructions,
-        temperature: 0.7,
+        temperature: 0.8,
       },
     });
   }
@@ -245,8 +245,13 @@ export const sendMessageToGemini = async function* (message: string, _userProfil
     throw new Error("Failed to initialize chat session.");
   }
 
+  // Inject user context into each message so the model never forgets
+  const userLevel = profile?.englishLevel || 'None';
+  const contextPrefix = `[Context: User's English level is ${userLevel}. Reply in the SAME language as this message. Never ask about English level.]\n\n`;
+  const enrichedMessage = contextPrefix + message;
+
   try {
-    const responseStream = await chatSession.sendMessageStream({ message });
+    const responseStream = await chatSession.sendMessageStream({ message: enrichedMessage });
 
     for await (const chunk of responseStream) {
       const c = chunk as GenerateContentResponse;
@@ -267,8 +272,12 @@ export const sendMessageToGemini = async function* (message: string, _userProfil
         const { courses: freshCourses, profile: freshProfile, completedCourseIds: freshCompleted } = await shouldReinitialize(language);
         chatSession = await initializeChat(freshProfile || undefined, language, freshCourses, freshCompleted);
         
-        // Retry the message
-        const retryStream = await chatSession.sendMessageStream({ message });
+        // Retry the message with context injection
+        const retryUserLevel = freshProfile?.englishLevel || 'None';
+        const retryContextPrefix = `[Context: User's English level is ${retryUserLevel}. Reply in the SAME language as this message. Never ask about English level.]\n\n`;
+        const retryEnrichedMessage = retryContextPrefix + message;
+        
+        const retryStream = await chatSession.sendMessageStream({ message: retryEnrichedMessage });
         for await (const chunk of retryStream) {
           const c = chunk as GenerateContentResponse;
           if (c.text) {
