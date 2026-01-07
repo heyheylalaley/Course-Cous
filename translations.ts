@@ -154,7 +154,20 @@ export const TRANSLATIONS = {
     contactWebsite: 'Website',
     contactOpeningHours: 'Opening Hours',
     contactClose: 'Close',
-    orgName: 'Cork City Partnership'
+    orgName: 'Cork City Partnership',
+    // Course removal confirmation
+    confirmRemoveCourse: 'Remove Course?',
+    confirmRemoveCourseDesc: 'If you cancel your registration and re-register later, you will be placed at the end of the queue.',
+    confirmRemoveBtn: 'Yes, Remove',
+    // Logout confirmation
+    logoutConfirmTitle: 'Log Out',
+    logoutConfirm: 'Are you sure you want to log out?',
+    logoutBtn: 'Log Out',
+    // Profile
+    editProfile: 'Edit Profile',
+    tapToReveal: 'Show',
+    hideData: 'Hide',
+    profileSaved: 'Profile saved successfully'
   },
   ua: {
     loginTitle: 'З поверненням',
@@ -309,7 +322,20 @@ export const TRANSLATIONS = {
     contactWebsite: 'Вебсайт',
     contactOpeningHours: 'Години роботи',
     contactClose: 'Закрити',
-    orgName: 'Cork City Partnership'
+    orgName: 'Cork City Partnership',
+    // Course removal confirmation
+    confirmRemoveCourse: 'Видалити курс?',
+    confirmRemoveCourseDesc: 'Якщо ви скасуєте реєстрацію та зареєструєтесь знову, ви потрапите в кінець черги.',
+    confirmRemoveBtn: 'Так, видалити',
+    // Logout confirmation
+    logoutConfirmTitle: 'Вийти',
+    logoutConfirm: 'Ви впевнені, що хочете вийти?',
+    logoutBtn: 'Вийти',
+    // Profile
+    editProfile: 'Редагувати профіль',
+    tapToReveal: 'Показати',
+    hideData: 'Сховати',
+    profileSaved: 'Профіль успішно збережено'
   },
   ru: {
     loginTitle: 'Добро пожаловать',
@@ -464,7 +490,20 @@ export const TRANSLATIONS = {
     contactWebsite: 'Веб-сайт',
     contactOpeningHours: 'Часы работы',
     contactClose: 'Закрыть',
-    orgName: 'Cork City Partnership'
+    orgName: 'Cork City Partnership',
+    // Course removal confirmation
+    confirmRemoveCourse: 'Удалить курс?',
+    confirmRemoveCourseDesc: 'Если вы отмените регистрацию и зарегистрируетесь снова, вы попадете в конец очереди.',
+    confirmRemoveBtn: 'Да, удалить',
+    // Logout confirmation
+    logoutConfirmTitle: 'Выйти',
+    logoutConfirm: 'Вы уверены, что хотите выйти?',
+    logoutBtn: 'Выйти',
+    // Profile
+    editProfile: 'Редактировать профиль',
+    tapToReveal: 'Показать',
+    hideData: 'Скрыть',
+    profileSaved: 'Профиль успешно сохранен'
   },
   ar: {
     loginTitle: 'مرحبًا بعودتك',
@@ -619,6 +658,19 @@ export const TRANSLATIONS = {
     contactWebsite: 'الموقع الإلكتروني',
     contactOpeningHours: 'ساعات العمل',
     contactClose: 'إغلاق',
-    orgName: 'Cork City Partnership'
+    orgName: 'Cork City Partnership',
+    // Course removal confirmation
+    confirmRemoveCourse: 'إزالة الدورة؟',
+    confirmRemoveCourseDesc: 'إذا ألغيت التسجيل وسجلت مرة أخرى لاحقًا، فسيتم وضعك في نهاية قائمة الانتظار.',
+    confirmRemoveBtn: 'نعم، إزالة',
+    // Logout confirmation
+    logoutConfirmTitle: 'تسجيل الخروج',
+    logoutConfirm: 'هل أنت متأكد أنك تريد تسجيل الخروج؟',
+    logoutBtn: 'تسجيل الخروج',
+    // Profile
+    editProfile: 'تعديل الملف الشخصي',
+    tapToReveal: 'إظهار',
+    hideData: 'إخفاء',
+    profileSaved: 'تم حفظ الملف الشخصي بنجاح'
   }
 };

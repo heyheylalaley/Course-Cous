@@ -3,12 +3,45 @@ import { UserProfile, EnglishLevel, Language, Registration, Course } from '../ty
 import { AVAILABLE_COURSES } from '../constants';
 import { useCourses } from '../hooks/useCourses';
 import { CourseCard } from './CourseCard';
-import { Save, User, BookCheck, ArrowUp, ArrowDown, GripVertical, Edit2, Menu } from 'lucide-react';
+import { Save, User, BookCheck, ArrowUp, ArrowDown, Edit2, Menu, Eye, EyeOff, Mail, CheckCircle } from 'lucide-react';
 import { db } from '../services/db';
 import { TRANSLATIONS } from '../translations';
-import { NameModal } from './NameModal';
 import { ProfileInfoModal } from './ProfileInfoModal';
+import { ConfirmationModal } from './ConfirmationModal';
 import { useUI } from '../contexts/UIContext';
+
+// Helper functions for data masking
+const maskEmail = (email: string): string => {
+  if (!email) return '-';
+  const [local, domain] = email.split('@');
+  if (!domain) return email;
+  const maskedLocal = local.length > 2 
+    ? local.substring(0, 2) + '***' 
+    : local + '***';
+  return `${maskedLocal}@${domain}`;
+};
+
+const maskPhone = (phone: string): string => {
+  if (!phone) return '-';
+  // Show first 4 and last 2 characters
+  if (phone.length <= 6) return phone;
+  return phone.substring(0, 4) + '*** ***' + phone.substring(phone.length - 2);
+};
+
+const maskAddress = (address: string): string => {
+  if (!address) return '-';
+  // Show first 10 characters
+  if (address.length <= 10) return address;
+  return address.substring(0, 10) + '***';
+};
+
+const formatDateDisplay = (dateString: string): string => {
+  if (!dateString) return '-';
+  // Convert from YYYY-MM-DD to DD.MM.YYYY
+  const parts = dateString.split('-');
+  if (parts.length !== 3) return dateString;
+  return `${parts[2]}.${parts[1]}.${parts[0]}`;
+};
 
 interface DashboardProps {
   registrations: string[];
@@ -30,13 +63,16 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
   const [level, setLevel] = useState<EnglishLevel>(userProfile.englishLevel);
   const [isSaving, setIsSaving] = useState(false);
   const [courseRegistrations, setCourseRegistrations] = useState<Registration[]>([]);
-  const [showNameModal, setShowNameModal] = useState(false);
   const [showProfileInfoModal, setShowProfileInfoModal] = useState(false);
   const [courseQueues, setCourseQueues] = useState<Map<string, number>>(new Map());
   const [isProfileComplete, setIsProfileComplete] = useState(false);
+  const [courseToRemove, setCourseToRemove] = useState<{ id: string; title: string } | null>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [showSensitiveData, setShowSensitiveData] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
   const { courses: availableCourses } = useCourses(false, language);
   const { setSidebarOpen } = useUI();
-  const t = TRANSLATIONS[language];
+  const t = TRANSLATIONS[language] as any;
 
   // Load registrations with priorities and course queues
   // Use refs to track previous values and avoid unnecessary reloads
@@ -99,26 +135,13 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
     setTimeout(() => setIsSaving(false), 500);
   };
 
-  const handleSaveName = async (firstName: string, lastName: string) => {
-    try {
-      await db.updateProfileInfo({ firstName, lastName });
-      // Reload profile from database to ensure sync
-      const updatedProfile = await db.getProfile();
-      onUpdateProfile(updatedProfile);
-      const complete = await db.isProfileComplete();
-      setIsProfileComplete(complete);
-      // Name saved successfully (no need to log)
-    } catch (error: any) {
-      console.error('Failed to save name:', error);
-      alert(error?.message || 'Failed to save name. Please try again.');
-      throw error;
-    }
-  };
-
   const handleSaveProfileInfo = async (updatedProfile: UserProfile) => {
     onUpdateProfile(updatedProfile);
     const complete = await db.isProfileComplete();
     setIsProfileComplete(complete);
+    // Show success toast
+    setShowSuccessToast(true);
+    setTimeout(() => setShowSuccessToast(false), 3000);
   };
 
   const registeredCourses = courseRegistrations
@@ -145,6 +168,29 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
       onUpdatePriority?.(courseId, newPriority);
     } catch (error) {
       console.error("Failed to update priority", error);
+    }
+  };
+
+  // Handle course removal with confirmation
+  const handleRemoveClick = (courseId: string) => {
+    const course = availableCourses.find(c => c.id === courseId);
+    if (course) {
+      setCourseToRemove({ id: courseId, title: course.title });
+    }
+  };
+
+  const handleConfirmRemove = async () => {
+    if (!courseToRemove) return;
+    
+    setIsRemoving(true);
+    try {
+      await onRemoveRegistration(courseToRemove.id);
+      // Refresh registrations after removal
+      const regs = await db.getRegistrations();
+      setCourseRegistrations(regs);
+    } finally {
+      setIsRemoving(false);
+      setCourseToRemove(null);
     }
   };
 
@@ -175,57 +221,51 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
 
         {/* Profile Section */}
         <section className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3 mb-4 border-b border-gray-100 dark:border-gray-700 pb-4">
-            <div className="p-2 bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 rounded-lg">
-              <User size={20} />
-            </div>
-            <h2 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-white">{t.profileTitle}</h2>
-          </div>
-          
-          {/* Name Section */}
-          <div className="max-w-sm mb-6">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t.nameLabel}
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={userProfile.firstName && userProfile.lastName 
-                  ? `${userProfile.firstName} ${userProfile.lastName}` 
-                  : userProfile.name || ''}
-                readOnly
-                className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
-                placeholder={t.namePlaceholder}
-              />
-              <button
-                onClick={() => setShowNameModal(true)}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
-                title={t.editName}
-              >
-                <Edit2 size={18} />
-              </button>
-            </div>
-          </div>
-
-          {/* Additional Information Section */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-800 dark:text-white mb-1">
-                  {t.additionalInfoTitle}
-                </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {t.additionalInfoDesc}
-                </p>
+          <div className="flex items-center justify-between mb-4 border-b border-gray-100 dark:border-gray-700 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 rounded-lg">
+                <User size={20} />
               </div>
+              <h2 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-white">{t.profileTitle}</h2>
               {!isProfileComplete && (
                 <span className="text-xs px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-full">
                   {t.profileIncomplete}
                 </span>
               )}
             </div>
+            <button
+              onClick={() => setShowProfileInfoModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 dark:bg-green-700 text-white hover:bg-green-700 dark:hover:bg-green-600 text-sm font-medium transition-colors"
+            >
+              <Edit2 size={16} />
+              {t.editProfile || 'Edit Profile'}
+            </button>
+          </div>
+
+          {/* Profile Information */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {t.additionalInfoDesc}
+              </p>
+              <button
+                onClick={() => setShowSensitiveData(!showSensitiveData)}
+                className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              >
+                {showSensitiveData ? <EyeOff size={14} /> : <Eye size={14} />}
+                {showSensitiveData ? (t.hideData || 'Hide') : (t.tapToReveal || 'Show')}
+              </button>
+            </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              {/* Email - always shown, but masked */}
+              <div className="sm:col-span-2 flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <Mail size={16} className="text-gray-400 dark:text-gray-500" />
+                <span className="text-gray-500 dark:text-gray-400">{t.emailLabel || 'Email'}:</span>
+                <span className="ml-1 text-gray-900 dark:text-white font-medium">
+                  {showSensitiveData ? (userProfile.email || '-') : maskEmail(userProfile.email)}
+                </span>
+              </div>
               <div>
                 <span className="text-gray-500 dark:text-gray-400">{t.firstNameLabel}:</span>
                 <span className="ml-2 text-gray-900 dark:text-white font-medium">
@@ -241,7 +281,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
               <div>
                 <span className="text-gray-500 dark:text-gray-400">{t.mobileNumberLabel}:</span>
                 <span className="ml-2 text-gray-900 dark:text-white font-medium">
-                  {userProfile.mobileNumber || '-'}
+                  {showSensitiveData ? (userProfile.mobileNumber || '-') : maskPhone(userProfile.mobileNumber || '')}
                 </span>
               </div>
               <div>
@@ -253,24 +293,16 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
               <div className="sm:col-span-2">
                 <span className="text-gray-500 dark:text-gray-400">{t.addressLabel}:</span>
                 <span className="ml-2 text-gray-900 dark:text-white font-medium">
-                  {userProfile.address || '-'}
+                  {showSensitiveData ? (userProfile.address || '-') : maskAddress(userProfile.address || '')}
                 </span>
               </div>
               <div>
                 <span className="text-gray-500 dark:text-gray-400">{t.dateOfBirthLabel}:</span>
                 <span className="ml-2 text-gray-900 dark:text-white font-medium">
-                  {userProfile.dateOfBirth || '-'}
+                  {formatDateDisplay(userProfile.dateOfBirth || '')}
                 </span>
               </div>
             </div>
-
-            <button
-              onClick={() => setShowProfileInfoModal(true)}
-              className="mt-3 flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 dark:bg-green-700 text-white hover:bg-green-700 dark:hover:bg-green-600 text-sm font-medium transition-colors"
-            >
-              <Edit2 size={16} />
-              {t.editAdditionalInfo}
-            </button>
           </div>
           
           <div className="max-w-sm">
@@ -363,7 +395,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
                       <div className="flex-1">
                         <CourseCard 
                           course={course} 
-                          onToggleRegistration={onRemoveRegistration}
+                          onToggleRegistration={handleRemoveClick}
                           showRemoveOnly={true}
                           isRegistered={true}
                           language={language}
@@ -382,16 +414,6 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
       </div>
     </div>
 
-    {/* Name Modal - rendered outside overflow container */}
-    <NameModal
-      isOpen={showNameModal}
-      onClose={() => setShowNameModal(false)}
-      onSave={handleSaveName}
-      language={language}
-      currentFirstName={userProfile.firstName ?? undefined}
-      currentLastName={userProfile.lastName ?? undefined}
-    />
-
     {/* Profile Info Modal */}
     <ProfileInfoModal
       isOpen={showProfileInfoModal}
@@ -400,6 +422,29 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
       language={language}
       currentProfile={userProfile}
     />
+
+    {/* Course Removal Confirmation Modal */}
+    <ConfirmationModal
+      isOpen={!!courseToRemove}
+      onClose={() => setCourseToRemove(null)}
+      onConfirm={handleConfirmRemove}
+      title={t.confirmRemoveCourse || 'Remove Course?'}
+      message={t.confirmRemoveCourseDesc || 'If you cancel your registration and re-register later, you will be placed at the end of the queue.'}
+      confirmText={t.confirmRemoveBtn || 'Yes, Remove'}
+      language={language}
+      type="warning"
+      isLoading={isRemoving}
+    />
+
+    {/* Success Toast */}
+    {showSuccessToast && (
+      <div className="fixed bottom-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="flex items-center gap-2 px-4 py-3 bg-green-600 dark:bg-green-700 text-white rounded-lg shadow-lg">
+          <CheckCircle size={18} />
+          <span className="text-sm font-medium">{t.profileSaved || 'Profile saved successfully'}</span>
+        </div>
+      </div>
+    )}
     </>
   );
 });

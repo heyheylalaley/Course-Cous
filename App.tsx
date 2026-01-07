@@ -5,6 +5,7 @@ import { LanguageLevelModal } from './components/LanguageLevelModal';
 import { CourseDetailsModal } from './components/CourseDetailsModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { AlertModal } from './components/AlertModal';
+import { ConfirmationModal } from './components/ConfirmationModal';
 import { ChatSkeleton, DashboardSkeleton, AdminDashboardSkeleton, SidebarCourseListSkeleton } from './components/Skeletons';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CoursesProvider, useCourses } from './contexts/CoursesContext';
@@ -37,11 +38,12 @@ const AppContent: React.FC = () => {
   const [errorActionButton, setErrorActionButton] = useState<{ text: string; onClick: () => void } | undefined>(undefined);
   const [courseSearchQuery, setCourseSearchQuery] = useState<string>('');
   const [showContactModal, setShowContactModal] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Debounced search query
   const debouncedSearchQuery = useDebounce(courseSearchQuery, 300);
 
-  const t = TRANSLATIONS[language];
+  const t = TRANSLATIONS[language] as any;
 
   // Check if onboarding is needed
   useEffect(() => {
@@ -299,7 +301,7 @@ const AppContent: React.FC = () => {
                   {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
                 </button>
                 <button 
-                  onClick={logout} 
+                  onClick={() => setShowLogoutConfirm(true)} 
                   className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 >
                   <LogOut size={18} />
@@ -366,6 +368,19 @@ const AppContent: React.FC = () => {
           isOpen={showContactModal}
           onClose={() => setShowContactModal(false)}
           language={language}
+        />
+        <ConfirmationModal
+          isOpen={showLogoutConfirm}
+          onClose={() => setShowLogoutConfirm(false)}
+          onConfirm={() => {
+            setShowLogoutConfirm(false);
+            logout();
+          }}
+          title={t.logoutConfirmTitle || 'Log Out'}
+          message={t.logoutConfirm || 'Are you sure you want to log out?'}
+          confirmText={t.logoutBtn || 'Log Out'}
+          language={language}
+          type="danger"
         />
       </div>
     </>

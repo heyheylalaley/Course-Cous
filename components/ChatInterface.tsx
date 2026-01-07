@@ -169,13 +169,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
         setAlertModal({
           isOpen: true,
           message: t.maxCoursesReached,
-          type: 'warning'
+          type: 'error'
         });
       } else if (errorMessage.includes('profile') || errorMessage.includes('профиль') || errorMessage.includes('профіль')) {
         setAlertModal({
           isOpen: true,
           message: t.profileIncompleteDesc,
-          type: 'warning',
+          type: 'error',
           actionButton: {
             text: t.completeProfile || 'Complete Profile',
             onClick: () => setActiveTab('dashboard')
