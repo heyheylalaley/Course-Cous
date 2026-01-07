@@ -141,30 +141,22 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
 
     let isMounted = true;
     
-    const handleVisibilityChange = (e: Event) => {
+    const handleVisibilityChange = () => {
       if (!isMounted) return;
-      // Prevent any default behavior
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
+      // Just update focus time, don't prevent anything
+      lastFocusTimeRef.current = Date.now();
     };
 
-    const handleBlur = (e: FocusEvent) => {
+    const handleBlur = () => {
       if (!isMounted) return;
       // Update last focus time
       lastFocusTimeRef.current = Date.now();
-      // Prevent closing on window blur - stop all propagation
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
     };
 
-    const handleFocus = (e: FocusEvent) => {
+    const handleFocus = () => {
       if (!isMounted) return;
       // Update last focus time
       lastFocusTimeRef.current = Date.now();
-      // Prevent any side effects on focus
-      e.stopPropagation();
     };
 
     // Prevent closing when window loses focus - use capture phase
