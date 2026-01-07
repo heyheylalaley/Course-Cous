@@ -6,7 +6,7 @@ import { AlertModal } from './AlertModal';
 import { Send, Sparkles, Loader2, Menu } from 'lucide-react';
 import { db } from '../services/db';
 import { TRANSLATIONS } from '../translations';
-import { useCourses } from '../hooks/useCourses';
+import { useCourses } from '../contexts/CoursesContext';
 
 interface ChatInterfaceProps {
   language: Language;
@@ -26,8 +26,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
   const initialized = useRef(false);
   const t = TRANSLATIONS[language] as any;
   
-  // Load courses for clickable course names
-  const { courses } = useCourses(false, language);
+  // Load courses for clickable course names and get refresh function
+  const { courses, refreshRegistrations } = useCourses();
 
   // Load chat history from database
   const loadChatHistory = async (): Promise<Message[]> => {
@@ -335,7 +335,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
       {/* Alert Modal for course registration feedback */}
       <AlertModal
         isOpen={alertModal.isOpen}
-        onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+        onClose={() => {
+          // Refresh registrations if it was a success to update sidebar
+          if (alertModal.type === 'success') {
+            refreshRegistrations();
+          }
+          setAlertModal(prev => ({ ...prev, isOpen: false }));
+        }}
         message={alertModal.message}
         language={language}
         type={alertModal.type}

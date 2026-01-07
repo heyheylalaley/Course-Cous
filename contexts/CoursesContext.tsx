@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { Course, Registration, CourseQueue, Language } from '../types';
 import { db, supabase } from '../services/db';
 import { TRANSLATIONS } from '../translations';
@@ -40,18 +40,43 @@ const sortCoursesByDifficulty = (courses: Course[]): Course[] => {
   });
 };
 
+// Helper function to sort courses: registered first, then by difficulty
+const sortCoursesWithRegistrations = (courses: Course[], registeredIds: string[]): Course[] => {
+  const difficultyOrder = { 'Beginner': 1, 'Intermediate': 2, 'Advanced': 3 };
+  const registeredSet = new Set(registeredIds);
+  
+  return [...courses].sort((a, b) => {
+    const aRegistered = registeredSet.has(a.id);
+    const bRegistered = registeredSet.has(b.id);
+    
+    // Registered courses first
+    if (aRegistered && !bRegistered) return -1;
+    if (!aRegistered && bRegistered) return 1;
+    
+    // Then sort by difficulty
+    const aOrder = difficultyOrder[a.difficulty] || 999;
+    const bOrder = difficultyOrder[b.difficulty] || 999;
+    return aOrder - bOrder;
+  });
+};
+
 export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, language }) => {
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [rawCourses, setRawCourses] = useState<Course[]>([]);
   const [registrations, setRegistrations] = useState<string[]>([]);
   const [courseQueues, setCourseQueues] = useState<Map<string, number>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Memoized sorted courses: registered first, then by difficulty
+  const courses = useMemo(() => {
+    return sortCoursesWithRegistrations(rawCourses, registrations);
+  }, [rawCourses, registrations]);
+
   const loadCourses = useCallback(async () => {
     try {
       const loadedCourses = await db.getAllCourses(false, language);
       const sortedCourses = sortCoursesByDifficulty(loadedCourses);
-      setCourses(sortedCourses);
+      setRawCourses(sortedCourses);
     } catch (err: any) {
       if (!err?.message?.includes('Not authenticated')) {
         console.error('Failed to load courses:', err);
