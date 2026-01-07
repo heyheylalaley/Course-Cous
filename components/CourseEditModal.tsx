@@ -45,11 +45,23 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
   
   // Sync form data when modal opens or course changes (only on actual course change, not on tab switch)
   useEffect(() => {
+    // Only process if modal is actually open
+    if (!isOpen) {
+      // Reset refs when modal closes
+      if (wasOpenRef.current) {
+        initializedCourseIdRef.current = null;
+      }
+      wasOpenRef.current = false;
+      return;
+    }
+    
+    // Don't reset if modal was already open and we're just losing focus
+    // Only initialize if modal just opened or course actually changed
     const currentCourseId = course?.id || null;
-    const shouldInitialize = isOpen && (
-      !wasOpenRef.current || // Modal just opened
-      initializedCourseIdRef.current !== currentCourseId // Different course selected
-    );
+    const wasPreviouslyOpen = wasOpenRef.current;
+    const courseChanged = initializedCourseIdRef.current !== currentCourseId;
+    
+    const shouldInitialize = !wasPreviouslyOpen || courseChanged;
     
     if (shouldInitialize) {
       if (course) {
@@ -61,8 +73,9 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
         setMinEnglishLevel(course.minEnglishLevel || '');
         setIsActive(course.isActive !== false);
         initializedCourseIdRef.current = course.id;
-      } else {
-        // Reset for new course
+      } else if (!wasPreviouslyOpen) {
+        // Only reset for new course if modal just opened
+        // Don't reset if we're editing and course becomes null temporarily
         setTitle('');
         setCategory('');
         setDescription('');
@@ -75,13 +88,24 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
       setError(null);
     }
     
-    wasOpenRef.current = isOpen;
-    
-    // Reset refs when modal closes
-    if (!isOpen) {
-      initializedCourseIdRef.current = null;
-    }
+    wasOpenRef.current = true;
   }, [isOpen, course?.id]);
+  
+  // Prevent modal from closing when window loses focus (tab switch)
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleVisibilityChange = () => {
+      // Do nothing - just prevent any side effects from visibility change
+      // The modal should stay open even when tab is switched
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

@@ -15,8 +15,11 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
-  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  
+  // Get editing course from courses list to maintain reference stability
+  const editingCourse = editingCourseId ? courses.find(c => c.id === editingCourseId) || null : null;
   
   const t = TRANSLATIONS[language];
   const isRtl = language === 'ar';
@@ -40,25 +43,25 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
   };
 
   const handleCreateCourse = () => {
-    setEditingCourse(null);
+    setEditingCourseId(null);
     setIsEditModalOpen(true);
   };
 
   const handleEditCourse = (course: Course) => {
-    setEditingCourse(course);
+    setEditingCourseId(course.id);
     setIsEditModalOpen(true);
   };
 
   const handleSaveCourse = async (courseData: Omit<Course, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      if (editingCourse) {
-        await db.updateCourse(editingCourse.id, courseData);
+      if (editingCourseId) {
+        await db.updateCourse(editingCourseId, courseData);
       } else {
         await db.createCourse(courseData);
       }
       await loadCourses();
       setIsEditModalOpen(false);
-      setEditingCourse(null);
+      setEditingCourseId(null);
     } catch (err: any) {
       throw err; // Let CourseEditModal handle the error
     }
@@ -233,7 +236,7 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
         isOpen={isEditModalOpen}
         onClose={() => {
           setIsEditModalOpen(false);
-          setEditingCourse(null);
+          setEditingCourseId(null);
         }}
         onSave={handleSaveCourse}
         language={language}
