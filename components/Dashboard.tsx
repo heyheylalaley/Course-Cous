@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { UserProfile, EnglishLevel, Language, Registration, Course } from '../types';
 import { AVAILABLE_COURSES } from '../constants';
 import { useCourses } from '../hooks/useCourses';
@@ -37,7 +37,29 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const t = TRANSLATIONS[language];
 
   // Load registrations with priorities and course queues
+  // Use refs to track previous values and avoid unnecessary reloads
+  const prevRegistrationsRef = useRef<string[]>([]);
+  const prevUserProfileIdRef = useRef<string>('');
+  
   useEffect(() => {
+    // Only reload if registrations actually changed (by length or content)
+    const registrationsChanged = 
+      registrations.length !== prevRegistrationsRef.current.length ||
+      registrations.some((id, index) => id !== prevRegistrationsRef.current[index]);
+    
+    // Only reload if user profile ID changed (not just other properties)
+    const profileChanged = userProfile.id !== prevUserProfileIdRef.current;
+    
+    // Skip reload if nothing meaningful changed
+    if (!registrationsChanged && !profileChanged && 
+        prevRegistrationsRef.current.length > 0 && prevUserProfileIdRef.current) {
+      return;
+    }
+    
+    // Update refs
+    prevRegistrationsRef.current = [...registrations];
+    prevUserProfileIdRef.current = userProfile.id;
+    
     const loadData = async () => {
       try {
         const regs = await db.getRegistrations();
@@ -59,7 +81,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       }
     };
     loadData();
-  }, [registrations, userProfile]);
+  }, [registrations, userProfile.id]);
 
   // Sync local state if parent updates
   useEffect(() => {

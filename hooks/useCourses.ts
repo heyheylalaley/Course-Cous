@@ -46,34 +46,67 @@ export const useCourses = (includeInactive: boolean = false, language: Language 
   };
 
   useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+    let channel: any = null;
+    
+    // Load courses initially
     loadCourses();
 
     // Set up real-time updates using polling (every 30 seconds)
-    const intervalId = setInterval(() => {
-      loadCourses();
-    }, 30000); // 30 seconds
+    // Only poll when window is visible to avoid unnecessary requests
+    const setupPolling = () => {
+      if (intervalId) clearInterval(intervalId);
+      
+      intervalId = setInterval(() => {
+        // Only reload if window is visible
+        if (document.visibilityState === 'visible') {
+          loadCourses();
+        }
+      }, 30000); // 30 seconds
+    };
+    
+    setupPolling();
 
     // Also try to use Supabase realtime if available
     if (supabase) {
-      const channel = supabase
+      channel = supabase
         .channel('courses-changes')
         .on('postgres_changes', 
           { event: '*', schema: 'public', table: 'courses' },
           (payload) => {
             // Course change detected (no need to log)
-            loadCourses(); // Reload courses when changes detected
+            // Only reload if window is visible
+            if (document.visibilityState === 'visible') {
+              loadCourses();
+            }
           }
         )
         .subscribe();
-
-      return () => {
-        clearInterval(intervalId);
-        supabase.removeChannel(channel);
-      };
     }
 
+    // Handle visibility change - pause polling when tab is hidden
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Tab became visible, reload courses and restart polling
+        loadCourses();
+        setupPolling();
+      } else {
+        // Tab is hidden, clear interval to stop polling
+        if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
-      clearInterval(intervalId);
+      if (intervalId) clearInterval(intervalId);
+      if (channel && supabase) {
+        supabase.removeChannel(channel);
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [includeInactive, language]);
 
