@@ -344,7 +344,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
 
         {/* Registrations Section */}
         <section>
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-2">
              <div className="p-2 bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 rounded-lg">
               <BookCheck size={20} />
             </div>
@@ -353,6 +353,14 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
               {registeredCourses.length}
             </span>
           </div>
+          
+          {registeredCourses.length > 0 && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-2">
+              <ArrowUp className="w-4 h-4" />
+              <ArrowDown className="w-4 h-4" />
+              {t.priorityHint || 'Use arrows to set priority. First course = highest priority.'}
+            </p>
+          )}
 
           {registeredCourses.length === 0 ? (
             <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700">
@@ -367,42 +375,58 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
               {registeredCourses.map(({ course, priority }) => {
                 const canMoveUp = priority > 1;
                 const canMoveDown = priority < registeredCourses.length;
+                const priorityLabel = t[`priority${priority}`] || 
+                  (priority === 1 ? (t.priorityFirst || '1st choice') : 
+                   priority === 2 ? (t.prioritySecond || '2nd choice') : 
+                   (t.priorityThird || '3rd choice'));
+                const priorityColor = priority === 1 
+                  ? 'bg-green-500 dark:bg-green-600' 
+                  : priority === 2 
+                    ? 'bg-blue-500 dark:bg-blue-600' 
+                    : 'bg-gray-500 dark:bg-gray-600';
                 return (
-                  <div key={course.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4 shadow-sm">
-                    <div className="flex items-start gap-3">
-                      {/* Priority controls */}
-                      <div className="flex flex-col gap-1 pt-1">
+                  <div key={course.id} className={`bg-white dark:bg-gray-800 rounded-xl border-2 ${priority === 1 ? 'border-green-300 dark:border-green-700' : 'border-gray-200 dark:border-gray-700'} p-3 sm:p-4 shadow-sm transition-all`}>
+                    {/* Priority Badge */}
+                    <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-100 dark:border-gray-700">
+                      <div className={`${priorityColor} text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5`}>
+                        <span className="text-base">{priority}</span>
+                        <span>{priorityLabel}</span>
+                      </div>
+                      
+                      {/* Priority controls - more prominent */}
+                      <div className="flex items-center gap-1">
                         <button
                           onClick={() => handlePriorityChange(course.id, 'up')}
                           disabled={!canMoveUp}
-                          className={`p-1 rounded ${canMoveUp ? 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
+                          title={t.moveUp || 'Move up'}
+                          className={`p-2 rounded-lg transition-colors ${canMoveUp 
+                            ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-900 hover:text-green-600 dark:hover:text-green-400' 
+                            : 'bg-gray-50 dark:bg-gray-800 text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
                         >
-                          <ArrowUp className="w-4 h-4" />
+                          <ArrowUp className="w-5 h-5" />
                         </button>
-                        <div className="text-xs font-bold text-green-600 dark:text-green-400 text-center py-1">
-                          {priority}
-                        </div>
                         <button
                           onClick={() => handlePriorityChange(course.id, 'down')}
                           disabled={!canMoveDown}
-                          className={`p-1 rounded ${canMoveDown ? 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
+                          title={t.moveDown || 'Move down'}
+                          className={`p-2 rounded-lg transition-colors ${canMoveDown 
+                            ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-900 hover:text-green-600 dark:hover:text-green-400' 
+                            : 'bg-gray-50 dark:bg-gray-800 text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
                         >
-                          <ArrowDown className="w-4 h-4" />
+                          <ArrowDown className="w-5 h-5" />
                         </button>
                       </div>
-                      
-                      {/* Course card content */}
-                      <div className="flex-1">
-                        <CourseCard 
-                          course={course} 
-                          onToggleRegistration={handleRemoveClick}
-                          showRemoveOnly={true}
-                          isRegistered={true}
-                          language={language}
-                          queueLength={courseQueues.get(course.id) || 0}
-                        />
-                      </div>
                     </div>
+                    
+                    {/* Course card content */}
+                    <CourseCard 
+                      course={course} 
+                      onToggleRegistration={handleRemoveClick}
+                      showRemoveOnly={true}
+                      isRegistered={true}
+                      language={language}
+                      queueLength={courseQueues.get(course.id) || 0}
+                    />
                   </div>
                 );
               })}
