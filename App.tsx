@@ -150,7 +150,7 @@ const AppContent: React.FC = () => {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
                 <img 
-                  src="/logo.svg" 
+                  src={`${import.meta.env.BASE_URL}logo.svg`}
                   alt="Cork City Partnership" 
                   className="w-10 h-10 bg-white rounded-lg p-1"
                 />
@@ -324,7 +324,7 @@ const AppContent: React.FC = () => {
             </button>
             <div className="flex items-center gap-2 text-white font-bold">
               <img 
-                src="/logo.svg" 
+                src={`${import.meta.env.BASE_URL}logo.svg`}
                 alt="Cork City Partnership" 
                 className="w-8 h-8 bg-white rounded-lg p-0.5"
               />

@@ -27,7 +27,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose, lan
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img 
-                src="/logo.svg" 
+                src={`${import.meta.env.BASE_URL}logo.svg`}
                 alt="Cork City Partnership" 
                 className="w-12 h-12 bg-white rounded-lg p-1"
               />

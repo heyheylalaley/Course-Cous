@@ -117,7 +117,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
       <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 sm:p-8 border border-gray-100 dark:border-gray-700">
         <div className="flex flex-col items-center mb-6 sm:mb-8">
           <img 
-            src="/logo.svg" 
+            src={`${import.meta.env.BASE_URL}logo.svg`}
             alt="Cork City Partnership" 
             className="w-16 h-16 mb-3"
           />
