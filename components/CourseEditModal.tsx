@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Course, Language, EnglishLevel } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { X, Save, BookOpen } from 'lucide-react';
@@ -38,6 +38,10 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const t = TRANSLATIONS[language];
   const isRtl = language === 'ar';
+  
+  // Track if modal was intentionally closed by user
+  const userInitiatedCloseRef = React.useRef(false);
+  const lastFocusTimeRef = React.useRef<number>(Date.now());
 
   useEffect(() => {
     if (isOpen) {
@@ -93,6 +97,7 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
         minEnglishLevel: minEnglishLevel || undefined,
         isActive
       });
+      userInitiatedCloseRef.current = true;
       onClose();
     } catch (err: any) {
       console.error('Failed to save course:', err);
@@ -105,31 +110,75 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     // Only close on actual mouse click on backdrop, not on programmatic events
     // Check that it's a left mouse button click and the click is directly on the backdrop
-    if (e.target === e.currentTarget && e.type === 'click' && e.button === 0 && !isSaving) {
+    // Also check that enough time has passed since last focus change (prevent accidental closes)
+    const timeSinceFocus = Date.now() - lastFocusTimeRef.current;
+    if (e.target === e.currentTarget && 
+        e.type === 'click' && 
+        e.button === 0 && 
+        !isSaving &&
+        timeSinceFocus > 100) { // At least 100ms since last focus change
+      userInitiatedCloseRef.current = true;
       onClose();
     }
   };
+  
+  const handleClose = () => {
+    userInitiatedCloseRef.current = true;
+    onClose();
+  };
 
-  // Prevent modal from closing on window blur/focus events
+  // Prevent modal from closing on window blur/focus events or any other unwanted events
   useEffect(() => {
     if (!isOpen) return;
 
-    const handleVisibilityChange = () => {
-      // Do nothing - prevent modal from closing on tab switch
+    // Store that modal should stay open
+    const modalShouldStayOpen = true;
+    
+    const handleVisibilityChange = (e: Event) => {
+      // Prevent any default behavior
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
     };
 
     const handleBlur = (e: FocusEvent) => {
-      // Prevent closing on window blur
+      // Update last focus time
+      lastFocusTimeRef.current = Date.now();
+      // Prevent closing on window blur - stop all propagation
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+    };
+
+    const handleFocus = (e: FocusEvent) => {
+      // Update last focus time
+      lastFocusTimeRef.current = Date.now();
+      // Prevent any side effects on focus
       e.stopPropagation();
     };
 
-    // Prevent closing when window loses focus
+    // Prevent closing when window loses focus - use capture phase
     window.addEventListener('blur', handleBlur, true);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus, true);
+    document.addEventListener('visibilitychange', handleVisibilityChange, true);
+    
+    // Also prevent ESC key from closing (optional, but helps)
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only prevent ESC if it's not a user-initiated action
+      // We'll allow ESC to work normally for user interaction
+      if (e.key === 'Escape' && document.activeElement?.tagName === 'BODY') {
+        // This might be a programmatic escape, ignore it
+        e.stopPropagation();
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown, true);
 
     return () => {
       window.removeEventListener('blur', handleBlur, true);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus, true);
+      document.removeEventListener('visibilitychange', handleVisibilityChange, true);
+      document.removeEventListener('keydown', handleKeyDown, true);
     };
   }, [isOpen]);
 
@@ -144,7 +193,7 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute top-4 right-4 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
         >
           <X className="w-5 h-5" />
@@ -277,7 +326,7 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
 
         <div className="flex gap-3 mt-6">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             {t.cancel}
