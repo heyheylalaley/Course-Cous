@@ -40,11 +40,21 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
   const isRtl = language === 'ar';
   
   // Track if modal was intentionally closed by user
-  const userInitiatedCloseRef = React.useRef(false);
-  const lastFocusTimeRef = React.useRef<number>(Date.now());
-
+  const userInitiatedCloseRef = useRef(false);
+  const lastFocusTimeRef = useRef<number>(Date.now());
+  const internalIsOpenRef = useRef(isOpen);
+  
+  // Use internal state that persists even if parent tries to close it
+  const [internalIsOpen, setInternalIsOpen] = useState(isOpen);
+  
+  // Sync with prop only when user intentionally opens/closes, or when prop becomes true
   useEffect(() => {
     if (isOpen) {
+      // Always open when prop says to open
+      internalIsOpenRef.current = true;
+      setInternalIsOpen(true);
+      userInitiatedCloseRef.current = false;
+      
       if (course) {
         setTitle(course.title);
         setCategory(course.category);
@@ -64,10 +74,16 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
         setIsActive(true);
       }
       setError(null);
+    } else if (userInitiatedCloseRef.current) {
+      // Only close if user initiated the close
+      internalIsOpenRef.current = false;
+      setInternalIsOpen(false);
+      userInitiatedCloseRef.current = false;
     }
+    // If isOpen becomes false but user didn't initiate, ignore it
   }, [isOpen, course]);
 
-  if (!isOpen) return null;
+  if (!internalIsOpen) return null;
 
   const handleSave = async () => {
     // Validation
@@ -97,8 +113,7 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
         minEnglishLevel: minEnglishLevel || undefined,
         isActive
       });
-      userInitiatedCloseRef.current = true;
-      onClose();
+      handleClose();
     } catch (err: any) {
       console.error('Failed to save course:', err);
       setError(err?.message || t.adminCourseSaveError || 'Failed to save course');
@@ -117,19 +132,20 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
         e.button === 0 && 
         !isSaving &&
         timeSinceFocus > 100) { // At least 100ms since last focus change
-      userInitiatedCloseRef.current = true;
-      onClose();
+      handleClose();
     }
   };
   
   const handleClose = () => {
     userInitiatedCloseRef.current = true;
+    internalIsOpenRef.current = false;
+    setInternalIsOpen(false);
     onClose();
   };
 
   // Prevent modal from closing on window blur/focus events or any other unwanted events
   useEffect(() => {
-    if (!isOpen) return;
+    if (!internalIsOpen) return;
 
     // Store that modal should stay open
     const modalShouldStayOpen = true;
