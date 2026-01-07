@@ -28,7 +28,22 @@ const App: React.FC = () => {
 
   // App UI State
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'chat' | 'dashboard' | 'admin'>('chat');
+  
+  // Load saved activeTab from localStorage
+  const getSavedActiveTab = (): 'chat' | 'dashboard' | 'admin' => {
+    const saved = localStorage.getItem('appActiveTab');
+    if (saved && ['chat', 'dashboard', 'admin'].includes(saved)) {
+      return saved as 'chat' | 'dashboard' | 'admin';
+    }
+    return 'chat';
+  };
+
+  const [activeTab, setActiveTab] = useState<'chat' | 'dashboard' | 'admin'>(getSavedActiveTab());
+
+  // Save activeTab to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('appActiveTab', activeTab);
+  }, [activeTab]);
   
   // App Data State
   const [registrations, setRegistrations] = useState<string[]>([]);

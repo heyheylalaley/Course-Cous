@@ -16,12 +16,40 @@ interface AdminDashboardProps {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ language, onBack }) => {
   const [courseStats, setCourseStats] = useState<AdminCourseStats[]>([]);
-  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<'overview' | 'management' | 'analytics' | 'bot-instructions'>('overview');
+  
+  // Load saved state from localStorage
+  const getSavedActiveView = (): 'overview' | 'management' | 'analytics' | 'bot-instructions' => {
+    const saved = localStorage.getItem('adminActiveView');
+    if (saved && ['overview', 'management', 'analytics', 'bot-instructions'].includes(saved)) {
+      return saved as 'overview' | 'management' | 'analytics' | 'bot-instructions';
+    }
+    return 'overview';
+  };
+
+  const getSavedSelectedCourseId = (): string | null => {
+    return localStorage.getItem('adminSelectedCourseId');
+  };
+
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(getSavedSelectedCourseId());
+  const [activeView, setActiveView] = useState<'overview' | 'management' | 'analytics' | 'bot-instructions'>(getSavedActiveView());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const t = TRANSLATIONS[language];
   const isRtl = language === 'ar';
+
+  // Save activeView to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('adminActiveView', activeView);
+  }, [activeView]);
+
+  // Save selectedCourseId to localStorage whenever it changes
+  useEffect(() => {
+    if (selectedCourseId) {
+      localStorage.setItem('adminSelectedCourseId', selectedCourseId);
+    } else {
+      localStorage.removeItem('adminSelectedCourseId');
+    }
+  }, [selectedCourseId]);
 
   useEffect(() => {
     loadCourseStats();
