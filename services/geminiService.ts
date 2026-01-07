@@ -85,14 +85,12 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
     console.log(`[Gemini] Bot has ${availableCourses.length} courses available`);
   }
 
-  // Build course list for bot
-  const courseListForBot = availableCourses.map(c => ({
-    title: c.title,
-    description: c.description,
-    difficulty: c.difficulty,
-    link: c.link,
-    minEnglishLevel: c.minEnglishLevel || 'None'
-  }));
+  // Build compact course list for bot (saves ~60% tokens vs JSON)
+  const courseListForBot = availableCourses.map(c => {
+    const level = c.minEnglishLevel || 'None';
+    const levelStr = level === 'None' ? '' : ` [${level}+]`;
+    return `• **${c.title}**${levelStr} — ${c.description}`;
+  }).join('\n');
 
   // Load bot instructions from database
   let mainInstructions = '';
@@ -121,27 +119,26 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
     throw new Error('Bot instructions are not configured. Please set up bot instructions in the admin panel.');
   }
 
-  // Build instructions
-  const coursesListJson = JSON.stringify(courseListForBot, null, 2);
-  let instructions = mainInstructions.replace('{{COURSES_LIST}}', coursesListJson);
+  // Build instructions with compact course list
+  let instructions = mainInstructions.replace('{{COURSES_LIST}}', courseListForBot);
   
   if (!mainInstructions.includes('{{COURSES_LIST}}')) {
-    instructions += `\n\nAVAILABLE COURSES LIST:\n${coursesListJson}\n\nCRITICAL: Only recommend courses from this list.`;
+    instructions += `\n\n📚 Доступные курсы:\n${courseListForBot}\n\n⚠️ Рекомендуй ТОЛЬКО курсы из этого списка.`;
   }
 
   if (contactsInstructions && contactsInstructions.trim()) {
-    instructions += `\n\nCONTACT INFORMATION:\n${contactsInstructions}\n\nIMPORTANT: You can share this contact information with users when they ask for help, support, or need to reach the training center.`;
+    instructions += `\n\n📇 Контакты:\n${contactsInstructions}`;
   }
 
   if (externalLinksInstructions && externalLinksInstructions.trim()) {
-    instructions += `\n\nEXTERNAL RESOURCES AND LINKS:\n${externalLinksInstructions}\n\nIMPORTANT: When users ask about courses or services that are NOT in the AVAILABLE COURSES LIST, you can suggest these external resources.`;
+    instructions += `\n\n🔗 Внешние ресурсы:\n${externalLinksInstructions}`;
   }
 
   if (import.meta.env.DEV) {
-    console.log(`[Gemini] Instructions prepared with ${courseListForBot.length} courses`);
+    console.log(`[Gemini] Instructions prepared with ${availableCourses.length} courses`);
   }
 
-  if (courseListForBot.length === 0) {
+  if (availableCourses.length === 0) {
     console.warn('[Gemini] WARNING: No courses loaded! Bot will have no courses to recommend.');
   }
 
