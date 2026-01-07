@@ -3,7 +3,7 @@ import { Message, Language } from '../types';
 import { sendMessageToGemini, initializeChat } from '../services/geminiService';
 import { MessageBubble } from './MessageBubble';
 import { AlertModal } from './AlertModal';
-import { Send, Sparkles, Loader2, Menu } from 'lucide-react';
+import { Send, Sparkles, Loader2, Menu, Trash2 } from 'lucide-react';
 import { db } from '../services/db';
 import { TRANSLATIONS } from '../translations';
 import { useCourses } from '../contexts/CoursesContext';
@@ -24,6 +24,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
     type: 'error' | 'warning' | 'info' | 'success';
     actionButton?: { text: string; onClick: () => void };
   }>({ isOpen: false, message: '', type: 'info' });
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
   const t = TRANSLATIONS[language] as any;
@@ -190,6 +191,41 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
     }
   }, [t]);
 
+  // Handle chat clear
+  const handleClearChat = useCallback(async () => {
+    try {
+      await db.clearChatHistory();
+      
+      // Reinitialize chat with fresh greeting
+      const profile = await db.getProfile().catch(() => undefined);
+      await initializeChat(profile, language);
+      
+      const greeting: Message = {
+        id: 'welcome',
+        role: 'model',
+        content: t.welcomeMessage,
+        timestamp: new Date()
+      };
+      setMessages([greeting]);
+      await saveChatMessage('model', t.welcomeMessage);
+      
+      setShowClearConfirm(false);
+      setAlertModal({
+        isOpen: true,
+        message: t.clearChatSuccess || 'Chat history cleared successfully',
+        type: 'success'
+      });
+    } catch (error) {
+      console.error('Error clearing chat:', error);
+      setShowClearConfirm(false);
+      setAlertModal({
+        isOpen: true,
+        message: t.alertTitle || 'Error clearing chat',
+        type: 'error'
+      });
+    }
+  }, [language, t]);
+
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!inputText.trim() || isLoading) return;
@@ -293,6 +329,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
               </p>
             </div>
           </div>
+          {/* Clear Chat Button */}
+          <button
+            onClick={() => setShowClearConfirm(true)}
+            className="p-2.5 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors shadow-md active:scale-95"
+            aria-label={t.clearChat || 'Clear Chat'}
+            title={t.clearChat || 'Clear Chat'}
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Messages Area */}
@@ -343,6 +388,39 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
           </p>
         </div>
       </div>
+
+      {/* Clear Chat Confirmation Modal */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-4 sm:p-6 border-2 border-yellow-200 dark:border-yellow-800">
+            <div className="flex flex-col items-center mb-4 sm:mb-6">
+              <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-400 rounded-xl flex items-center justify-center mb-3">
+                <Trash2 size={24} />
+              </div>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white text-center mb-2">
+                {t.clearChat || 'Clear Chat'}
+              </h2>
+              <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 text-center">
+                {t.clearChatConfirm || 'Are you sure you want to clear all chat history? This action cannot be undone.'}
+              </p>
+            </div>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                className="px-6 py-2.5 rounded-lg font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
+              >
+                {t.cancel || 'Cancel'}
+              </button>
+              <button
+                onClick={handleClearChat}
+                className="px-6 py-2.5 rounded-lg font-medium text-white bg-red-600 dark:bg-red-700 hover:bg-red-700 dark:hover:bg-red-600 transition-all shadow-md"
+              >
+                {t.confirm || 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Alert Modal for course registration feedback */}
       <AlertModal
