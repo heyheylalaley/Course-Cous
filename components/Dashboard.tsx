@@ -148,7 +148,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
 
   return (
     <>
-    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900 overflow-y-auto">
+    <div className="flex flex-col h-full min-h-0 bg-gray-50 dark:bg-gray-900 overflow-y-auto">
       <div className="max-w-4xl mx-auto w-full p-4 sm:p-6 space-y-6 sm:space-y-8">
         
         {/* Header */}

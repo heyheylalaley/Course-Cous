@@ -349,7 +349,7 @@ const AppContent: React.FC = () => {
           </div>
 
           {/* Main View with Lazy Loading */}
-          <div className="flex-1 h-full overflow-hidden bg-white dark:bg-gray-900">
+          <div className="flex-1 min-h-0 overflow-hidden bg-white dark:bg-gray-900">
             {authLoading ? (
               <ChatSkeleton />
             ) : activeTab === 'chat' ? (

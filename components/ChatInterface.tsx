@@ -267,7 +267,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
   };
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-900 relative">
+    <div className="flex flex-col h-full min-h-0 bg-white dark:bg-gray-900 relative">
       {/* Header */}
       <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 z-10">
         <div className="flex items-center gap-3">

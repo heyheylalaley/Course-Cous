@@ -104,7 +104,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = memo(({ language, o
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900 overflow-y-auto" dir={isRtl ? 'rtl' : 'ltr'}>
+    <div className="flex flex-col h-full min-h-0 bg-gray-50 dark:bg-gray-900 overflow-y-auto" dir={isRtl ? 'rtl' : 'ltr'}>
       <div className="max-w-7xl mx-auto w-full p-4 sm:p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
