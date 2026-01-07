@@ -53,15 +53,11 @@ export const useCourses = (includeInactive: boolean = false, language: Language 
     loadCourses();
 
     // Set up real-time updates using polling (every 30 seconds)
-    // Only poll when window is visible to avoid unnecessary requests
     const setupPolling = () => {
       if (intervalId) clearInterval(intervalId);
       
       intervalId = setInterval(() => {
-        // Only reload if window is visible
-        if (document.visibilityState === 'visible') {
-          loadCourses();
-        }
+        loadCourses();
       }, 30000); // 30 seconds
     };
     
@@ -75,38 +71,17 @@ export const useCourses = (includeInactive: boolean = false, language: Language 
           { event: '*', schema: 'public', table: 'courses' },
           (payload) => {
             // Course change detected (no need to log)
-            // Only reload if window is visible
-            if (document.visibilityState === 'visible') {
-              loadCourses();
-            }
+            loadCourses();
           }
         )
         .subscribe();
     }
-
-    // Handle visibility change - pause polling when tab is hidden
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        // Tab became visible, just restart polling (don't reload immediately)
-        // Data will be refreshed by the polling interval
-        setupPolling();
-      } else {
-        // Tab is hidden, clear interval to stop polling
-        if (intervalId) {
-          clearInterval(intervalId);
-          intervalId = null;
-        }
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       if (intervalId) clearInterval(intervalId);
       if (channel && supabase) {
         supabase.removeChannel(channel);
       }
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [includeInactive, language]);
 

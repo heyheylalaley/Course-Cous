@@ -16,36 +16,14 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
   const [error, setError] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
-  
-  // Restore modal state from localStorage to prevent closing on window blur/focus
-  const [isEditModalOpen, setIsEditModalOpen] = useState(() => {
-    return localStorage.getItem('adminCourseEditModalOpen') === 'true';
-  });
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
   const t = TRANSLATIONS[language];
   const isRtl = language === 'ar';
 
-  // Save modal state to localStorage when it changes
-  useEffect(() => {
-    localStorage.setItem('adminCourseEditModalOpen', isEditModalOpen ? 'true' : 'false');
-  }, [isEditModalOpen]);
-
   useEffect(() => {
     loadCourses();
   }, [showInactive]);
-
-  // Restore editing course from localStorage if modal was open
-  useEffect(() => {
-    if (isEditModalOpen && !editingCourse) {
-      const savedCourseId = localStorage.getItem('adminEditingCourseId');
-      if (savedCourseId && courses.length > 0) {
-        const course = courses.find(c => c.id === savedCourseId);
-        if (course) {
-          setEditingCourse(course);
-        }
-      }
-    }
-  }, [isEditModalOpen, courses, editingCourse]);
 
   const loadCourses = async () => {
     setIsLoading(true);
@@ -63,13 +41,11 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
 
   const handleCreateCourse = () => {
     setEditingCourse(null);
-    localStorage.removeItem('adminEditingCourseId');
     setIsEditModalOpen(true);
   };
 
   const handleEditCourse = (course: Course) => {
     setEditingCourse(course);
-    localStorage.setItem('adminEditingCourseId', course.id);
     setIsEditModalOpen(true);
   };
 
@@ -258,7 +234,6 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
         onClose={() => {
           setIsEditModalOpen(false);
           setEditingCourse(null);
-          localStorage.removeItem('adminEditingCourseId');
         }}
         onSave={handleSaveCourse}
         language={language}
