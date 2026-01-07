@@ -3,11 +3,12 @@ import { UserProfile, EnglishLevel, Language, Registration, Course } from '../ty
 import { AVAILABLE_COURSES } from '../constants';
 import { useCourses } from '../hooks/useCourses';
 import { CourseCard } from './CourseCard';
-import { Save, User, BookCheck, ArrowUp, ArrowDown, GripVertical, Edit2 } from 'lucide-react';
+import { Save, User, BookCheck, ArrowUp, ArrowDown, GripVertical, Edit2, Menu } from 'lucide-react';
 import { db } from '../services/db';
 import { TRANSLATIONS } from '../translations';
 import { NameModal } from './NameModal';
 import { ProfileInfoModal } from './ProfileInfoModal';
+import { useUI } from '../contexts/UIContext';
 
 interface DashboardProps {
   registrations: string[];
@@ -34,6 +35,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
   const [courseQueues, setCourseQueues] = useState<Map<string, number>>(new Map());
   const [isProfileComplete, setIsProfileComplete] = useState(false);
   const { courses: availableCourses } = useCourses(false, language);
+  const { setSidebarOpen } = useUI();
   const t = TRANSLATIONS[language];
 
   // Load registrations with priorities and course queues
@@ -148,14 +150,28 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
 
   return (
     <>
-    <div className="flex flex-col h-full min-h-0 bg-gray-50 dark:bg-gray-900 overflow-y-auto">
-      <div className="max-w-4xl mx-auto w-full p-4 sm:p-6 space-y-6 sm:space-y-8">
+    <div className="flex flex-col h-full min-h-0 bg-gray-50 dark:bg-gray-900">
+      {/* Mobile Header */}
+      <div className="lg:hidden h-14 bg-gradient-to-r from-green-600 to-green-700 flex items-center px-4 justify-between flex-shrink-0">
+        <button 
+          onClick={() => setSidebarOpen(true)}
+          className="p-2.5 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors shadow-md active:scale-95"
+          aria-label="Open menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <span className="text-white font-bold text-base">{t.cabinetTitle}</span>
+        <div className="w-10" /> {/* Spacer for centering */}
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto w-full p-4 sm:p-6 space-y-6 sm:space-y-8">
         
-        {/* Header */}
-        <div className="mb-4 sm:mb-6">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{t.cabinetTitle}</h1>
-          <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">{t.cabinetSubtitle}</p>
-        </div>
+          {/* Header - Desktop only */}
+          <div className="mb-4 sm:mb-6 hidden lg:block">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{t.cabinetTitle}</h1>
+            <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">{t.cabinetSubtitle}</p>
+          </div>
 
         {/* Profile Section */}
         <section className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
@@ -362,6 +378,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
           )}
         </section>
 
+        </div>
       </div>
     </div>
 

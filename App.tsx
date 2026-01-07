@@ -313,7 +313,7 @@ const AppContent: React.FC = () => {
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col h-full relative">
+        <div className="flex-1 flex flex-col min-h-0 relative">
           {/* Mobile Overlay */}
           {isSidebarOpen && (
             <div 
@@ -321,32 +321,6 @@ const AppContent: React.FC = () => {
               onClick={() => setSidebarOpen(false)}
             />
           )}
-
-          {/* Mobile Header - Only one menu button here */}
-          <div className="lg:hidden h-14 bg-gradient-to-r from-green-600 to-green-700 border-b border-green-700 flex items-center px-4 justify-between shrink-0 z-20 sticky top-0">
-            <button 
-              onClick={() => setSidebarOpen(true)}
-              className="p-2.5 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center"
-              aria-label="Open menu"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
-            <div className="flex items-center gap-2 text-white font-bold">
-              <img 
-                src={`${import.meta.env.BASE_URL}logo.svg`}
-                alt="Cork City Partnership" 
-                className="w-8 h-8 bg-white rounded-lg p-0.5"
-              />
-              <span className="text-base sm:text-lg">{t.orgName}</span>
-            </div>
-            <button 
-              onClick={toggleTheme}
-              className="p-2.5 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors shadow-sm hover:shadow-md active:scale-95"
-              aria-label="Toggle theme"
-            >
-              {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-            </button>
-          </div>
 
           {/* Main View with Lazy Loading */}
           <div className="flex-1 min-h-0 overflow-hidden bg-white dark:bg-gray-900">
