@@ -103,10 +103,35 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
   };
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
+    // Only close on actual mouse click on backdrop, not on programmatic events
+    // Check that it's a left mouse button click and the click is directly on the backdrop
+    if (e.target === e.currentTarget && e.type === 'click' && e.button === 0 && !isSaving) {
       onClose();
     }
   };
+
+  // Prevent modal from closing on window blur/focus events
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleVisibilityChange = () => {
+      // Do nothing - prevent modal from closing on tab switch
+    };
+
+    const handleBlur = (e: FocusEvent) => {
+      // Prevent closing on window blur
+      e.stopPropagation();
+    };
+
+    // Prevent closing when window loses focus
+    window.addEventListener('blur', handleBlur, true);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('blur', handleBlur, true);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isOpen]);
 
   return (
     <div
