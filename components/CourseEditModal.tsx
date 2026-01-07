@@ -128,16 +128,25 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
     if (isClosingRef.current) return; // Prevent double close
     isClosingRef.current = true;
     userInitiatedCloseRef.current = true;
-    onClose();
-    // Reset flag after a delay to allow reopening
+    
+    // Use setTimeout to ensure state updates happen before unmount
     setTimeout(() => {
-      isClosingRef.current = false;
-    }, 100);
+      try {
+        onClose();
+      } catch (error) {
+        console.error('Error closing modal:', error);
+      } finally {
+        // Reset flag after a delay to allow reopening
+        setTimeout(() => {
+          isClosingRef.current = false;
+        }, 100);
+      }
+    }, 0);
   };
 
   // Prevent modal from closing on window blur/focus events or any other unwanted events
   useEffect(() => {
-    if (!internalIsOpen) return;
+    if (!isOpen) return;
 
     let isMounted = true;
     
