@@ -268,25 +268,25 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-white dark:bg-gray-900 relative">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 z-10">
+      {/* Header - Always visible */}
+      <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-green-600 to-green-700">
         <div className="flex items-center gap-3">
           {onOpenSidebar && (
             <button
               onClick={onOpenSidebar}
-              className="lg:hidden p-2 rounded-lg bg-green-600 dark:bg-green-700 text-white hover:bg-green-700 dark:hover:bg-green-600 transition-colors shadow-md active:scale-95"
+              className="lg:hidden p-2.5 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors shadow-md active:scale-95"
               aria-label="Open menu"
             >
               <Menu className="w-5 h-5" />
             </button>
           )}
-          <div className="p-2 bg-green-600 dark:bg-green-700 rounded-lg">
+          <div className="p-2 bg-white/20 rounded-lg">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">{t.assistantName}</h2>
-            <p className="text-xs text-green-600 dark:text-green-400 flex items-center font-medium">
-              <span className="w-2 h-2 rounded-full bg-green-500 dark:bg-green-400 mr-1.5"></span>
+            <h2 className="text-base font-bold text-white">{t.assistantName}</h2>
+            <p className="text-xs text-green-100 flex items-center font-medium">
+              <span className="w-2 h-2 rounded-full bg-green-300 mr-1.5"></span>
               {t.online}
             </p>
           </div>

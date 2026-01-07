@@ -81,38 +81,45 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
 
   return (
     <>
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex flex-col justify-center items-center p-4 relative" dir={isRtl ? 'rtl' : 'ltr'}>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex flex-col" dir={isRtl ? 'rtl' : 'ltr'}>
       
-      {/* Language Switcher & Theme Toggle (Top Right) */}
-      <div className="absolute top-4 right-4 flex gap-2 items-center">
-        <button
-          onClick={() => setShowContactModal(true)}
-          className="p-2 rounded-lg bg-white dark:bg-gray-800 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 border border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-600 transition-colors"
-          title={t.contactInfo}
-        >
-          <Info size={18} />
-        </button>
-        <button
-          onClick={toggleTheme}
-          className="p-2 rounded-lg bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
-          title={localTheme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-        >
-          {localTheme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-        </button>
-        {(['en', 'ua', 'ru', 'ar'] as Language[]).map((lang) => (
+      {/* Top Bar with Language & Theme */}
+      <div className="w-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between flex-shrink-0">
+        <div className="flex gap-1">
+          {(['en', 'ua', 'ru', 'ar'] as Language[]).map((lang) => (
+            <button
+              key={lang}
+              onClick={() => setLanguage(lang)}
+              className={`w-9 h-9 text-xs font-bold rounded-lg transition-colors ${
+                language === lang 
+                  ? 'bg-green-600 dark:bg-green-700 text-white' 
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              {lang.toUpperCase()}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2">
           <button
-            key={lang}
-            onClick={() => setLanguage(lang)}
-            className={`px-3 py-1 text-xs font-bold rounded-full transition-colors ${
-              language === lang 
-                ? 'bg-green-600 dark:bg-green-700 text-white' 
-                : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-600'
-            }`}
+            onClick={() => setShowContactModal(true)}
+            className="p-2.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-green-600 dark:text-green-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            title={t.contactInfo}
           >
-            {lang.toUpperCase()}
+            <Info size={20} />
           </button>
-        ))}
+          <button
+            onClick={toggleTheme}
+            className="p-2.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            title={localTheme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+          >
+            {localTheme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+          </button>
+        </div>
       </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col justify-center items-center p-4">
 
       <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 sm:p-8 border border-gray-100 dark:border-gray-700">
         <div className="flex flex-col items-center mb-6 sm:mb-8">
@@ -217,6 +224,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
       {/* Footer with organization name */}
       <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
         &copy; {new Date().getFullYear()} {t.orgName}. All rights reserved.
+      </div>
       </div>
     </div>
     
