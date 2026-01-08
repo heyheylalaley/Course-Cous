@@ -27,7 +27,7 @@ const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(m =
 // Main App Content (uses contexts)
 const AppContent: React.FC = () => {
   const { isAuthenticated, userProfile, isLoading: authLoading, isPasswordRecovery, login, logout, updateProfile, updateEnglishLevel, completePasswordRecovery } = useAuth();
-  const { courses, registrations, courseQueues, isLoading: coursesLoading, toggleRegistration, refreshCourses, updatePriority } = useCourses();
+  const { courses, categories, registrations, courseQueues, isLoading: coursesLoading, toggleRegistration, refreshCourses, updatePriority } = useCourses();
   const { language, theme, isSidebarOpen, activeTab, setLanguage, toggleTheme, setSidebarOpen, setActiveTab, isRtl } = useUI();
 
   // Local UI state
@@ -320,6 +320,7 @@ const AppContent: React.FC = () => {
                       language={language}
                       queueLength={courseQueues.get(course.id) || 0}
                       onViewDetails={handleViewCourseDetails}
+                      categories={categories}
                     />
                   ))}
                   {hasNoSearchResults && (

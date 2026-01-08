@@ -8,6 +8,7 @@ import { db } from '../services/db';
 import { TRANSLATIONS } from '../translations';
 import { useCourses } from '../contexts/CoursesContext';
 import { useUI } from '../contexts/UIContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ChatInterfaceProps {
   language: Language;
@@ -34,6 +35,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
   
   // Get UI context for navigation
   const { setActiveTab } = useUI();
+  
+  // Get user profile from auth context (avoids extra DB calls)
+  const { userProfile } = useAuth();
 
   // Load chat history from database
   const loadChatHistory = async (): Promise<Message[]> => {
@@ -299,11 +303,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
     setMessages(prev => [...prev, initialBotMessage]);
 
     try {
-      // Get current profile to pass to bot (for English level filtering)
-      const profile = await db.getProfile().catch(() => undefined);
-      
+      // Use profile from context (avoids extra DB call)
       let fullContent = '';
-      const stream = sendMessageToGemini(userMessage.content, profile, language);
+      const stream = sendMessageToGemini(userMessage.content, userProfile, language);
       
       for await (const chunk of stream) {
         fullContent += chunk;

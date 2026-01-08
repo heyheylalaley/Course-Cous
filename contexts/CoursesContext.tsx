@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
-import { Course, Registration, CourseQueue, Language } from '../types';
+import { Course, CourseCategory, Language } from '../types';
 import { db, supabase } from '../services/db';
 import { TRANSLATIONS } from '../translations';
+import { sortCoursesByDifficulty, sortCoursesWithRegistrations } from '../utils/courseUtils';
 
 interface CoursesContextValue {
   courses: Course[];
+  categories: CourseCategory[];
   registrations: string[];
   completedCourses: string[];
   courseQueues: Map<string, number>;
@@ -31,38 +33,9 @@ interface CoursesProviderProps {
   language: Language;
 }
 
-// Helper function to sort courses by difficulty
-const sortCoursesByDifficulty = (courses: Course[]): Course[] => {
-  const difficultyOrder = { 'Beginner': 1, 'Intermediate': 2, 'Advanced': 3 };
-  return [...courses].sort((a, b) => {
-    const aOrder = difficultyOrder[a.difficulty] || 999;
-    const bOrder = difficultyOrder[b.difficulty] || 999;
-    return aOrder - bOrder;
-  });
-};
-
-// Helper function to sort courses: registered first, then by difficulty
-const sortCoursesWithRegistrations = (courses: Course[], registeredIds: string[]): Course[] => {
-  const difficultyOrder = { 'Beginner': 1, 'Intermediate': 2, 'Advanced': 3 };
-  const registeredSet = new Set(registeredIds);
-  
-  return [...courses].sort((a, b) => {
-    const aRegistered = registeredSet.has(a.id);
-    const bRegistered = registeredSet.has(b.id);
-    
-    // Registered courses first
-    if (aRegistered && !bRegistered) return -1;
-    if (!aRegistered && bRegistered) return 1;
-    
-    // Then sort by difficulty
-    const aOrder = difficultyOrder[a.difficulty] || 999;
-    const bOrder = difficultyOrder[b.difficulty] || 999;
-    return aOrder - bOrder;
-  });
-};
-
 export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, language }) => {
   const [rawCourses, setRawCourses] = useState<Course[]>([]);
+  const [categories, setCategories] = useState<CourseCategory[]>([]);
   const [registrations, setRegistrations] = useState<string[]>([]);
   const [completedCourses, setCompletedCourses] = useState<string[]>([]);
   const [courseQueues, setCourseQueues] = useState<Map<string, number>>(new Map());
@@ -111,6 +84,17 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
     }
   }, []);
 
+  const loadCategories = useCallback(async () => {
+    try {
+      const cats = await db.getCategories();
+      setCategories(cats);
+    } catch (err: any) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to load categories:', err);
+      }
+    }
+  }, []);
+
   const loadQueues = useCallback(async () => {
     try {
       const queues = await db.getCourseQueues();
@@ -136,13 +120,17 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
     await Promise.all([loadRegistrations(), loadQueues(), loadCompletedCourses()]);
   }, [loadRegistrations, loadQueues, loadCompletedCourses]);
 
+  const refreshCategories = useCallback(async () => {
+    await loadCategories();
+  }, [loadCategories]);
+
   // Initial load and Supabase Realtime setup
   useEffect(() => {
     let channel: any = null;
 
     const init = async () => {
       setIsLoading(true);
-      await Promise.all([loadCourses(), loadRegistrations(), loadQueues(), loadCompletedCourses()]);
+      await Promise.all([loadCourses(), loadRegistrations(), loadQueues(), loadCompletedCourses(), loadCategories()]);
       setIsLoading(false);
     };
 
@@ -172,7 +160,7 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
         supabase.removeChannel(channel);
       }
     };
-  }, [loadCourses, loadRegistrations, loadQueues, loadCompletedCourses]);
+  }, [loadCourses, loadRegistrations, loadQueues, loadCompletedCourses, loadCategories]);
 
   // Reload courses when language changes
   useEffect(() => {
@@ -248,6 +236,7 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
 
   const value: CoursesContextValue = {
     courses,
+    categories,
     registrations,
     completedCourses,
     courseQueues,

@@ -1,22 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Course, Language } from '../types';
 import { db, supabase } from '../services/db';
-import { AVAILABLE_COURSES } from '../constants';
+import { sortCoursesByDifficulty } from '../utils/courseUtils';
 
-// Helper function to sort courses by difficulty (Beginner -> Intermediate -> Advanced)
-const sortCoursesByDifficulty = (courses: Course[]): Course[] => {
-  const difficultyOrder = { 'Beginner': 1, 'Intermediate': 2, 'Advanced': 3 };
-  return [...courses].sort((a, b) => {
-    const aOrder = difficultyOrder[a.difficulty] || 999;
-    const bOrder = difficultyOrder[b.difficulty] || 999;
-    return aOrder - bOrder;
-  });
-};
-
+/**
+ * Hook for loading courses (used in admin components where includeInactive is needed).
+ * For regular user components, use CoursesContext instead.
+ * 
+ * NOTE: This hook does NOT set up Realtime subscriptions to avoid duplicates
+ * with CoursesContext. Admin pages refresh on mount.
+ */
 export const useCourses = (includeInactive: boolean = false, language: Language = 'en') => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Track previous params to avoid unnecessary reloads
+  const prevParamsRef = useRef({ includeInactive, language });
 
   const loadCourses = useCallback(async () => {
     setIsLoading(true);
@@ -28,52 +28,31 @@ export const useCourses = (includeInactive: boolean = false, language: Language 
     } catch (err: any) {
       // Don't log "Not authenticated" errors - they're expected on login page
       if (err?.message?.includes('Not authenticated') || err?.message?.includes('authentication')) {
-        const sortedFallback = sortCoursesByDifficulty(AVAILABLE_COURSES);
-        setCourses(sortedFallback);
+        setCourses([]);
         setIsLoading(false);
         return;
       }
-      console.error('Failed to load courses:', err);
+      if (import.meta.env.DEV) {
+        console.error('Failed to load courses:', err);
+      }
       setError(err.message);
-      const sortedFallback = sortCoursesByDifficulty(AVAILABLE_COURSES);
-      setCourses(sortedFallback);
+      setCourses([]);
     } finally {
       setIsLoading(false);
     }
   }, [includeInactive, language]);
 
+  // Initial load and reload when params change
   useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel> | null = null;
+    const paramsChanged = 
+      prevParamsRef.current.includeInactive !== includeInactive ||
+      prevParamsRef.current.language !== language;
     
-    // Initial load
-    loadCourses();
-
-    // Setup Supabase Realtime subscription (no polling)
-    if (supabase) {
-      channel = supabase
-        .channel('courses-realtime')
-        .on('postgres_changes', 
-          { event: '*', schema: 'public', table: 'courses' },
-          (payload) => {
-            if (import.meta.env.DEV) {
-              console.log('[useCourses] Course change detected:', payload.eventType);
-            }
-            loadCourses();
-          }
-        )
-        .subscribe((status) => {
-          if (import.meta.env.DEV) {
-            console.log('[useCourses] Realtime subscription status:', status);
-          }
-        });
+    if (paramsChanged || courses.length === 0) {
+      prevParamsRef.current = { includeInactive, language };
+      loadCourses();
     }
-
-    return () => {
-      if (channel && supabase) {
-        supabase.removeChannel(channel);
-      }
-    };
-  }, [loadCourses]);
+  }, [includeInactive, language, loadCourses, courses.length]);
 
   return { courses, isLoading, error, refreshCourses: loadCourses };
 };

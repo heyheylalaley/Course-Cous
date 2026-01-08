@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, memo } from 'react';
 import { UserProfile, EnglishLevel, Language, Registration, Course } from '../types';
-import { AVAILABLE_COURSES } from '../constants';
 import { useCourses } from '../hooks/useCourses';
+import { useCourses as useCoursesContext } from '../contexts/CoursesContext';
 import { CourseCard } from './CourseCard';
 import { Save, User, BookCheck, ArrowUp, ArrowDown, Edit2, Menu, Mail, CheckCircle, Award, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
 import { db } from '../services/db';
@@ -73,6 +73,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
   const [completedCourses, setCompletedCourses] = useState<Array<{ courseId: string; completedAt: Date }>>([]);
   const [showCompletedSection, setShowCompletedSection] = useState(false);
   const { courses: availableCourses } = useCourses(false, language);
+  const { categories } = useCoursesContext(); // Get categories from context
   const { setSidebarOpen } = useUI();
   const t = TRANSLATIONS[language] as any;
 
@@ -430,6 +431,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
                       isRegistered={true}
                       language={language}
                       queueLength={courseQueues.get(course.id) || 0}
+                      categories={categories}
                     />
                   </div>
                 );

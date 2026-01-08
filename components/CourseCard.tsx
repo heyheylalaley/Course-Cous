@@ -1,8 +1,7 @@
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo } from 'react';
 import { Course, Language, CourseCategory } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { BookOpen, Shield, Coffee, Users, Globe, HardHat, Warehouse, Sparkles, HeartPulse, CheckCircle, PlusCircle, Trash2, Users as UsersIcon, Cpu, Briefcase, ShoppingBag, Scissors, Baby, Leaf, Car, Heart, TreePine, GraduationCap, Hammer } from 'lucide-react';
-import { db } from '../services/db';
 import { AVAILABLE_ICONS } from './AdminCategoryManagement';
 
 interface CourseCardProps {
@@ -14,7 +13,7 @@ interface CourseCardProps {
   language: Language;
   queueLength?: number;
   onViewDetails?: (course: Course) => void;
-  categories?: CourseCategory[];
+  categories?: CourseCategory[]; // Pass from CoursesContext to avoid N+1 queries
 }
 
 // Fallback icon mapping for when categories haven't loaded yet
@@ -69,17 +68,9 @@ export const CourseCard: React.FC<CourseCardProps> = memo(({
   language,
   queueLength = 0,
   onViewDetails,
-  categories: propCategories
+  categories = [] // Use categories from props (passed from CoursesContext)
 }) => {
   const t = TRANSLATIONS[language];
-  const [categories, setCategories] = useState<CourseCategory[]>(propCategories || []);
-
-  // Load categories if not provided via props
-  useEffect(() => {
-    if (!propCategories || propCategories.length === 0) {
-      db.getCategories().then(setCategories).catch(console.error);
-    }
-  }, [propCategories]);
 
   return (
     <div className={`bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl border shadow-sm transition-all duration-200 ${

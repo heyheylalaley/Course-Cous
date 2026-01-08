@@ -391,66 +391,6 @@ export const db = {
     }
   },
 
-  updateName: async (name: string): Promise<void> => {
-    if (!supabase) {
-      // Mock fallback:
-      const session = db.getCurrentSession();
-      if (!session) throw new Error("Not authenticated");
-      const profile = await db.getProfile();
-      const updated = { ...profile, name: name.trim() };
-      localStorage.setItem(STORAGE_KEYS.PROFILE(session.id), JSON.stringify(updated));
-      return;
-    }
-
-    // Get current session from Supabase to ensure auth context is correct
-    const { data: { session: supabaseSession }, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError || !supabaseSession) {
-      throw new Error("Not authenticated. Please sign in again.");
-    }
-
-    const userId = supabaseSession.user.id;
-
-    // First, try to update existing profile
-    const { data: existingProfile, error: selectError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', userId)
-      .single();
-
-    if (selectError && selectError.code === 'PGRST116') {
-      // Profile doesn't exist, try to insert
-      const { error: insertError } = await supabase
-        .from('profiles')
-        .insert({
-          id: userId,
-          email: supabaseSession.user.email || '',
-          name: name.trim(),
-          english_level: 'None'
-        });
-
-      if (insertError) {
-        console.error('Insert error:', insertError);
-        throw new Error(insertError.message || 'Failed to create profile. Please check your permissions.');
-      }
-    } else if (selectError) {
-      // Other error
-      console.error('Select error:', selectError);
-      throw new Error(selectError.message || 'Failed to check profile');
-    } else {
-      // Profile exists, update it
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ name: name.trim() })
-        .eq('id', userId);
-
-      if (updateError) {
-        console.error('Update error:', updateError);
-        throw new Error(updateError.message || 'Failed to update profile. Please check your permissions.');
-      }
-    }
-  },
-
   // --- Registration Methods ---
   getRegistrations: async (): Promise<Registration[]> => {
     const session = db.getCurrentSession();
@@ -571,14 +511,19 @@ export const db = {
 
       if (error) throw new Error(error.message);
 
-      // Recalculate priorities for remaining registrations
+      // Recalculate priorities for remaining registrations using batch update
       const remainingRegs = await db.getRegistrations();
-      for (let i = 0; i < remainingRegs.length; i++) {
-        await supabase
-          .from('registrations')
-          .update({ priority: i + 1 })
-          .eq('user_id', session.id)
-          .eq('course_id', remainingRegs[i].courseId);
+      if (remainingRegs.length > 0) {
+        // Update all priorities in parallel
+        await Promise.all(
+          remainingRegs.map((reg, index) =>
+            supabase
+              .from('registrations')
+              .update({ priority: index + 1 })
+              .eq('user_id', session.id)
+              .eq('course_id', reg.courseId)
+          )
+        );
       }
       return;
     }
@@ -607,16 +552,20 @@ export const db = {
       const [moved] = regs.splice(courseIndex, 1);
       regs.splice(newPriority - 1, 0, moved);
 
-      // Update all priorities in database
-      for (let i = 0; i < regs.length; i++) {
-        const { error } = await supabase
-          .from('registrations')
-          .update({ priority: i + 1 })
-          .eq('user_id', session.id)
-          .eq('course_id', regs[i].courseId);
-
-        if (error) throw new Error(error.message);
-      }
+      // Update all priorities in database using batch update
+      const updateResults = await Promise.all(
+        regs.map((reg, index) =>
+          supabase
+            .from('registrations')
+            .update({ priority: index + 1 })
+            .eq('user_id', session.id)
+            .eq('course_id', reg.courseId)
+        )
+      );
+      
+      // Check for any errors
+      const failedUpdate = updateResults.find(r => r.error);
+      if (failedUpdate?.error) throw new Error(failedUpdate.error.message);
       return;
     }
 
@@ -1067,10 +1016,6 @@ export const db = {
       const details: AdminStudentDetail[] = (registrations || []).map((reg: any) => {
         const profile = (profiles || []).find((p: any) => p.id === reg.user_id);
         
-        console.log(`Processing registration for user ${reg.user_id}:`, {
-          hasProfile: !!profile,
-          profileData: profile
-        });
         
         // Migrate old name format if needed
         let firstName = profile?.first_name;
