@@ -74,7 +74,7 @@ export const db = {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/Course-Cous/`
+          emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`
         }
       });
 
@@ -105,8 +105,8 @@ export const db = {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/Course-Cous/`,
-          queryParams: {
+redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
+        queryParams: {
             access_type: 'offline',
             prompt: 'consent',
           },
@@ -1845,7 +1845,7 @@ export const db = {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/Course-Cous/`
+        redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`
       });
 
       if (error) return { error: error.message };

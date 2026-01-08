@@ -80,7 +80,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           
           if (session && !error) {
             // Clear URL hash
-            window.history.replaceState({}, document.title, '/Course-Cous/');
+            window.history.replaceState({}, document.title, import.meta.env.BASE_URL);
             
             if (isRecoveryFlow) {
               // Password recovery - set flag instead of auto-login
@@ -115,13 +115,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setIsPasswordRecovery(true);
             setIsAuthenticated(true);
             if (window.location.hash) {
-              window.history.replaceState({}, document.title, '/Course-Cous/');
+              window.history.replaceState({}, document.title, import.meta.env.BASE_URL);
             }
           } else if (event === 'SIGNED_IN' && session) {
             // Only auto-login if not in password recovery mode
             if (!isPasswordRecovery) {
               if (window.location.hash) {
-                window.history.replaceState({}, document.title, '/Course-Cous/');
+                window.history.replaceState({}, document.title, import.meta.env.BASE_URL);
               }
               setIsAuthenticated(true);
               loadUserProfile();
