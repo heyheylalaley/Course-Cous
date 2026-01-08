@@ -16,7 +16,7 @@ import {
   Beaker, TestTube, Dna, Brain, Eye, Ear, Hand, Footprints, Dog, Cat, Fish,
   Bird, Bug, Flower, Sun, Moon, Star, Snowflake, Wind, Droplet, Flame,
   Zap, Battery, Plug, Lightbulb, Fan, AirVent, CircuitBoard, Cog, Settings,
-  Tool, Hammer as HammerIcon, Axe, Shovel, Pickaxe, Gem, Crown, Award, Medal,
+  Gem, Crown, Award, Medal,
   Trophy, Flag, Target, Crosshair, Compass, Map, Navigation, Signpost,
   Clock, Calendar, Timer, Hourglass, Bell, BellRing, Megaphone, MessageCircle,
   Mail, Send, Inbox, Archive, Bookmark, Tag, Hash, AtSign, Link, Paperclip,
@@ -28,12 +28,12 @@ import {
   AlertCircle, CheckCircle, XCircle, PlusCircle, MinusCircle, Ban, ShieldCheck,
   ShieldAlert, UserCheck, UserPlus, UserMinus, Users as UsersIcon, UserCircle,
   Contact, Phone, PhoneCall, Video as VideoIcon, Voicemail, Gift, Package,
-  Box, Truck, Forklift, Container, Anchor, Rocket, Satellite, Globe2,
-  Earth, Mountain, Trees, Tent, Campfire, Umbrella, UmbrellaOff, Shirt,
+  Box, Truck, Anchor, Rocket, Satellite, Globe2,
+  Earth, Mountain, Trees, Tent, Umbrella, UmbrellaOff, Shirt,
   Watch, Glasses, Backpack, Luggage, Sofa, Bed, Bath, Toilet, Brush,
   Spray, Trash, Recycle, Leaf as LeafIcon, Sprout, Apple, Carrot, Wheat,
   Grape, Cherry, Banana, Pizza, Sandwich, Soup, IceCream, Cake, Cookie,
-  Wine, Beer, CoffeeIcon, Tea
+  Wine, Beer
 } from 'lucide-react';
 
 // Map icon names to components
@@ -49,7 +49,7 @@ const AVAILABLE_ICONS: Record<string, React.ComponentType<any>> = {
   Beaker, TestTube, Dna, Brain, Eye, Ear, Hand, Footprints, Dog, Cat, Fish,
   Bird, Bug, Flower, Sun, Moon, Star, Snowflake, Wind, Droplet, Flame,
   Zap, Battery, Plug, Lightbulb, Fan, AirVent, CircuitBoard, Cog, Settings,
-  Tool, Axe, Shovel, Pickaxe, Gem, Crown, Award, Medal,
+  Gem, Crown, Award, Medal,
   Trophy, Flag, Target, Crosshair, Compass, Map, Navigation, Signpost,
   Clock, Calendar, Timer, Hourglass, Bell, BellRing, Megaphone, MessageCircle,
   Mail, Send, Inbox, Archive, Bookmark, Tag, Hash, AtSign, Link, Paperclip,
@@ -60,8 +60,8 @@ const AVAILABLE_ICONS: Record<string, React.ComponentType<any>> = {
   AlertCircle, CheckCircle, XCircle, PlusCircle, MinusCircle, Ban, ShieldCheck,
   ShieldAlert, UserCheck, UserPlus, UserMinus, UserCircle,
   Contact, Phone, PhoneCall, Voicemail, Gift, Package,
-  Box, Truck, Forklift, Container, Anchor, Rocket, Satellite, Globe2,
-  Earth, Mountain, Trees, Tent, Campfire, Umbrella, UmbrellaOff, Shirt,
+  Box, Truck, Anchor, Rocket, Satellite, Globe2,
+  Earth, Mountain, Trees, Tent, Umbrella, UmbrellaOff, Shirt,
   Watch, Glasses, Backpack, Luggage, Sofa, Bed, Bath, Toilet, Brush,
   Spray, Trash, Recycle, Sprout, Apple, Carrot, Wheat,
   Grape, Cherry, Banana, Pizza, Sandwich, Soup, IceCream, Cake, Cookie,
