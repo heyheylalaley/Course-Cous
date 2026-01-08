@@ -159,20 +159,32 @@ The GitHub Actions workflow will automatically use these secrets during deployme
 
 ## Step 5: Configure Authentication
 
-### Option A: Email/Password Authentication (Recommended)
+### Email/Password Authentication Setup
 
 1. In Supabase dashboard, go to **Authentication** → **Providers**
 2. Make sure **Email** is enabled
 3. Configure email settings:
-   - **Enable email confirmations**: Optional (recommended for production)
    - **Site URL**: `https://yourusername.github.io/Course-Cous/`
    - **Redirect URLs**: Add your production URL
 
-### Option B: Magic Link (Passwordless)
+### IMPORTANT: Disable Email Confirmation for Registration
 
-1. In Supabase dashboard, go to **Authentication** → **Providers**
-2. Make sure **Email** is enabled
-3. The app will automatically use magic links if no password is provided
+The application is configured to allow registration without email confirmation. Users can register and start using the app immediately.
+
+**To disable email confirmation:**
+
+1. In Supabase dashboard, go to **Authentication** → **Settings** (or **Providers** → **Email**)
+2. Find the option **"Enable email confirmations"** (or **"Confirm email"**)
+3. **Disable/Uncheck** this option
+4. Save the changes
+
+**Note:** Password recovery emails will still work. When a user forgets their password, they will receive a reset link via email.
+
+### Why we disable email confirmation:
+- Faster onboarding - users can start using the app immediately
+- Reduced friction for users who may have issues with email delivery
+- Users are prompted to complete their profile on first login (but can skip)
+- Course registration still requires a complete profile (all required fields)
 
 ## Step 6: Test the Setup
 

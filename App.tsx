@@ -3,7 +3,7 @@ import { CourseCard } from './components/CourseCard';
 import { AuthScreen } from './components/AuthScreen';
 import { LanguageLevelModal } from './components/LanguageLevelModal';
 import { CourseDetailsModal } from './components/CourseDetailsModal';
-import { OnboardingModal } from './components/OnboardingModal';
+import { FirstLoginProfileModal } from './components/FirstLoginProfileModal';
 import { AlertModal } from './components/AlertModal';
 import { ConfirmationModal } from './components/ConfirmationModal';
 import { ChatSkeleton, DashboardSkeleton, AdminDashboardSkeleton, SidebarCourseListSkeleton } from './components/Skeletons';
@@ -32,7 +32,7 @@ const AppContent: React.FC = () => {
 
   // Local UI state
   const [showLanguageLevelModal, setShowLanguageLevelModal] = useState(false);
-  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
+  const [showFirstLoginModal, setShowFirstLoginModal] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [showCourseDetails, setShowCourseDetails] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -46,16 +46,19 @@ const AppContent: React.FC = () => {
 
   const t = TRANSLATIONS[language] as any;
 
-  // Check if onboarding is needed
+  // Check if first login profile setup is needed
   useEffect(() => {
     if (isAuthenticated && !authLoading && userProfile.id) {
-      const needsName = (!userProfile.firstName || !userProfile.lastName || 
-                        userProfile.firstName.trim() === '' || userProfile.lastName.trim() === '') && 
-                       (!userProfile.name || userProfile.name.trim() === '');
-      const needsLevel = userProfile.englishLevel === 'None';
+      // Check if this is essentially a new/empty profile
+      const hasNoName = (!userProfile.firstName || userProfile.firstName.trim() === '') && 
+                        (!userProfile.lastName || userProfile.lastName.trim() === '') &&
+                        (!userProfile.name || userProfile.name.trim() === '');
+      const hasNoLevel = userProfile.englishLevel === 'None';
+      const hasNoContact = !userProfile.mobileNumber || userProfile.mobileNumber.trim() === '';
       
-      if (needsName || needsLevel) {
-        setShowOnboardingModal(true);
+      // Show first login modal if profile is mostly empty (new user)
+      if (hasNoName && hasNoLevel && hasNoContact) {
+        setShowFirstLoginModal(true);
       }
     }
   }, [isAuthenticated, authLoading, userProfile]);
@@ -67,20 +70,49 @@ const AppContent: React.FC = () => {
     }
   }, [isAuthenticated, refreshCourses]);
 
-  const handleOnboardingComplete = async (firstName: string, lastName: string, englishLevel: EnglishLevel) => {
+  const handleFirstLoginComplete = async (profileData: {
+    firstName?: string;
+    lastName?: string;
+    mobileNumber?: string;
+    address?: string;
+    eircode?: string;
+    dateOfBirth?: string;
+    englishLevel?: EnglishLevel;
+  }) => {
     try {
-      if ((firstName && firstName.trim()) || (lastName && lastName.trim())) {
-        await db.updateProfileInfo({ firstName, lastName });
+      // Update profile info if any personal data provided
+      const hasPersonalData = profileData.firstName || profileData.lastName || 
+                              profileData.mobileNumber || profileData.address || 
+                              profileData.eircode || profileData.dateOfBirth;
+      
+      if (hasPersonalData) {
+        await db.updateProfileInfo({
+          firstName: profileData.firstName,
+          lastName: profileData.lastName,
+          mobileNumber: profileData.mobileNumber,
+          address: profileData.address,
+          eircode: profileData.eircode,
+          dateOfBirth: profileData.dateOfBirth
+        });
       }
-      await updateEnglishLevel(englishLevel);
+      
+      // Update English level if provided
+      if (profileData.englishLevel) {
+        await updateEnglishLevel(profileData.englishLevel);
+      }
+      
       const updatedProfile = await db.getProfile();
       updateProfile(updatedProfile);
-      setShowOnboardingModal(false);
+      setShowFirstLoginModal(false);
     } catch (error) {
       if (import.meta.env.DEV) {
-        console.error('Failed to save onboarding data:', error);
+        console.error('Failed to save first login profile data:', error);
       }
     }
+  };
+
+  const handleSkipFirstLogin = () => {
+    setShowFirstLoginModal(false);
   };
 
   const handleToggleRegistration = useCallback(async (courseId: string) => {
@@ -154,13 +186,12 @@ const AppContent: React.FC = () => {
 
   return (
     <>
-      <OnboardingModal
-        isOpen={showOnboardingModal}
-        onComplete={handleOnboardingComplete}
+      <FirstLoginProfileModal
+        isOpen={showFirstLoginModal}
+        onComplete={handleFirstLoginComplete}
+        onSkip={handleSkipFirstLogin}
         language={language}
-        currentFirstName={userProfile.firstName}
-        currentLastName={userProfile.lastName}
-        currentEnglishLevel={userProfile.englishLevel}
+        currentProfile={userProfile}
       />
       <LanguageLevelModal
         isOpen={showLanguageLevelModal}

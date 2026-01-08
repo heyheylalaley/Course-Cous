@@ -4,7 +4,6 @@ import { Loader2, Moon, Sun, Info, ArrowLeft, Play } from 'lucide-react';
 import { Language, Theme } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { ContactModal } from './ContactModal';
-import { EmailConfirmationModal } from './EmailConfirmationModal';
 
 interface AuthScreenProps {
   onLoginSuccess: () => void;
@@ -22,8 +21,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
-  const [registeredEmail, setRegisteredEmail] = useState('');
   const [demoEnabled, setDemoEnabled] = useState(false);
 
   const t = TRANSLATIONS[language];
@@ -58,12 +55,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
           onLoginSuccess();
         }
       } else if (authView === 'register') {
-        const { user, error, needsEmailConfirmation } = await db.signUp(email, password);
+        // Registration without email confirmation - user is logged in immediately
+        const { user, error } = await db.signUp(email, password);
         if (error) {
           setError(error);
-        } else if (needsEmailConfirmation) {
-          setRegisteredEmail(email);
-          setShowEmailConfirmation(true);
         } else if (user) {
           onLoginSuccess();
         }
@@ -394,16 +389,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
     <ContactModal 
       isOpen={showContactModal}
       onClose={() => setShowContactModal(false)}
-      language={language}
-    />
-
-    <EmailConfirmationModal
-      isOpen={showEmailConfirmation}
-      onClose={() => {
-        setShowEmailConfirmation(false);
-        switchView('login');
-      }}
-      email={registeredEmail}
       language={language}
     />
     </>
