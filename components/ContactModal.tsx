@@ -56,7 +56,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose, lan
               <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{t.contactAddress}</h3>
               <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">
                 Heron House, Blackpool Park<br />
-                Cork, T23 R68R<br />
+                Cork, T23 R50R<br />
                 Ireland
               </p>
             </div>
@@ -86,10 +86,10 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose, lan
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{t.contactEmail}</h3>
               <a 
-                href="mailto:info@corkcitypartnership.ie" 
+                href="mailto:info@partnershipcork.ie" 
                 className="text-purple-600 dark:text-purple-400 hover:underline text-sm mt-1 block"
               >
-                info@corkcitypartnership.ie
+                info@partnershipcork.ie
               </a>
             </div>
           </div>
