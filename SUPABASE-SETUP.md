@@ -31,7 +31,7 @@ This guide will help you set up Supabase for the Course-Cous application.
 6. You should see "Database setup complete!" with the number of tables created
 
 **This single file contains all database setup including:**
-- Base tables (profiles, registrations, course_queues)
+- Base tables (profiles, registrations)
 - Admin functionality
 - Courses table
 - Chat history and translations
@@ -130,7 +130,6 @@ To enable admin course management features:
 This will create:
 - `profiles` table (user profiles with English level)
 - `registrations` table (user course registrations)
-- `course_queues` table (queue lengths for each course)
 - Row Level Security (RLS) policies
 - Triggers for automatic profile creation
 

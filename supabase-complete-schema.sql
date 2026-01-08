@@ -37,13 +37,6 @@ CREATE TABLE IF NOT EXISTS registrations (
   UNIQUE(user_id, course_id)
 );
 
--- Course queues table (global queue for each course)
-CREATE TABLE IF NOT EXISTS course_queues (
-  course_id TEXT PRIMARY KEY,
-  queue_length INTEGER NOT NULL DEFAULT 0 CHECK (queue_length >= 0),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
 -- Indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_registrations_user_id ON registrations(user_id);
 CREATE INDEX IF NOT EXISTS idx_registrations_course_id ON registrations(course_id);
@@ -63,16 +56,11 @@ DROP TRIGGER IF EXISTS update_profiles_updated_at ON profiles;
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON profiles
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-DROP TRIGGER IF EXISTS update_course_queues_updated_at ON course_queues;
-CREATE TRIGGER update_course_queues_updated_at BEFORE UPDATE ON course_queues
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
 -- Row Level Security (RLS) Policies
 
 -- Enable RLS
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE registrations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE course_queues ENABLE ROW LEVEL SECURITY;
 
 -- Profiles policies
 DROP POLICY IF EXISTS "Users can read own profile" ON profiles;
@@ -104,11 +92,6 @@ DROP POLICY IF EXISTS "Users can delete own registrations" ON registrations;
 CREATE POLICY "Users can delete own registrations" ON registrations
   FOR DELETE USING (auth.uid() = user_id);
 
--- Course queues policies
-DROP POLICY IF EXISTS "Anyone can read course queues" ON course_queues;
-CREATE POLICY "Anyone can read course queues" ON course_queues
-  FOR SELECT USING (true);
-
 -- Function to automatically create profile on user signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
@@ -124,12 +107,6 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-
--- Initialize course queues with default values
-INSERT INTO course_queues (course_id, queue_length) VALUES
-  ('c1', 0), ('c2', 0), ('c3', 0), ('c4', 0), ('c5', 0),
-  ('c6', 0), ('c7', 0), ('c8', 0), ('c9', 0), ('c10', 0), ('c11', 0)
-ON CONFLICT (course_id) DO NOTHING;
 
 -- ============================================================================
 -- PART 2: Admin Functionality
@@ -327,25 +304,7 @@ INSERT INTO bot_instructions (section, content, language) VALUES
 ON CONFLICT (section, language) DO NOTHING;
 
 -- ============================================================================
--- PART 6: Course Queues RLS Fix
--- ============================================================================
-
--- Note: These policies are already dropped above, but we drop them again here to be safe
-DROP POLICY IF EXISTS "Anyone can read course queues" ON course_queues;
-DROP POLICY IF EXISTS "Authenticated users can insert course queues" ON course_queues;
-DROP POLICY IF EXISTS "Authenticated users can update course queues" ON course_queues;
-
-CREATE POLICY "Anyone can read course queues" ON course_queues
-  FOR SELECT USING (true);
-
-CREATE POLICY "Authenticated users can insert course queues" ON course_queues
-  FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
-
-CREATE POLICY "Authenticated users can update course queues" ON course_queues
-  FOR UPDATE USING (auth.uid() IS NOT NULL);
-
--- ============================================================================
--- PART 7: Database Functions (Optional)
+-- PART 6: Database Functions
 -- ============================================================================
 
 -- Function to get course queue counts (bypasses RLS)

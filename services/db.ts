@@ -24,8 +24,7 @@ export const supabase = (SUPABASE_URL && SUPABASE_KEY)
 const STORAGE_KEYS = {
   SESSION: 'auth_session',
   PROFILE: (userId: string) => `user_profile_${userId}`,
-  REGISTRATIONS: (userId: string) => `user_registrations_${userId}`,
-  COURSE_QUEUES: 'course_queues' // global queue for all courses
+  REGISTRATIONS: (userId: string) => `user_registrations_${userId}`
 };
 
 export const db = {
@@ -544,9 +543,6 @@ export const db = {
         });
 
       if (error) throw new Error(error.message);
-
-      // Increment course queue
-      await db.incrementCourseQueue(courseId);
       return;
     }
 
@@ -559,7 +555,6 @@ export const db = {
         const priority = regs.length + 1;
         regs.push({ courseId, registeredAt: new Date(), priority });
         localStorage.setItem(STORAGE_KEYS.REGISTRATIONS(session.id), JSON.stringify(regs));
-        db.incrementCourseQueue(courseId);
     }
   },
 
@@ -593,7 +588,6 @@ export const db = {
     const filtered = regs.filter(r => r.courseId !== courseId);
     const updated = filtered.map((r, index) => ({ ...r, priority: index + 1 }));
     localStorage.setItem(STORAGE_KEYS.REGISTRATIONS(session.id), JSON.stringify(updated));
-    db.decrementCourseQueue(courseId);
   },
 
   updateRegistrationPriority: async (courseId: string, newPriority: number): Promise<void> => {
@@ -770,118 +764,21 @@ export const db = {
   getCourseQueueLength: (courseId: string): number => {
     // For synchronous access, use cached queues
     // This will be updated when getCourseQueues is called
-    if (supabase) {
-      // Try to get from cache first
-      const cacheKey = `course_queue_${courseId}`;
-      const cached = sessionStorage.getItem(cacheKey);
-      if (cached) {
-        return parseInt(cached, 10) || 0;
-      }
-      return 0; // Return 0 if not cached yet
+    const cacheKey = `course_queue_${courseId}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      return parseInt(cached, 10) || 0;
     }
-
-    // Mock fallback:
-    const stored = localStorage.getItem(STORAGE_KEYS.COURSE_QUEUES);
-    if (!stored) return 0;
-    try {
-      const queues: CourseQueue[] = JSON.parse(stored);
-      const queue = queues.find(q => q.courseId === courseId);
-      return queue?.queueLength || 0;
-    } catch (e) {
-      console.error('Failed to parse course queues from localStorage:', e);
-      return 0;
-    }
+    return 0; // Return 0 if not cached yet
   },
 
-  // Async version for loading queues
+  // Async version for loading queues (caches counts from registrations)
   loadCourseQueues: async (): Promise<void> => {
-    if (supabase) {
-      const queues = await db.getCourseQueues();
-      // Cache in sessionStorage for synchronous access
-      queues.forEach(q => {
-        sessionStorage.setItem(`course_queue_${q.courseId}`, q.queueLength.toString());
-      });
-    }
-  },
-
-  incrementCourseQueue: async (courseId: string): Promise<void> => {
-    if (supabase) {
-      // Use RPC or upsert to increment
-      const { data: current } = await supabase
-        .from('course_queues')
-        .select('queue_length')
-        .eq('course_id', courseId)
-        .single();
-
-      const newLength = (current?.queue_length || 0) + 1;
-
-      const { error } = await supabase
-        .from('course_queues')
-        .upsert({
-          course_id: courseId,
-          queue_length: newLength
-        }, {
-          onConflict: 'course_id'
-        });
-
-      if (error) {
-        // Only log in dev mode - RLS errors are expected if policies aren't set up
-        if (import.meta.env.DEV) {
-          console.error('Error incrementing queue:', error);
-        }
-        return;
-      }
-
-      // Update cache
-      sessionStorage.setItem(`course_queue_${courseId}`, newLength.toString());
-      return;
-    }
-
-    // Mock fallback:
     const queues = await db.getCourseQueues();
-    const queue = queues.find(q => q.courseId === courseId);
-    if (queue) {
-      queue.queueLength += 1;
-    } else {
-      queues.push({ courseId, queueLength: 1 });
-    }
-    localStorage.setItem(STORAGE_KEYS.COURSE_QUEUES, JSON.stringify(queues));
-  },
-
-  decrementCourseQueue: async (courseId: string): Promise<void> => {
-    if (supabase) {
-      const { data: current } = await supabase
-        .from('course_queues')
-        .select('queue_length')
-        .eq('course_id', courseId)
-        .single();
-
-      if (!current) return;
-
-      const newLength = Math.max(0, (current.queue_length || 0) - 1);
-
-      const { error } = await supabase
-        .from('course_queues')
-        .update({ queue_length: newLength })
-        .eq('course_id', courseId);
-
-      if (error) {
-        console.error('Error decrementing queue:', error);
-        return;
-      }
-
-      // Update cache
-      sessionStorage.setItem(`course_queue_${courseId}`, newLength.toString());
-      return;
-    }
-
-    // Mock fallback:
-    const queues = await db.getCourseQueues();
-    const queue = queues.find(q => q.courseId === courseId);
-    if (queue && queue.queueLength > 0) {
-      queue.queueLength -= 1;
-      localStorage.setItem(STORAGE_KEYS.COURSE_QUEUES, JSON.stringify(queues));
-    }
+    // Cache in sessionStorage for synchronous access
+    queues.forEach(q => {
+      sessionStorage.setItem(`course_queue_${q.courseId}`, q.queueLength.toString());
+    });
   },
 
   // Listen to auth state changes

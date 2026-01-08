@@ -325,7 +325,6 @@ VITE_GOOGLE_TRANSLATE_API_KEY=your-translate-api-key
 | `course_translations` | Translated course content (UA, RU, AR) |
 | `registrations` | User course registrations with priority |
 | `course_completions` | Completed course records |
-| `course_queues` | Queue counts per course |
 | `bot_instructions` | AI configuration (main, contacts, links) |
 
 ### Row Level Security (RLS)
