@@ -7,7 +7,7 @@ export const AVAILABLE_COURSES: Course[] = [
     category: 'Safety',
     description: 'Learn safe lifting techniques to prevent back injury. Essential for warehouse, construction, and healthcare roles.',
     difficulty: 'Beginner',
-    link: '#course-manual-handling'
+    nextCourseDate: '2026-02-15'
   },
   {
     id: 'c2',
@@ -15,7 +15,7 @@ export const AVAILABLE_COURSES: Course[] = [
     category: 'Safety',
     description: 'Mandatory safety awareness training for construction workers in Ireland.',
     difficulty: 'Beginner',
-    link: '#course-safepass'
+    nextCourseDate: '2026-02-20'
   },
   {
     id: 'c3',
@@ -23,7 +23,7 @@ export const AVAILABLE_COURSES: Course[] = [
     category: 'Service',
     description: 'Develop communication skills, conflict resolution, and professional etiquette for retail and support roles.',
     difficulty: 'Beginner',
-    link: '#course-customer-service'
+    nextCourseDate: '2026-03-01'
   },
   {
     id: 'c4',
@@ -31,7 +31,7 @@ export const AVAILABLE_COURSES: Course[] = [
     category: 'Security',
     description: 'Basic guarding skills, legal responsibilities, and patrolling procedures for security personnel.',
     difficulty: 'Intermediate',
-    link: '#course-security'
+    nextCourseDate: '2026-03-10'
   },
   {
     id: 'c5',
@@ -39,7 +39,7 @@ export const AVAILABLE_COURSES: Course[] = [
     category: 'Food Safety',
     description: 'Hazard Analysis and Critical Control Point training. Essential for anyone handling food.',
     difficulty: 'Beginner',
-    link: '#course-haccp'
+    nextCourseDate: '2026-02-25'
   },
   {
     id: 'c6',
@@ -47,7 +47,7 @@ export const AVAILABLE_COURSES: Course[] = [
     category: 'Hospitality',
     description: 'Learn coffee making techniques, milk steaming, and machine maintenance.',
     difficulty: 'Beginner',
-    link: '#course-barista'
+    nextCourseDate: '2026-02-18'
   },
   {
     id: 'c7',
@@ -55,7 +55,7 @@ export const AVAILABLE_COURSES: Course[] = [
     category: 'Healthcare',
     description: 'Healthcare Assistant training focusing on patient care, hygiene, and support in medical settings.',
     difficulty: 'Intermediate',
-    link: '#course-hca'
+    nextCourseDate: '2026-04-01'
   },
   {
     id: 'c8',
@@ -63,7 +63,7 @@ export const AVAILABLE_COURSES: Course[] = [
     category: 'Education',
     description: 'Special Needs Assistant training to support children with additional needs in educational settings.',
     difficulty: 'Intermediate',
-    link: '#course-sna'
+    nextCourseDate: '2026-04-15'
   },
   {
     id: 'c9',
@@ -71,7 +71,7 @@ export const AVAILABLE_COURSES: Course[] = [
     category: 'Safety',
     description: 'First Aid Responder. Comprehensive first aid training for workplace emergencies.',
     difficulty: 'Intermediate',
-    link: '#course-far'
+    nextCourseDate: '2026-03-05'
   },
   {
     id: 'c10',
@@ -79,7 +79,7 @@ export const AVAILABLE_COURSES: Course[] = [
     category: 'Cleaning',
     description: 'Professional cleaning standards, chemical safety, and hygiene protocols.',
     difficulty: 'Beginner',
-    link: '#course-clean-pass'
+    nextCourseDate: '2026-02-22'
   },
   {
     id: 'c11',
@@ -87,6 +87,6 @@ export const AVAILABLE_COURSES: Course[] = [
     category: 'Logistics',
     description: 'Inventory management, picking/packing, and warehouse safety procedures.',
     difficulty: 'Beginner',
-    link: '#course-warehousing'
+    nextCourseDate: '2026-03-15'
   }
 ];

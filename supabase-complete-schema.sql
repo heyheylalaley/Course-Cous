@@ -171,7 +171,7 @@ CREATE TABLE IF NOT EXISTS courses (
   category TEXT NOT NULL,
   description TEXT NOT NULL,
   difficulty TEXT NOT NULL CHECK (difficulty IN ('Beginner', 'Intermediate', 'Advanced')),
-  link TEXT NOT NULL DEFAULT '#',
+  next_course_date DATE, -- Date when the next course session starts
   min_english_level TEXT CHECK (min_english_level IN ('None', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2')),
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -514,6 +514,81 @@ $$;
 
 -- Grant execute permission
 GRANT EXECUTE ON FUNCTION setup_demo_user(TEXT) TO authenticated;
+
+-- ============================================================================
+-- PART 10: Course Categories (Admin-managed)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS course_categories (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  icon TEXT NOT NULL DEFAULT 'BookOpen', -- lucide-react icon name
+  color TEXT NOT NULL DEFAULT 'text-gray-500', -- Tailwind color class
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_course_categories_sort_order ON course_categories(sort_order);
+
+ALTER TABLE course_categories ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can read categories
+DROP POLICY IF EXISTS "Anyone can read categories" ON course_categories;
+CREATE POLICY "Anyone can read categories" ON course_categories
+  FOR SELECT USING (true);
+
+-- Only admins can manage categories
+DROP POLICY IF EXISTS "Admins can insert categories" ON course_categories;
+CREATE POLICY "Admins can insert categories" ON course_categories
+  FOR INSERT WITH CHECK (is_admin_user() = TRUE);
+
+DROP POLICY IF EXISTS "Admins can update categories" ON course_categories;
+CREATE POLICY "Admins can update categories" ON course_categories
+  FOR UPDATE USING (is_admin_user() = TRUE);
+
+DROP POLICY IF EXISTS "Admins can delete categories" ON course_categories;
+CREATE POLICY "Admins can delete categories" ON course_categories
+  FOR DELETE USING (is_admin_user() = TRUE);
+
+DROP TRIGGER IF EXISTS update_course_categories_updated_at ON course_categories;
+CREATE TRIGGER update_course_categories_updated_at BEFORE UPDATE ON course_categories
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Insert default categories
+INSERT INTO course_categories (id, name, icon, color, sort_order) VALUES
+  ('safety', 'Safety', 'HardHat', 'text-orange-500', 1),
+  ('service', 'Service', 'Users', 'text-purple-500', 2),
+  ('security', 'Security', 'Shield', 'text-blue-800', 3),
+  ('food-safety', 'Food Safety', 'BookOpen', 'text-green-500', 4),
+  ('hospitality', 'Hospitality', 'Coffee', 'text-amber-600', 5),
+  ('healthcare', 'Healthcare', 'HeartPulse', 'text-red-500', 6),
+  ('education', 'Education', 'GraduationCap', 'text-indigo-500', 7),
+  ('cleaning', 'Cleaning', 'Sparkles', 'text-cyan-500', 8),
+  ('logistics', 'Logistics', 'Warehouse', 'text-slate-500', 9),
+  ('technology', 'Technology', 'Cpu', 'text-blue-500', 10),
+  ('business', 'Business', 'Briefcase', 'text-gray-700', 11),
+  ('retail', 'Retail', 'ShoppingBag', 'text-pink-500', 12),
+  ('construction', 'Construction', 'Hammer', 'text-yellow-600', 13),
+  ('beauty', 'Beauty', 'Scissors', 'text-rose-400', 14),
+  ('childcare', 'Childcare', 'Baby', 'text-sky-400', 15),
+  ('agriculture', 'Agriculture', 'Leaf', 'text-green-600', 16),
+  ('transportation', 'Transportation', 'Car', 'text-indigo-400', 17),
+  ('social-care', 'Social Care', 'Heart', 'text-red-400', 18),
+  ('environmental', 'Environmental', 'TreePine', 'text-emerald-500', 19)
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================================
+-- PART 11: Migration - Link to Next Course Date
+-- ============================================================================
+-- Run this section ONLY if you have existing data with the old 'link' column
+-- This migration adds the new next_course_date column and optionally removes link
+
+-- Add the new column if it doesn't exist
+ALTER TABLE courses ADD COLUMN IF NOT EXISTS next_course_date DATE;
+
+-- If you had the old link column and want to remove it:
+-- ALTER TABLE courses DROP COLUMN IF EXISTS link;
 
 -- ============================================================================
 -- COMPLETE!

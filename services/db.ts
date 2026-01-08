@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Registration, UserProfile, EnglishLevel, CourseQueue, AdminCourseStats, AdminStudentDetail, Course, Message, Language } from '../types';
+import { Registration, UserProfile, EnglishLevel, CourseQueue, AdminCourseStats, AdminStudentDetail, Course, Message, Language, CourseCategory } from '../types';
 import { AVAILABLE_COURSES } from '../constants';
 import { translateCourse } from './translateService';
 
@@ -1279,7 +1279,7 @@ export const db = {
           category: c.category,
           description: translation?.description || c.description,
           difficulty: c.difficulty as 'Beginner' | 'Intermediate' | 'Advanced',
-          link: c.link,
+          nextCourseDate: c.next_course_date ? new Date(c.next_course_date).toISOString().split('T')[0] : undefined,
           minEnglishLevel: c.min_english_level as EnglishLevel | undefined,
           isActive: c.is_active,
           createdAt: c.created_at ? new Date(c.created_at) : undefined,
@@ -1366,7 +1366,7 @@ export const db = {
           category: c.category,
           description: translation?.description || c.description,
           difficulty: c.difficulty as 'Beginner' | 'Intermediate' | 'Advanced',
-          link: c.link,
+          nextCourseDate: c.next_course_date ? new Date(c.next_course_date).toISOString().split('T')[0] : undefined,
           minEnglishLevel: c.min_english_level as EnglishLevel | undefined,
           isActive: c.is_active,
           createdAt: c.created_at ? new Date(c.created_at) : undefined,
@@ -1401,7 +1401,7 @@ export const db = {
           category: course.category,
           description: course.description,
           difficulty: course.difficulty,
-          link: course.link || '#',
+          next_course_date: course.nextCourseDate || null,
           min_english_level: course.minEnglishLevel || null,
           is_active: course.isActive !== false
         })
@@ -1436,7 +1436,7 @@ export const db = {
         category: data.category,
         description: data.description,
         difficulty: data.difficulty as 'Beginner' | 'Intermediate' | 'Advanced',
-        link: data.link,
+        nextCourseDate: data.next_course_date ? new Date(data.next_course_date).toISOString().split('T')[0] : undefined,
         minEnglishLevel: data.min_english_level as EnglishLevel | undefined,
         isActive: data.is_active,
         createdAt: data.created_at ? new Date(data.created_at) : undefined,
@@ -1463,7 +1463,7 @@ export const db = {
       if (updates.category !== undefined) updateData.category = updates.category;
       if (updates.description !== undefined) updateData.description = updates.description;
       if (updates.difficulty !== undefined) updateData.difficulty = updates.difficulty;
-      if (updates.link !== undefined) updateData.link = updates.link;
+      if (updates.nextCourseDate !== undefined) updateData.next_course_date = updates.nextCourseDate || null;
       if (updates.minEnglishLevel !== undefined) updateData.min_english_level = updates.minEnglishLevel || null;
       if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
 
@@ -1506,7 +1506,7 @@ export const db = {
         category: data.category,
         description: data.description,
         difficulty: data.difficulty as 'Beginner' | 'Intermediate' | 'Advanced',
-        link: data.link,
+        nextCourseDate: data.next_course_date ? new Date(data.next_course_date).toISOString().split('T')[0] : undefined,
         minEnglishLevel: data.min_english_level as EnglishLevel | undefined,
         isActive: data.is_active,
         createdAt: data.created_at ? new Date(data.created_at) : undefined,
@@ -2206,5 +2206,162 @@ export const db = {
       localStorage.removeItem(STORAGE_KEYS.REGISTRATIONS(session.id));
       localStorage.removeItem(`chat_messages_${session.id}`);
     }
+  },
+
+  // --- Course Category Methods ---
+  getCategories: async (): Promise<CourseCategory[]> => {
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('course_categories')
+        .select('*')
+        .order('sort_order', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching categories:', error);
+        return [];
+      }
+
+      return (data || []).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        icon: c.icon,
+        color: c.color,
+        sortOrder: c.sort_order,
+        createdAt: c.created_at ? new Date(c.created_at) : undefined
+      }));
+    }
+
+    // Mock fallback: return default categories
+    return [
+      { id: 'safety', name: 'Safety', icon: 'HardHat', color: 'text-orange-500', sortOrder: 1 },
+      { id: 'service', name: 'Service', icon: 'Users', color: 'text-purple-500', sortOrder: 2 },
+      { id: 'security', name: 'Security', icon: 'Shield', color: 'text-blue-800', sortOrder: 3 },
+      { id: 'food-safety', name: 'Food Safety', icon: 'BookOpen', color: 'text-green-500', sortOrder: 4 },
+      { id: 'hospitality', name: 'Hospitality', icon: 'Coffee', color: 'text-amber-600', sortOrder: 5 },
+      { id: 'healthcare', name: 'Healthcare', icon: 'HeartPulse', color: 'text-red-500', sortOrder: 6 },
+      { id: 'education', name: 'Education', icon: 'GraduationCap', color: 'text-indigo-500', sortOrder: 7 },
+      { id: 'cleaning', name: 'Cleaning', icon: 'Sparkles', color: 'text-cyan-500', sortOrder: 8 },
+      { id: 'logistics', name: 'Logistics', icon: 'Warehouse', color: 'text-slate-500', sortOrder: 9 },
+      { id: 'technology', name: 'Technology', icon: 'Cpu', color: 'text-blue-500', sortOrder: 10 },
+      { id: 'business', name: 'Business', icon: 'Briefcase', color: 'text-gray-700', sortOrder: 11 },
+      { id: 'retail', name: 'Retail', icon: 'ShoppingBag', color: 'text-pink-500', sortOrder: 12 },
+      { id: 'construction', name: 'Construction', icon: 'Hammer', color: 'text-yellow-600', sortOrder: 13 },
+      { id: 'beauty', name: 'Beauty', icon: 'Scissors', color: 'text-rose-400', sortOrder: 14 },
+      { id: 'childcare', name: 'Childcare', icon: 'Baby', color: 'text-sky-400', sortOrder: 15 },
+      { id: 'agriculture', name: 'Agriculture', icon: 'Leaf', color: 'text-green-600', sortOrder: 16 },
+      { id: 'transportation', name: 'Transportation', icon: 'Car', color: 'text-indigo-400', sortOrder: 17 },
+      { id: 'social-care', name: 'Social Care', icon: 'Heart', color: 'text-red-400', sortOrder: 18 },
+      { id: 'environmental', name: 'Environmental', icon: 'TreePine', color: 'text-emerald-500', sortOrder: 19 }
+    ];
+  },
+
+  createCategory: async (category: Omit<CourseCategory, 'createdAt'>): Promise<CourseCategory> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('course_categories')
+        .insert({
+          id: category.id,
+          name: category.name,
+          icon: category.icon,
+          color: category.color,
+          sort_order: category.sortOrder || 0
+        })
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+
+      return {
+        id: data.id,
+        name: data.name,
+        icon: data.icon,
+        color: data.color,
+        sortOrder: data.sort_order,
+        createdAt: data.created_at ? new Date(data.created_at) : undefined
+      };
+    }
+
+    throw new Error("Supabase not configured");
+  },
+
+  updateCategory: async (categoryId: string, updates: Partial<Omit<CourseCategory, 'id' | 'createdAt'>>): Promise<CourseCategory> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    if (supabase) {
+      const updateData: any = {};
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.icon !== undefined) updateData.icon = updates.icon;
+      if (updates.color !== undefined) updateData.color = updates.color;
+      if (updates.sortOrder !== undefined) updateData.sort_order = updates.sortOrder;
+
+      const { data, error } = await supabase
+        .from('course_categories')
+        .update(updateData)
+        .eq('id', categoryId)
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+
+      return {
+        id: data.id,
+        name: data.name,
+        icon: data.icon,
+        color: data.color,
+        sortOrder: data.sort_order,
+        createdAt: data.created_at ? new Date(data.created_at) : undefined
+      };
+    }
+
+    throw new Error("Supabase not configured");
+  },
+
+  deleteCategory: async (categoryId: string): Promise<void> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    if (supabase) {
+      // Check if any courses use this category
+      const { data: courses, error: coursesError } = await supabase
+        .from('courses')
+        .select('id')
+        .eq('category', categoryId)
+        .limit(1);
+
+      if (coursesError) throw new Error(coursesError.message);
+
+      if (courses && courses.length > 0) {
+        throw new Error("Cannot delete category: it is used by existing courses");
+      }
+
+      const { error } = await supabase
+        .from('course_categories')
+        .delete()
+        .eq('id', categoryId);
+
+      if (error) throw new Error(error.message);
+      return;
+    }
+
+    throw new Error("Supabase not configured");
   }
 };

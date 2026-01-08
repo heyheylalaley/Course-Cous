@@ -121,7 +121,7 @@ export const TRANSLATIONS = {
     adminCourseDescriptionPlaceholder: 'Course description',
     adminCourseDescriptionRequired: 'Description is required',
     adminCourseDifficulty: 'Difficulty',
-    adminCourseLink: 'Link',
+    adminCourseNextDate: 'Next Course Date',
     adminCourseMinEnglish: 'Min English Level',
     adminCourseMinEnglishDesc: 'Bot will not recommend this course if user\'s English level is lower',
     adminNoRequirement: 'No requirement',
@@ -246,7 +246,19 @@ export const TRANSLATIONS = {
     adminDemoCredentials: 'Demo Credentials',
     adminDemoEmail: 'Demo Email',
     adminDemoPassword: 'Demo Password',
-    adminDemoNote: 'Note: Make sure to create a demo user in Supabase with these credentials. The demo user should have limited permissions.'
+    adminDemoNote: 'Note: Make sure to create a demo user in Supabase with these credentials. The demo user should have limited permissions.',
+    // Category Management
+    adminCategoryManagement: 'Categories',
+    adminCategoryManagementDesc: 'Add, edit, and manage course categories',
+    adminAddCategory: 'Add Category',
+    adminEditCategory: 'Edit Category',
+    adminDeleteCategory: 'Delete Category',
+    adminCategoryName: 'Category Name',
+    adminCategoryIcon: 'Icon',
+    adminCategoryColor: 'Color',
+    adminSearchIcons: 'Search icons...',
+    adminSelectedIcon: 'Selected',
+    adminNoCategories: 'No categories found. Add your first category!'
   },
   ua: {
     loginTitle: 'З поверненням',
@@ -368,7 +380,7 @@ export const TRANSLATIONS = {
     adminCourseDescriptionPlaceholder: 'Опис курсу',
     adminCourseDescriptionRequired: 'Опис обов\'язковий',
     adminCourseDifficulty: 'Складність',
-    adminCourseLink: 'Посилання',
+    adminCourseNextDate: 'Дата наступного курсу',
     adminCourseMinEnglish: 'Мінімальний рівень англійської',
     adminCourseMinEnglishDesc: 'Бот не буде рекомендувати цей курс, якщо рівень англійської користувача нижчий',
     adminNoRequirement: 'Без вимог',
@@ -493,7 +505,19 @@ export const TRANSLATIONS = {
     adminDemoCredentials: 'Дані для демо',
     adminDemoEmail: 'Email для демо',
     adminDemoPassword: 'Пароль для демо',
-    adminDemoNote: 'Примітка: Переконайтеся, що ви створили демо-користувача в Supabase з цими даними. Демо-користувач повинен мати обмежені права.'
+    adminDemoNote: 'Примітка: Переконайтеся, що ви створили демо-користувача в Supabase з цими даними. Демо-користувач повинен мати обмежені права.',
+    // Category Management
+    adminCategoryManagement: 'Категорії',
+    adminCategoryManagementDesc: 'Додавайте, редагуйте та керуйте категоріями курсів',
+    adminAddCategory: 'Додати категорію',
+    adminEditCategory: 'Редагувати категорію',
+    adminDeleteCategory: 'Видалити категорію',
+    adminCategoryName: 'Назва категорії',
+    adminCategoryIcon: 'Іконка',
+    adminCategoryColor: 'Колір',
+    adminSearchIcons: 'Пошук іконок...',
+    adminSelectedIcon: 'Вибрано',
+    adminNoCategories: 'Категорій не знайдено. Додайте першу категорію!'
   },
   ru: {
     loginTitle: 'Добро пожаловать',
@@ -615,7 +639,7 @@ export const TRANSLATIONS = {
     adminCourseDescriptionPlaceholder: 'Описание курса',
     adminCourseDescriptionRequired: 'Описание обязательно',
     adminCourseDifficulty: 'Сложность',
-    adminCourseLink: 'Ссылка',
+    adminCourseNextDate: 'Дата следующего курса',
     adminCourseMinEnglish: 'Минимальный уровень английского',
     adminCourseMinEnglishDesc: 'Бот не будет рекомендовать этот курс, если уровень английского пользователя ниже',
     adminNoRequirement: 'Без требований',
@@ -740,7 +764,19 @@ export const TRANSLATIONS = {
     adminDemoCredentials: 'Данные для демо',
     adminDemoEmail: 'Email для демо',
     adminDemoPassword: 'Пароль для демо',
-    adminDemoNote: 'Примечание: Убедитесь, что вы создали демо-пользователя в Supabase с этими данными. Демо-пользователь должен иметь ограниченные права.'
+    adminDemoNote: 'Примечание: Убедитесь, что вы создали демо-пользователя в Supabase с этими данными. Демо-пользователь должен иметь ограниченные права.',
+    // Category Management
+    adminCategoryManagement: 'Категории',
+    adminCategoryManagementDesc: 'Добавляйте, редактируйте и управляйте категориями курсов',
+    adminAddCategory: 'Добавить категорию',
+    adminEditCategory: 'Редактировать категорию',
+    adminDeleteCategory: 'Удалить категорию',
+    adminCategoryName: 'Название категории',
+    adminCategoryIcon: 'Иконка',
+    adminCategoryColor: 'Цвет',
+    adminSearchIcons: 'Поиск иконок...',
+    adminSelectedIcon: 'Выбрано',
+    adminNoCategories: 'Категории не найдены. Добавьте первую категорию!'
   },
   ar: {
     loginTitle: 'مرحبًا بعودتك',
@@ -862,7 +898,7 @@ export const TRANSLATIONS = {
     adminCourseDescriptionPlaceholder: 'وصف الدورة',
     adminCourseDescriptionRequired: 'الوصف مطلوب',
     adminCourseDifficulty: 'الصعوبة',
-    adminCourseLink: 'الرابط',
+    adminCourseNextDate: 'تاريخ الدورة القادمة',
     adminCourseMinEnglish: 'الحد الأدنى لمستوى اللغة الإنجليزية',
     adminCourseMinEnglishDesc: 'لن يوصي البوت بهذه الدورة إذا كان مستوى اللغة الإنجليزية للمستخدم أقل',
     adminNoRequirement: 'بدون متطلبات',
@@ -987,6 +1023,18 @@ export const TRANSLATIONS = {
     adminDemoCredentials: 'بيانات التجريب',
     adminDemoEmail: 'البريد التجريبي',
     adminDemoPassword: 'كلمة المرور التجريبية',
-    adminDemoNote: 'ملاحظة: تأكد من إنشاء مستخدم تجريبي في Supabase باستخدام هذه البيانات. يجب أن يكون للمستخدم التجريبي صلاحيات محدودة.'
+    adminDemoNote: 'ملاحظة: تأكد من إنشاء مستخدم تجريبي في Supabase باستخدام هذه البيانات. يجب أن يكون للمستخدم التجريبي صلاحيات محدودة.',
+    // Category Management
+    adminCategoryManagement: 'الفئات',
+    adminCategoryManagementDesc: 'إضافة وتحرير وإدارة فئات الدورات',
+    adminAddCategory: 'إضافة فئة',
+    adminEditCategory: 'تحرير الفئة',
+    adminDeleteCategory: 'حذف الفئة',
+    adminCategoryName: 'اسم الفئة',
+    adminCategoryIcon: 'الأيقونة',
+    adminCategoryColor: 'اللون',
+    adminSearchIcons: 'البحث عن الأيقونات...',
+    adminSelectedIcon: 'المحدد',
+    adminNoCategories: 'لم يتم العثور على فئات. أضف فئتك الأولى!'
   }
 };

@@ -4,7 +4,7 @@ export interface Course {
   category: string;
   description: string;
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  link: string;
+  nextCourseDate?: string; // ISO date string (YYYY-MM-DD) for when the next course session starts
   minEnglishLevel?: EnglishLevel; // Minimum English level required for this course
   isActive?: boolean; // Whether the course is active and visible
   createdAt?: Date;
@@ -99,4 +99,13 @@ export interface AdminUserDetail {
   registeredCourses: string[]; // Course IDs the user is registered for
   completedCourses: string[]; // Course IDs marked as completed
   isProfileComplete: boolean;
+}
+
+export interface CourseCategory {
+  id: string;
+  name: string;
+  icon: string; // lucide-react icon name
+  color: string; // Tailwind color class (e.g., "text-blue-500")
+  sortOrder?: number;
+  createdAt?: Date;
 }

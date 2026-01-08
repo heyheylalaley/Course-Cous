@@ -1,7 +1,9 @@
-import React, { memo } from 'react';
-import { Course, Language } from '../types';
+import React, { memo, useState, useEffect } from 'react';
+import { Course, Language, CourseCategory } from '../types';
 import { TRANSLATIONS } from '../translations';
-import { BookOpen, Shield, Coffee, Users, Globe, Stethoscope, HardHat, Warehouse, Sparkles, HeartPulse, CheckCircle, PlusCircle, Trash2, Users as UsersIcon } from 'lucide-react';
+import { BookOpen, Shield, Coffee, Users, Globe, HardHat, Warehouse, Sparkles, HeartPulse, CheckCircle, PlusCircle, Trash2, Users as UsersIcon, Cpu, Briefcase, ShoppingBag, Scissors, Baby, Leaf, Car, Heart, TreePine, GraduationCap, Hammer } from 'lucide-react';
+import { db } from '../services/db';
+import { AVAILABLE_ICONS } from './AdminCategoryManagement';
 
 interface CourseCardProps {
   course: Course;
@@ -12,21 +14,50 @@ interface CourseCardProps {
   language: Language;
   queueLength?: number;
   onViewDetails?: (course: Course) => void;
+  categories?: CourseCategory[];
 }
 
-const getIcon = (category: string) => {
-  switch (category) {
-    case 'Safety': return <HardHat className="w-5 h-5 text-orange-500" />;
-    case 'Service': return <Users className="w-5 h-5 text-purple-500" />;
-    case 'Security': return <Shield className="w-5 h-5 text-blue-800" />;
-    case 'Food Safety': return <BookOpen className="w-5 h-5 text-green-500" />;
-    case 'Hospitality': return <Coffee className="w-5 h-5 text-brown-500" />;
-    case 'Healthcare': return <HeartPulse className="w-5 h-5 text-red-500" />;
-    case 'Education': return <BookOpen className="w-5 h-5 text-indigo-500" />;
-    case 'Cleaning': return <Sparkles className="w-5 h-5 text-cyan-500" />;
-    case 'Logistics': return <Warehouse className="w-5 h-5 text-slate-500" />;
-    default: return <Globe className="w-5 h-5 text-gray-500" />;
+// Fallback icon mapping for when categories haven't loaded yet
+const FALLBACK_ICONS: Record<string, { icon: React.ComponentType<any>; color: string }> = {
+  'Safety': { icon: HardHat, color: 'text-orange-500' },
+  'Service': { icon: Users, color: 'text-purple-500' },
+  'Security': { icon: Shield, color: 'text-blue-800' },
+  'Food Safety': { icon: BookOpen, color: 'text-green-500' },
+  'Hospitality': { icon: Coffee, color: 'text-amber-600' },
+  'Healthcare': { icon: HeartPulse, color: 'text-red-500' },
+  'Education': { icon: GraduationCap, color: 'text-indigo-500' },
+  'Cleaning': { icon: Sparkles, color: 'text-cyan-500' },
+  'Logistics': { icon: Warehouse, color: 'text-slate-500' },
+  'Technology': { icon: Cpu, color: 'text-blue-500' },
+  'Business': { icon: Briefcase, color: 'text-gray-700' },
+  'Retail': { icon: ShoppingBag, color: 'text-pink-500' },
+  'Construction': { icon: Hammer, color: 'text-yellow-600' },
+  'Beauty': { icon: Scissors, color: 'text-rose-400' },
+  'Childcare': { icon: Baby, color: 'text-sky-400' },
+  'Agriculture': { icon: Leaf, color: 'text-green-600' },
+  'Transportation': { icon: Car, color: 'text-indigo-400' },
+  'Social Care': { icon: Heart, color: 'text-red-400' },
+  'Environmental': { icon: TreePine, color: 'text-emerald-500' },
+};
+
+const getCategoryIcon = (categoryName: string, categories: CourseCategory[]) => {
+  // First try to find in dynamic categories
+  const category = categories.find(c => c.name === categoryName);
+  if (category) {
+    const IconComponent = AVAILABLE_ICONS[category.icon];
+    if (IconComponent) {
+      return <IconComponent className={`w-5 h-5 ${category.color}`} />;
+    }
   }
+  
+  // Fallback to static mapping
+  const fallback = FALLBACK_ICONS[categoryName];
+  if (fallback) {
+    const FallbackIcon = fallback.icon;
+    return <FallbackIcon className={`w-5 h-5 ${fallback.color}`} />;
+  }
+  
+  return <Globe className="w-5 h-5 text-gray-500" />;
 };
 
 export const CourseCard: React.FC<CourseCardProps> = memo(({ 
@@ -37,9 +68,18 @@ export const CourseCard: React.FC<CourseCardProps> = memo(({
   allowUnregister = true,
   language,
   queueLength = 0,
-  onViewDetails
+  onViewDetails,
+  categories: propCategories
 }) => {
   const t = TRANSLATIONS[language];
+  const [categories, setCategories] = useState<CourseCategory[]>(propCategories || []);
+
+  // Load categories if not provided via props
+  useEffect(() => {
+    if (!propCategories || propCategories.length === 0) {
+      db.getCategories().then(setCategories).catch(console.error);
+    }
+  }, [propCategories]);
 
   return (
     <div className={`bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl border shadow-sm transition-all duration-200 ${
@@ -47,7 +87,7 @@ export const CourseCard: React.FC<CourseCardProps> = memo(({
     }`}>
       <div className="flex items-start justify-between mb-2 gap-2">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          {getIcon(course.category)}
+          {getCategoryIcon(course.category, categories)}
           <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">
             {course.category}
           </span>

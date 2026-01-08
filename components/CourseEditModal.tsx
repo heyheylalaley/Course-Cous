@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Course, Language, EnglishLevel } from '../types';
+import { Course, Language, EnglishLevel, CourseCategory } from '../types';
 import { TRANSLATIONS } from '../translations';
-import { X, Save, BookOpen } from 'lucide-react';
+import { X, Save, BookOpen, Calendar } from 'lucide-react';
+import { db } from '../services/db';
 
 interface CourseEditModalProps {
   isOpen: boolean;
@@ -11,9 +12,12 @@ interface CourseEditModalProps {
   course?: Course | null; // null = create new, Course = edit existing
 }
 
-const COURSE_CATEGORIES = [
+// Fallback categories if database load fails
+const DEFAULT_CATEGORIES = [
   'Safety', 'Service', 'Security', 'Food Safety', 'Hospitality',
-  'Healthcare', 'Education', 'Cleaning', 'Logistics'
+  'Healthcare', 'Education', 'Cleaning', 'Logistics',
+  'Technology', 'Business', 'Retail', 'Construction', 'Beauty',
+  'Childcare', 'Agriculture', 'Transportation', 'Social Care', 'Environmental'
 ];
 
 const DIFFICULTY_LEVELS: ('Beginner' | 'Intermediate' | 'Advanced')[] = ['Beginner', 'Intermediate', 'Advanced'];
@@ -31,13 +35,35 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
   const [difficulty, setDifficulty] = useState<'Beginner' | 'Intermediate' | 'Advanced'>('Beginner');
-  const [link, setLink] = useState('#');
+  const [nextCourseDate, setNextCourseDate] = useState('');
   const [minEnglishLevel, setMinEnglishLevel] = useState<EnglishLevel | ''>('');
   const [isActive, setIsActive] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<CourseCategory[]>([]);
   const t = TRANSLATIONS[language];
   const isRtl = language === 'ar';
+
+  // Load categories from database
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const cats = await db.getCategories();
+        setCategories(cats);
+      } catch (err) {
+        console.error('Failed to load categories:', err);
+        // Use default categories as fallback
+        setCategories(DEFAULT_CATEGORIES.map((name, index) => ({
+          id: name.toLowerCase().replace(/\s+/g, '-'),
+          name,
+          icon: 'BookOpen',
+          color: 'text-gray-500',
+          sortOrder: index
+        })));
+      }
+    };
+    loadCategories();
+  }, []);
   
   // Track which course ID was initialized to prevent resetting form on tab switch
   const initializedCourseIdRef = useRef<string | null>(null);
@@ -53,7 +79,7 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
       category,
       description,
       difficulty,
-      link,
+      nextCourseDate,
       minEnglishLevel,
       isActive,
       courseId: course?.id || null
@@ -81,7 +107,7 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
           setCategory(formData.category || '');
           setDescription(formData.description || '');
           setDifficulty(formData.difficulty || 'Beginner');
-          setLink(formData.link || '#');
+          setNextCourseDate(formData.nextCourseDate || '');
           setMinEnglishLevel(formData.minEnglishLevel || '');
           setIsActive(formData.isActive !== false);
           setTimeout(() => {
@@ -106,7 +132,7 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
     }, 300); // Debounce for 300ms
     
     return () => clearTimeout(timeoutId);
-  }, [isOpen, title, category, description, difficulty, link, minEnglishLevel, isActive, course?.id]);
+  }, [isOpen, title, category, description, difficulty, nextCourseDate, minEnglishLevel, isActive, course?.id]);
   
   // Wrap onClose with logging and cleanup
   const handleClose = () => {
@@ -175,7 +201,7 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
         setCategory(course.category);
         setDescription(course.description);
         setDifficulty(course.difficulty);
-        setLink(course.link);
+        setNextCourseDate(course.nextCourseDate || '');
         setMinEnglishLevel(course.minEnglishLevel || '');
         setIsActive(course.isActive !== false);
         initializedCourseIdRef.current = course.id;
@@ -187,7 +213,7 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
         setCategory('');
         setDescription('');
         setDifficulty('Beginner');
-        setLink('#');
+        setNextCourseDate('');
         setMinEnglishLevel('');
         setIsActive(true);
         initializedCourseIdRef.current = null;
@@ -259,7 +285,7 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
         category: category.trim(),
         description: description.trim(),
         difficulty,
-        link: link.trim() || '#',
+        nextCourseDate: nextCourseDate || undefined,
         minEnglishLevel: minEnglishLevel || undefined,
         isActive
       });
@@ -342,8 +368,8 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
                 className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/30 outline-none transition-all"
               >
                 <option value="">{t.adminSelectCategory || 'Select category'}</option>
-                {COURSE_CATEGORIES.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.name}>{cat.name}</option>
                 ))}
               </select>
             </div>
@@ -400,15 +426,17 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.adminCourseLink || 'Link'}
+                {t.adminCourseNextDate || 'Next Course Date'}
               </label>
-              <input
-                type="text"
-                value={link}
-                onChange={(e) => setLink(e.target.value)}
-                placeholder="#course-link"
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/30 outline-none transition-all"
-              />
+              <div className="relative">
+                <input
+                  type="date"
+                  value={nextCourseDate}
+                  onChange={(e) => setNextCourseDate(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/30 outline-none transition-all"
+                />
+                <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+              </div>
             </div>
           </div>
 

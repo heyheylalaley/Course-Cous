@@ -120,7 +120,11 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
   const courseListForBot = availableForRecommendation.map(c => {
     const level = c.minEnglishLevel || 'None';
     const levelStr = level === 'None' ? '' : ` [${level}+]`;
-    return `• **${c.title}**${levelStr} — ${c.description}`;
+    // Format date for bot (e.g., "15 Feb 2026")
+    const dateStr = c.nextCourseDate 
+      ? ` (next: ${new Date(c.nextCourseDate).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })})`
+      : '';
+    return `• **${c.title}**${levelStr} — ${c.description}${dateStr}`;
   }).join('\n');
 
   // Build list of completed courses to inform bot

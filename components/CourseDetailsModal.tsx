@@ -1,7 +1,9 @@
-import React from 'react';
-import { Course, Language } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Course, Language, CourseCategory } from '../types';
 import { TRANSLATIONS } from '../translations';
-import { X, BookOpen, Shield, Coffee, Users, Globe, Stethoscope, HardHat, Warehouse, Sparkles, HeartPulse } from 'lucide-react';
+import { X, BookOpen, Shield, Coffee, Users, Globe, HardHat, Warehouse, Sparkles, HeartPulse, Cpu, Briefcase, ShoppingBag, Scissors, Baby, Leaf, Car, Heart, TreePine, Calendar, GraduationCap, Hammer } from 'lucide-react';
+import { db } from '../services/db';
+import { AVAILABLE_ICONS } from './AdminCategoryManagement';
 
 interface CourseDetailsModalProps {
   course: Course | null;
@@ -11,53 +13,96 @@ interface CourseDetailsModalProps {
   queueLength: number;
 }
 
-const getIcon = (category: string) => {
-  switch (category) {
-    case 'Safety': return <HardHat className="w-6 h-6 text-orange-500" />;
-    case 'Service': return <Users className="w-6 h-6 text-purple-500" />;
-    case 'Security': return <Shield className="w-6 h-6 text-blue-800" />;
-    case 'Food Safety': return <BookOpen className="w-6 h-6 text-green-500" />;
-    case 'Hospitality': return <Coffee className="w-6 h-6 text-amber-600" />;
-    case 'Healthcare': return <HeartPulse className="w-6 h-6 text-red-500" />;
-    case 'Education': return <BookOpen className="w-6 h-6 text-indigo-500" />;
-    case 'Cleaning': return <Sparkles className="w-6 h-6 text-cyan-500" />;
-    case 'Logistics': return <Warehouse className="w-6 h-6 text-slate-500" />;
-    default: return <Globe className="w-6 h-6 text-gray-500" />;
-  }
+// Fallback icon mapping for when categories haven't loaded yet
+const FALLBACK_ICONS: Record<string, { icon: React.ComponentType<any>; color: string }> = {
+  'Safety': { icon: HardHat, color: 'text-orange-500' },
+  'Service': { icon: Users, color: 'text-purple-500' },
+  'Security': { icon: Shield, color: 'text-blue-800' },
+  'Food Safety': { icon: BookOpen, color: 'text-green-500' },
+  'Hospitality': { icon: Coffee, color: 'text-amber-600' },
+  'Healthcare': { icon: HeartPulse, color: 'text-red-500' },
+  'Education': { icon: GraduationCap, color: 'text-indigo-500' },
+  'Cleaning': { icon: Sparkles, color: 'text-cyan-500' },
+  'Logistics': { icon: Warehouse, color: 'text-slate-500' },
+  'Technology': { icon: Cpu, color: 'text-blue-500' },
+  'Business': { icon: Briefcase, color: 'text-gray-700' },
+  'Retail': { icon: ShoppingBag, color: 'text-pink-500' },
+  'Construction': { icon: Hammer, color: 'text-yellow-600' },
+  'Beauty': { icon: Scissors, color: 'text-rose-400' },
+  'Childcare': { icon: Baby, color: 'text-sky-400' },
+  'Agriculture': { icon: Leaf, color: 'text-green-600' },
+  'Transportation': { icon: Car, color: 'text-indigo-400' },
+  'Social Care': { icon: Heart, color: 'text-red-400' },
+  'Environmental': { icon: TreePine, color: 'text-emerald-500' },
 };
 
-const TRANSLATIONS_DETAILS: Record<Language, { queue: string; difficulty: string; category: string; description: string; close: string }> = {
+const getCategoryIcon = (categoryName: string, categories: CourseCategory[]) => {
+  // First try to find in dynamic categories
+  const category = categories.find(c => c.name === categoryName);
+  if (category) {
+    const IconComponent = AVAILABLE_ICONS[category.icon];
+    if (IconComponent) {
+      return <IconComponent className={`w-6 h-6 ${category.color}`} />;
+    }
+  }
+  
+  // Fallback to static mapping
+  const fallback = FALLBACK_ICONS[categoryName];
+  if (fallback) {
+    const FallbackIcon = fallback.icon;
+    return <FallbackIcon className={`w-6 h-6 ${fallback.color}`} />;
+  }
+  
+  return <Globe className="w-6 h-6 text-gray-500" />;
+};
+
+const TRANSLATIONS_DETAILS: Record<Language, { queue: string; difficulty: string; category: string; description: string; close: string; nextCourseDate: string; notScheduled: string }> = {
   en: {
     queue: 'People in queue',
     difficulty: 'Difficulty',
     category: 'Category',
     description: 'Description',
-    close: 'Close'
+    close: 'Close',
+    nextCourseDate: 'Next Course Date',
+    notScheduled: 'Not scheduled yet'
   },
   ua: {
     queue: 'Людей в черзі',
     difficulty: 'Складність',
     category: 'Категорія',
     description: 'Опис',
-    close: 'Закрити'
+    close: 'Закрити',
+    nextCourseDate: 'Дата наступного курсу',
+    notScheduled: 'Ще не заплановано'
   },
   ru: {
     queue: 'Людей в очереди',
     difficulty: 'Сложность',
     category: 'Категория',
     description: 'Описание',
-    close: 'Закрыть'
+    close: 'Закрыть',
+    nextCourseDate: 'Дата следующего курса',
+    notScheduled: 'Пока не запланировано'
   },
   ar: {
     queue: 'الأشخاص في قائمة الانتظار',
     difficulty: 'الصعوبة',
     category: 'الفئة',
     description: 'الوصف',
-    close: 'إغلاق'
+    close: 'إغلاق',
+    nextCourseDate: 'تاريخ الدورة القادمة',
+    notScheduled: 'لم تتم جدولته بعد'
   }
 };
 
 export const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({ course, isOpen, onClose, language, queueLength }) => {
+  const [categories, setCategories] = useState<CourseCategory[]>([]);
+
+  // Load categories
+  useEffect(() => {
+    db.getCategories().then(setCategories).catch(console.error);
+  }, []);
+
   if (!isOpen || !course) return null;
 
   const t = TRANSLATIONS_DETAILS[language];
@@ -77,7 +122,7 @@ export const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({ course, 
         {/* Header */}
         <div className="flex items-start gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="p-2 sm:p-3 bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 rounded-xl flex-shrink-0">
-            {getIcon(course.category)}
+            {getCategoryIcon(course.category, categories)}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -101,6 +146,25 @@ export const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({ course, 
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-blue-900 dark:text-blue-300">{t.queue}</span>
             <span className="text-lg font-bold text-blue-700 dark:text-blue-400">{queueLength}</span>
+          </div>
+        </div>
+
+        {/* Next Course Date */}
+        <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              <span className="text-sm font-medium text-purple-900 dark:text-purple-300">{t.nextCourseDate}</span>
+            </div>
+            <span className="text-lg font-bold text-purple-700 dark:text-purple-400">
+              {course.nextCourseDate 
+                ? new Date(course.nextCourseDate).toLocaleDateString(language === 'ar' ? 'ar-EG' : language === 'ua' ? 'uk-UA' : language === 'ru' ? 'ru-RU' : 'en-IE', { 
+                    day: 'numeric', 
+                    month: 'long', 
+                    year: 'numeric' 
+                  })
+                : t.notScheduled}
+            </span>
           </div>
         </div>
 
