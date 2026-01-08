@@ -58,7 +58,7 @@ export const db = {
     }
   },
 
-  signUp: async (email: string, password?: string): Promise<{ user: { id: string, email: string } | null, error: string | null }> => {
+  signUp: async (email: string, password?: string): Promise<{ user: { id: string, email: string } | null, error: string | null, needsEmailConfirmation?: boolean }> => {
     if (!supabase) {
       // Fallback to mock
       return db.signIn(email, password);
@@ -70,11 +70,13 @@ export const db = {
         return { user: null, error: 'Password is required for registration' };
       }
 
-      // Signup with password (no emailRedirectTo to avoid email sending when confirmation is disabled)
+      // Signup with password and email redirect for confirmation
       const { data, error } = await supabase.auth.signUp({
         email,
-        password
-        // Removed emailRedirectTo to prevent email sending when email confirmation is disabled
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/Course-Cous/`
+        }
       });
 
       if (error) return { user: null, error: error.message };
@@ -84,9 +86,9 @@ export const db = {
         return { user: { id: data.user.id, email: data.user.email! }, error: null };
       }
 
-      // If email confirmation is required (shouldn't happen if disabled in settings)
+      // If email confirmation is required - return special flag
       if (data.user && !data.session) {
-        return { user: null, error: 'Please check your email to confirm your account' };
+        return { user: null, error: null, needsEmailConfirmation: true };
       }
 
       return { user: null, error: 'Registration failed' };
@@ -1991,5 +1993,131 @@ export const db = {
   isUserCourseCompleted: async (userId: string, courseId: string): Promise<boolean> => {
     const completions = await db.getUserCompletedCourses(userId);
     return completions.some(c => c.courseId === courseId);
+  },
+
+  // --- Password Reset Methods ---
+  resetPassword: async (email: string): Promise<{ error: string | null }> => {
+    if (!supabase) {
+      return { error: 'Supabase is not configured' };
+    }
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/Course-Cous/`
+      });
+
+      if (error) return { error: error.message };
+      return { error: null };
+    } catch (error: any) {
+      return { error: error.message || 'Failed to send reset password email' };
+    }
+  },
+
+  // --- App Settings Methods (for demo mode, etc.) ---
+  getAppSetting: async (key: string): Promise<string | null> => {
+    if (!supabase) {
+      // Mock fallback: use localStorage
+      return localStorage.getItem(`app_setting_${key}`);
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', key)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') return null; // No rows returned
+        console.error('Error fetching app setting:', error);
+        return null;
+      }
+
+      return data?.value || null;
+    } catch (error) {
+      console.error('Error fetching app setting:', error);
+      return null;
+    }
+  },
+
+  setAppSetting: async (key: string, value: string): Promise<{ error: string | null }> => {
+    if (!supabase) {
+      // Mock fallback: use localStorage
+      localStorage.setItem(`app_setting_${key}`, value);
+      return { error: null };
+    }
+
+    // Check if user is admin
+    const session = db.getCurrentSession();
+    if (!session) {
+      return { error: 'Not authenticated' };
+    }
+
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      return { error: 'Admin access required' };
+    }
+
+    try {
+      const { error } = await supabase
+        .from('app_settings')
+        .upsert({
+          key,
+          value,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'key'
+        });
+
+      if (error) return { error: error.message };
+      return { error: null };
+    } catch (error: any) {
+      return { error: error.message || 'Failed to save setting' };
+    }
+  },
+
+  getDemoEnabled: async (): Promise<boolean> => {
+    const value = await db.getAppSetting('demo_enabled');
+    return value === 'true';
+  },
+
+  setDemoEnabled: async (enabled: boolean): Promise<{ error: string | null }> => {
+    return db.setAppSetting('demo_enabled', enabled ? 'true' : 'false');
+  },
+
+  getDemoCredentials: async (): Promise<{ email: string; password: string } | null> => {
+    const email = await db.getAppSetting('demo_email');
+    const password = await db.getAppSetting('demo_password');
+    
+    if (email && password) {
+      return { email, password };
+    }
+    
+    // Default demo credentials if not configured
+    return { email: 'demo@example.com', password: 'demo123456' };
+  },
+
+  setDemoCredentials: async (email: string, password: string): Promise<{ error: string | null }> => {
+    const emailResult = await db.setAppSetting('demo_email', email);
+    if (emailResult.error) return emailResult;
+    
+    return db.setAppSetting('demo_password', password);
+  },
+
+  signInAsDemo: async (): Promise<{ user: { id: string, email: string } | null, error: string | null }> => {
+    // Check if demo mode is enabled
+    const demoEnabled = await db.getDemoEnabled();
+    if (!demoEnabled) {
+      return { user: null, error: 'Demo mode is not enabled' };
+    }
+
+    // Get demo credentials
+    const credentials = await db.getDemoCredentials();
+    if (!credentials) {
+      return { user: null, error: 'Demo credentials not configured' };
+    }
+
+    // Sign in with demo credentials
+    return db.signIn(credentials.email, credentials.password);
   }
 };

@@ -222,7 +222,30 @@ export const TRANSLATIONS = {
     adminCourses: 'Courses',
     adminProfile: 'Profile',
     adminYes: 'Yes',
-    adminNo: 'No'
+    adminNo: 'No',
+    // Forgot Password
+    forgotPassword: 'Forgot Password?',
+    forgotPasswordTitle: 'Reset Password',
+    forgotPasswordDesc: 'Enter your email address and we will send you a link to reset your password.',
+    resetPasswordBtn: 'Send Reset Link',
+    resetPasswordSuccess: 'Password reset link sent! Please check your email.',
+    backToLogin: 'Back to Login',
+    // Email Confirmation
+    emailConfirmationTitle: 'Verify Your Email',
+    emailConfirmationDesc: 'We have sent a verification link to your email address. Please check your inbox and click the link to activate your account.',
+    emailConfirmationNote: 'If you don\'t see the email, check your spam folder.',
+    // Demo Mode
+    demoMode: 'Try Demo',
+    demoModeDesc: 'Experience the app without registration',
+    // Admin - Demo Settings
+    adminAppSettings: 'App Settings',
+    adminDemoMode: 'Demo Mode',
+    adminDemoModeDesc: 'When enabled, a "Try Demo" button appears on the login screen',
+    adminDemoEnabled: 'Demo mode enabled',
+    adminDemoDisabled: 'Demo mode disabled',
+    adminDemoCredentials: 'Demo Credentials',
+    adminDemoEmail: 'Demo Email',
+    adminDemoPassword: 'Demo Password'
   },
   ua: {
     loginTitle: 'З поверненням',
@@ -445,7 +468,30 @@ export const TRANSLATIONS = {
     adminCourses: 'Курси',
     adminProfile: 'Профіль',
     adminYes: 'Так',
-    adminNo: 'Ні'
+    adminNo: 'Ні',
+    // Forgot Password
+    forgotPassword: 'Забули пароль?',
+    forgotPasswordTitle: 'Скидання пароля',
+    forgotPasswordDesc: 'Введіть вашу електронну пошту, і ми надішлемо вам посилання для скидання пароля.',
+    resetPasswordBtn: 'Надіслати посилання',
+    resetPasswordSuccess: 'Посилання для скидання пароля надіслано! Перевірте свою пошту.',
+    backToLogin: 'Повернутися до входу',
+    // Email Confirmation
+    emailConfirmationTitle: 'Підтвердіть email',
+    emailConfirmationDesc: 'Ми надіслали посилання для підтвердження на вашу електронну пошту. Перевірте вхідні та натисніть на посилання для активації акаунту.',
+    emailConfirmationNote: 'Якщо ви не бачите листа, перевірте папку спам.',
+    // Demo Mode
+    demoMode: 'Демо режим',
+    demoModeDesc: 'Спробуйте додаток без реєстрації',
+    // Admin - Demo Settings
+    adminAppSettings: 'Налаштування додатку',
+    adminDemoMode: 'Демо режим',
+    adminDemoModeDesc: 'Коли увімкнено, кнопка "Демо режим" з\'являється на екрані входу',
+    adminDemoEnabled: 'Демо режим увімкнено',
+    adminDemoDisabled: 'Демо режим вимкнено',
+    adminDemoCredentials: 'Дані для демо',
+    adminDemoEmail: 'Email для демо',
+    adminDemoPassword: 'Пароль для демо'
   },
   ru: {
     loginTitle: 'Добро пожаловать',
@@ -668,7 +714,30 @@ export const TRANSLATIONS = {
     adminCourses: 'Курсы',
     adminProfile: 'Профиль',
     adminYes: 'Да',
-    adminNo: 'Нет'
+    adminNo: 'Нет',
+    // Forgot Password
+    forgotPassword: 'Забыли пароль?',
+    forgotPasswordTitle: 'Сброс пароля',
+    forgotPasswordDesc: 'Введите ваш email, и мы отправим вам ссылку для сброса пароля.',
+    resetPasswordBtn: 'Отправить ссылку',
+    resetPasswordSuccess: 'Ссылка для сброса пароля отправлена! Проверьте вашу почту.',
+    backToLogin: 'Вернуться к входу',
+    // Email Confirmation
+    emailConfirmationTitle: 'Подтвердите email',
+    emailConfirmationDesc: 'Мы отправили ссылку для подтверждения на вашу электронную почту. Проверьте входящие и нажмите на ссылку для активации аккаунта.',
+    emailConfirmationNote: 'Если вы не видите письмо, проверьте папку спам.',
+    // Demo Mode
+    demoMode: 'Демо режим',
+    demoModeDesc: 'Попробуйте приложение без регистрации',
+    // Admin - Demo Settings
+    adminAppSettings: 'Настройки приложения',
+    adminDemoMode: 'Демо режим',
+    adminDemoModeDesc: 'Когда включено, кнопка "Демо режим" появляется на экране входа',
+    adminDemoEnabled: 'Демо режим включен',
+    adminDemoDisabled: 'Демо режим выключен',
+    adminDemoCredentials: 'Данные для демо',
+    adminDemoEmail: 'Email для демо',
+    adminDemoPassword: 'Пароль для демо'
   },
   ar: {
     loginTitle: 'مرحبًا بعودتك',
@@ -891,6 +960,29 @@ export const TRANSLATIONS = {
     adminCourses: 'الدورات',
     adminProfile: 'الملف',
     adminYes: 'نعم',
-    adminNo: 'لا'
+    adminNo: 'لا',
+    // Forgot Password
+    forgotPassword: 'نسيت كلمة المرور؟',
+    forgotPasswordTitle: 'إعادة تعيين كلمة المرور',
+    forgotPasswordDesc: 'أدخل بريدك الإلكتروني وسنرسل لك رابطًا لإعادة تعيين كلمة المرور.',
+    resetPasswordBtn: 'إرسال الرابط',
+    resetPasswordSuccess: 'تم إرسال رابط إعادة تعيين كلمة المرور! يرجى التحقق من بريدك الإلكتروني.',
+    backToLogin: 'العودة إلى تسجيل الدخول',
+    // Email Confirmation
+    emailConfirmationTitle: 'تحقق من بريدك الإلكتروني',
+    emailConfirmationDesc: 'لقد أرسلنا رابط التحقق إلى بريدك الإلكتروني. يرجى التحقق من صندوق الوارد والنقر على الرابط لتفعيل حسابك.',
+    emailConfirmationNote: 'إذا لم تجد البريد، تحقق من مجلد البريد المزعج.',
+    // Demo Mode
+    demoMode: 'الوضع التجريبي',
+    demoModeDesc: 'جرب التطبيق بدون تسجيل',
+    // Admin - Demo Settings
+    adminAppSettings: 'إعدادات التطبيق',
+    adminDemoMode: 'الوضع التجريبي',
+    adminDemoModeDesc: 'عند التفعيل، يظهر زر "الوضع التجريبي" على شاشة تسجيل الدخول',
+    adminDemoEnabled: 'الوضع التجريبي مفعل',
+    adminDemoDisabled: 'الوضع التجريبي معطل',
+    adminDemoCredentials: 'بيانات التجريب',
+    adminDemoEmail: 'البريد التجريبي',
+    adminDemoPassword: 'كلمة المرور التجريبية'
   }
 };

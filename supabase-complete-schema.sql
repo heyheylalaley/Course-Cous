@@ -407,6 +407,48 @@ CREATE POLICY "Admins can delete completions" ON course_completions
   FOR DELETE USING (is_admin_user() = TRUE);
 
 -- ============================================================================
+-- PART 9: App Settings (Demo mode, etc.)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+DROP TRIGGER IF EXISTS update_app_settings_updated_at ON app_settings;
+CREATE TRIGGER update_app_settings_updated_at BEFORE UPDATE ON app_settings
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can read app settings (needed for demo mode check on login screen)
+DROP POLICY IF EXISTS "Anyone can read app settings" ON app_settings;
+CREATE POLICY "Anyone can read app settings" ON app_settings
+  FOR SELECT USING (true);
+
+-- Only admins can modify app settings
+DROP POLICY IF EXISTS "Admins can insert app settings" ON app_settings;
+CREATE POLICY "Admins can insert app settings" ON app_settings
+  FOR INSERT WITH CHECK (is_admin_user() = TRUE);
+
+DROP POLICY IF EXISTS "Admins can update app settings" ON app_settings;
+CREATE POLICY "Admins can update app settings" ON app_settings
+  FOR UPDATE USING (is_admin_user() = TRUE);
+
+DROP POLICY IF EXISTS "Admins can delete app settings" ON app_settings;
+CREATE POLICY "Admins can delete app settings" ON app_settings
+  FOR DELETE USING (is_admin_user() = TRUE);
+
+-- Insert default settings
+INSERT INTO app_settings (key, value) VALUES
+  ('demo_enabled', 'false'),
+  ('demo_email', 'demo@example.com'),
+  ('demo_password', 'demo123456')
+ON CONFLICT (key) DO NOTHING;
+
+-- ============================================================================
 -- COMPLETE!
 -- ============================================================================
 

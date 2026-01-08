@@ -245,10 +245,8 @@ export const sendMessageToGemini = async function* (message: string, _userProfil
     throw new Error("Failed to initialize chat session.");
   }
 
-  // Inject user context into each message so the model never forgets
-  const userLevel = profile?.englishLevel || 'None';
-  const contextPrefix = `[Context: User's English level is ${userLevel}. Reply in the SAME language as this message. Never ask about English level.]\n\n`;
-  const enrichedMessage = contextPrefix + message;
+  // Send message directly - context is already in system instructions
+  const enrichedMessage = message;
 
   try {
     const responseStream = await chatSession.sendMessageStream({ message: enrichedMessage });
@@ -272,10 +270,8 @@ export const sendMessageToGemini = async function* (message: string, _userProfil
         const { courses: freshCourses, profile: freshProfile, completedCourseIds: freshCompleted } = await shouldReinitialize(language);
         chatSession = await initializeChat(freshProfile || undefined, language, freshCourses, freshCompleted);
         
-        // Retry the message with context injection
-        const retryUserLevel = freshProfile?.englishLevel || 'None';
-        const retryContextPrefix = `[Context: User's English level is ${retryUserLevel}. Reply in the SAME language as this message. Never ask about English level.]\n\n`;
-        const retryEnrichedMessage = retryContextPrefix + message;
+        // Retry the message
+        const retryEnrichedMessage = message;
         
         const retryStream = await chatSession.sendMessageStream({ message: retryEnrichedMessage });
         for await (const chunk of retryStream) {
