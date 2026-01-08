@@ -1,4 +1,4 @@
-# Course Counselor AI
+# CCPLearn
 
 <div align="center">
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
@@ -10,9 +10,9 @@
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3FCF8E?logo=supabase&logoColor=white)](https://supabase.com/)
 [![Google Gemini](https://img.shields.io/badge/Google_Gemini-2.0_Flash-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
 
-**AI-powered course counselor for Cork City Partnership with intelligent chat support, course registration system, and comprehensive admin panel.**
+**CCPLearn — AI-powered course advisor for Cork City Partnership with intelligent chat support, course registration system, and comprehensive admin panel.**
 
-[Live Demo](https://heyheylalaley.github.io/Course-Cous/) • [Report Bug](https://github.com/heyheylalaley/Course-Cous/issues) • [Request Feature](https://github.com/heyheylalaley/Course-Cous/issues)
+[Live Demo](https://ccplearn.pages.dev/) • [Report Bug](https://github.com/heyheylalaley/Course-Cous/issues) • [Request Feature](https://github.com/heyheylalaley/Course-Cous/issues)
 
 </div>
 
@@ -40,7 +40,7 @@
 
 ## 🎯 Overview
 
-Course Counselor AI is a full-stack web application designed for Cork City Partnership to help users discover and register for educational courses. The application features an AI-powered chatbot that provides personalized course recommendations based on the user's English proficiency level and career interests.
+CCPLearn is a full-stack web application designed for Cork City Partnership to help users discover and register for educational courses. The application features an AI-powered chatbot that provides personalized course recommendations based on the user's English proficiency level and career interests.
 
 ### Key Highlights
 
@@ -651,6 +651,6 @@ This project is proprietary software developed for Cork City Partnership.
 
 **Made with ❤️ by Cork City Partnership**
 
-[⬆ Back to Top](#course-counselor-ai)
+[⬆ Back to Top](#ccplearn)
 
 </div>
