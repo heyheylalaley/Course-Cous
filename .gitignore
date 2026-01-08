@@ -1,76 +1,54 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build outputs
+dist
+dist-ssr
+build
+*.local
+
+# Environment variables (CRITICAL - never commit these!)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
 # Logs
 logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
-# Dependencies
-node_modules
-dist
-dist-ssr
+# Testing
+coverage
+.nyc_output
 
-# Environment variables
-.env
-.env.local
-.env.*.local
-*.local
+# TypeScript
+*.tsbuildinfo
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# OS files
-Thumbs.db
-.DS_Store
-AppData/
-*.dat
-*.ini
-NTUSER.*
-*.regtrans-ms
-*.LOG*
-*.TMContainer*
-*.jtx
-
-# System directories
-3D Objects/
-Contacts/
-Downloads/
-Favorites/
-Links/
-Music/
-Saved Games/
-Searches/
-Videos/
-OneDrive - Cork City Partnership/
-Cork City Partnership/
-Auto_Jobs_Applier_AIHawk/
-Course-Cous-main/
-Course-Cous.zip
-ODBA/
-
-# Cache and temp files
-.cache/
-.idlerc/
-*.xlsx
-*.spec
-debug.txt
-temp_*
-metadata.json
-CHECKLIST.md
-DEPLOY.md
-SETUP.md
-supabase-schema.sql
-
-# Build outputs
-build
-out
+# Temporary files
+tmp
+temp
+.cache
