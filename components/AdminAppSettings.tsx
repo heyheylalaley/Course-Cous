@@ -224,7 +224,7 @@ export const AdminAppSettings: React.FC<AdminAppSettingsProps> = ({ language }) 
           </div>
 
           <p className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg">
-            Note: Make sure to create a demo user in Supabase with these credentials. The demo user should have limited permissions.
+            {t.adminDemoNote}
           </p>
         </div>
       )}

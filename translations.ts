@@ -245,7 +245,8 @@ export const TRANSLATIONS = {
     adminDemoDisabled: 'Demo mode disabled',
     adminDemoCredentials: 'Demo Credentials',
     adminDemoEmail: 'Demo Email',
-    adminDemoPassword: 'Demo Password'
+    adminDemoPassword: 'Demo Password',
+    adminDemoNote: 'Note: Make sure to create a demo user in Supabase with these credentials. The demo user should have limited permissions.'
   },
   ua: {
     loginTitle: 'З поверненням',
@@ -491,7 +492,8 @@ export const TRANSLATIONS = {
     adminDemoDisabled: 'Демо режим вимкнено',
     adminDemoCredentials: 'Дані для демо',
     adminDemoEmail: 'Email для демо',
-    adminDemoPassword: 'Пароль для демо'
+    adminDemoPassword: 'Пароль для демо',
+    adminDemoNote: 'Примітка: Переконайтеся, що ви створили демо-користувача в Supabase з цими даними. Демо-користувач повинен мати обмежені права.'
   },
   ru: {
     loginTitle: 'Добро пожаловать',
@@ -737,7 +739,8 @@ export const TRANSLATIONS = {
     adminDemoDisabled: 'Демо режим выключен',
     adminDemoCredentials: 'Данные для демо',
     adminDemoEmail: 'Email для демо',
-    adminDemoPassword: 'Пароль для демо'
+    adminDemoPassword: 'Пароль для демо',
+    adminDemoNote: 'Примечание: Убедитесь, что вы создали демо-пользователя в Supabase с этими данными. Демо-пользователь должен иметь ограниченные права.'
   },
   ar: {
     loginTitle: 'مرحبًا بعودتك',
@@ -983,6 +986,7 @@ export const TRANSLATIONS = {
     adminDemoDisabled: 'الوضع التجريبي معطل',
     adminDemoCredentials: 'بيانات التجريب',
     adminDemoEmail: 'البريد التجريبي',
-    adminDemoPassword: 'كلمة المرور التجريبية'
+    adminDemoPassword: 'كلمة المرور التجريبية',
+    adminDemoNote: 'ملاحظة: تأكد من إنشاء مستخدم تجريبي في Supabase باستخدام هذه البيانات. يجب أن يكون للمستخدم التجريبي صلاحيات محدودة.'
   }
 };

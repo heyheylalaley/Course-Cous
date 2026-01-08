@@ -57,6 +57,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
   // Track language to detect changes
   const prevLanguageRef = useRef<Language>(language);
   
+  // Helper to check if a message is a welcome message (in any language)
+  const isWelcomeMessage = (content: string): boolean => {
+    const welcomeStarts = [
+      "Hello! 👋 I'm your AI Course Counselor",
+      "Привіт! 👋 Я ваш ШІ-консультант",
+      "Здравствуйте! 👋 Я ваш ИИ-консультант",
+      "مرحبًا! 👋 أنا مستشار الدورات"
+    ];
+    return welcomeStarts.some(start => content.startsWith(start));
+  };
+
   // Initialize chat and restore or create welcome message
   useEffect(() => {
     // Only reinitialize if language actually changed
@@ -82,14 +93,27 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
         
         if (savedMessages.length > 0) {
           // Restore all saved messages, ensuring proper format
-          const restoredMessages = savedMessages.map((msg: any) => ({
-            id: msg.id || `${Date.now()}-${Math.random()}`,
-            role: msg.role,
-            content: msg.content,
-            timestamp: msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp),
-            isStreaming: false,
-            isError: false
-          }));
+          const restoredMessages = savedMessages.map((msg: any, index: number) => {
+            // If it's the first message and it's a welcome message, replace with current language version
+            if (index === 0 && msg.role === 'model' && isWelcomeMessage(msg.content)) {
+              return {
+                id: 'welcome',
+                role: 'model' as const,
+                content: t.welcomeMessage,
+                timestamp: msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp),
+                isStreaming: false,
+                isError: false
+              };
+            }
+            return {
+              id: msg.id || `${Date.now()}-${Math.random()}`,
+              role: msg.role,
+              content: msg.content,
+              timestamp: msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp),
+              isStreaming: false,
+              isError: false
+            };
+          });
           setMessages(restoredMessages);
         } else {
           // Only show greeting if no history exists
@@ -124,7 +148,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
         initialized.current = false;
       }
     };
-  }, [language]); // Removed t.welcomeMessage dependency
+  }, [language, t.welcomeMessage]); // Added t.welcomeMessage to update when language changes
 
   // Auto-scroll to bottom
   const scrollToBottom = () => {
