@@ -60,10 +60,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
   // Helper to check if a message is a welcome message (in any language)
   const isWelcomeMessage = (content: string): boolean => {
     const welcomeStarts = [
-      "Hello! 👋 I'm your AI Course Counselor",
-      "Привіт! 👋 Я ваш ШІ-консультант",
-      "Здравствуйте! 👋 Я ваш ИИ-консультант",
-      "مرحبًا! 👋 أنا مستشار الدورات"
+      "Hello! 👋 I'm your AI assistant",
+      "Привіт! 👋 Я ШІ-асистент",
+      "Здравствуйте! 👋 Я ИИ-ассистент",
+      "مرحبًا! 👋 أنا المساعد الذكي"
     ];
     return welcomeStarts.some(start => content.startsWith(start));
   };
