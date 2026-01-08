@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Course, Language, EnglishLevel, CourseCategory } from '../types';
 import { TRANSLATIONS } from '../translations';
-import { X, Save, BookOpen, Calendar } from 'lucide-react';
+import { X, Save, BookOpen } from 'lucide-react';
 import { db } from '../services/db';
 
 interface CourseEditModalProps {
@@ -428,15 +428,12 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 {t.adminCourseNextDate || 'Next Course Date'}
               </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={nextCourseDate}
-                  onChange={(e) => setNextCourseDate(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/30 outline-none transition-all"
-                />
-                <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
-              </div>
+              <input
+                type="date"
+                value={nextCourseDate}
+                onChange={(e) => setNextCourseDate(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/30 outline-none transition-all"
+              />
             </div>
           </div>
 

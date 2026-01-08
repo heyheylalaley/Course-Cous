@@ -68,27 +68,27 @@ const AVAILABLE_ICONS: Record<string, React.ComponentType<any>> = {
   Cherry, Pizza, Sandwich, CakeSlice, Wine
 };
 
-// Available colors
+// Available colors - both text and bg classes are specified to ensure Tailwind includes them
 const AVAILABLE_COLORS = [
-  { name: 'Red', value: 'text-red-500' },
-  { name: 'Orange', value: 'text-orange-500' },
-  { name: 'Amber', value: 'text-amber-500' },
-  { name: 'Yellow', value: 'text-yellow-500' },
-  { name: 'Lime', value: 'text-lime-500' },
-  { name: 'Green', value: 'text-green-500' },
-  { name: 'Emerald', value: 'text-emerald-500' },
-  { name: 'Teal', value: 'text-teal-500' },
-  { name: 'Cyan', value: 'text-cyan-500' },
-  { name: 'Sky', value: 'text-sky-500' },
-  { name: 'Blue', value: 'text-blue-500' },
-  { name: 'Indigo', value: 'text-indigo-500' },
-  { name: 'Violet', value: 'text-violet-500' },
-  { name: 'Purple', value: 'text-purple-500' },
-  { name: 'Fuchsia', value: 'text-fuchsia-500' },
-  { name: 'Pink', value: 'text-pink-500' },
-  { name: 'Rose', value: 'text-rose-500' },
-  { name: 'Slate', value: 'text-slate-500' },
-  { name: 'Gray', value: 'text-gray-500' },
+  { name: 'Red', textClass: 'text-red-500', bgClass: 'bg-red-500' },
+  { name: 'Orange', textClass: 'text-orange-500', bgClass: 'bg-orange-500' },
+  { name: 'Amber', textClass: 'text-amber-500', bgClass: 'bg-amber-500' },
+  { name: 'Yellow', textClass: 'text-yellow-500', bgClass: 'bg-yellow-500' },
+  { name: 'Lime', textClass: 'text-lime-500', bgClass: 'bg-lime-500' },
+  { name: 'Green', textClass: 'text-green-500', bgClass: 'bg-green-500' },
+  { name: 'Emerald', textClass: 'text-emerald-500', bgClass: 'bg-emerald-500' },
+  { name: 'Teal', textClass: 'text-teal-500', bgClass: 'bg-teal-500' },
+  { name: 'Cyan', textClass: 'text-cyan-500', bgClass: 'bg-cyan-500' },
+  { name: 'Sky', textClass: 'text-sky-500', bgClass: 'bg-sky-500' },
+  { name: 'Blue', textClass: 'text-blue-500', bgClass: 'bg-blue-500' },
+  { name: 'Indigo', textClass: 'text-indigo-500', bgClass: 'bg-indigo-500' },
+  { name: 'Violet', textClass: 'text-violet-500', bgClass: 'bg-violet-500' },
+  { name: 'Purple', textClass: 'text-purple-500', bgClass: 'bg-purple-500' },
+  { name: 'Fuchsia', textClass: 'text-fuchsia-500', bgClass: 'bg-fuchsia-500' },
+  { name: 'Pink', textClass: 'text-pink-500', bgClass: 'bg-pink-500' },
+  { name: 'Rose', textClass: 'text-rose-500', bgClass: 'bg-rose-500' },
+  { name: 'Slate', textClass: 'text-slate-500', bgClass: 'bg-slate-500' },
+  { name: 'Gray', textClass: 'text-gray-500', bgClass: 'bg-gray-500' },
 ];
 
 interface AdminCategoryManagementProps {
@@ -336,10 +336,10 @@ export const AdminCategoryManagement: React.FC<AdminCategoryManagementProps> = (
                 <div className="flex flex-wrap gap-2">
                   {AVAILABLE_COLORS.map((color) => (
                     <button
-                      key={color.value}
-                      onClick={() => setFormColor(color.value)}
-                      className={`w-8 h-8 rounded-full ${color.value.replace('text-', 'bg-')} transition-transform ${
-                        formColor === color.value ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110' : 'hover:scale-105'
+                      key={color.textClass}
+                      onClick={() => setFormColor(color.textClass)}
+                      className={`w-8 h-8 rounded-full ${color.bgClass} transition-transform ${
+                        formColor === color.textClass ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110' : 'hover:scale-105'
                       }`}
                       title={color.name}
                     />
