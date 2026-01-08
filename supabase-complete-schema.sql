@@ -449,6 +449,73 @@ INSERT INTO app_settings (key, value) VALUES
 ON CONFLICT (key) DO NOTHING;
 
 -- ============================================================================
+-- DEMO USER SETUP
+-- ============================================================================
+-- 
+-- To create a demo user, follow these steps:
+--
+-- OPTION 1: Via Supabase Dashboard (Recommended)
+-- 1. Go to Authentication > Users in Supabase Dashboard
+-- 2. Click "Add user" > "Create new user"
+-- 3. Enter email: demo@example.com
+-- 4. Enter password: demo123456
+-- 5. Check "Auto Confirm User" to skip email verification
+-- 6. The profile will be created automatically via the trigger
+--
+-- OPTION 2: Via SQL (after creating auth user via Dashboard/API)
+-- Run the following after creating the auth user:
+--
+-- UPDATE profiles 
+-- SET 
+--   first_name = 'Demo',
+--   last_name = 'User',
+--   english_level = 'B1',
+--   mobile_number = '+353000000000',
+--   address = 'Demo Address, Cork',
+--   eircode = 'T12AB34',
+--   date_of_birth = '1990-01-01'
+-- WHERE email = 'demo@example.com';
+--
+-- OPTION 3: Create demo user via Supabase Admin API (run in SQL Editor)
+-- Note: This requires the service_role key and may not work in all setups
+--
+
+-- Function to set up demo user profile (call after creating auth user)
+CREATE OR REPLACE FUNCTION setup_demo_user(demo_email TEXT DEFAULT 'demo@example.com')
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  demo_user_id UUID;
+BEGIN
+  -- Find the demo user
+  SELECT id INTO demo_user_id FROM auth.users WHERE email = demo_email;
+  
+  IF demo_user_id IS NULL THEN
+    RETURN 'Demo user not found. Please create the user via Supabase Dashboard first.';
+  END IF;
+  
+  -- Update the profile with demo data
+  UPDATE profiles 
+  SET 
+    first_name = 'Demo',
+    last_name = 'User',
+    english_level = 'B1',
+    mobile_number = '+353000000000',
+    address = 'Demo Address, Cork City',
+    eircode = 'T12DEMO',
+    date_of_birth = '1990-01-01'
+  WHERE id = demo_user_id;
+  
+  RETURN 'Demo user profile updated successfully!';
+END;
+$$;
+
+-- Grant execute permission
+GRANT EXECUTE ON FUNCTION setup_demo_user(TEXT) TO authenticated;
+
+-- ============================================================================
 -- COMPLETE!
 -- ============================================================================
 

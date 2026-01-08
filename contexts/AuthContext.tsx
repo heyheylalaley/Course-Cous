@@ -127,6 +127,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [loadUserProfile]);
 
   const logout = useCallback(async () => {
+    // Reset demo user data before signing out
+    await db.resetDemoUserData();
     await db.signOut();
     setIsAuthenticated(false);
     setUserProfile(defaultProfile);
