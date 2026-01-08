@@ -258,7 +258,8 @@ export const TRANSLATIONS = {
     adminCategoryColor: 'Color',
     adminSearchIcons: 'Search icons...',
     adminSelectedIcon: 'Selected',
-    adminNoCategories: 'No categories found. Add your first category!'
+    adminNoCategories: 'No categories found. Add your first category!',
+    adminClearDate: 'Clear date'
   },
   ua: {
     loginTitle: 'З поверненням',
@@ -517,7 +518,8 @@ export const TRANSLATIONS = {
     adminCategoryColor: 'Колір',
     adminSearchIcons: 'Пошук іконок...',
     adminSelectedIcon: 'Вибрано',
-    adminNoCategories: 'Категорій не знайдено. Додайте першу категорію!'
+    adminNoCategories: 'Категорій не знайдено. Додайте першу категорію!',
+    adminClearDate: 'Очистити дату'
   },
   ru: {
     loginTitle: 'Добро пожаловать',
@@ -776,7 +778,8 @@ export const TRANSLATIONS = {
     adminCategoryColor: 'Цвет',
     adminSearchIcons: 'Поиск иконок...',
     adminSelectedIcon: 'Выбрано',
-    adminNoCategories: 'Категории не найдены. Добавьте первую категорию!'
+    adminNoCategories: 'Категории не найдены. Добавьте первую категорию!',
+    adminClearDate: 'Очистить дату'
   },
   ar: {
     loginTitle: 'مرحبًا بعودتك',
@@ -1035,6 +1038,7 @@ export const TRANSLATIONS = {
     adminCategoryColor: 'اللون',
     adminSearchIcons: 'البحث عن الأيقونات...',
     adminSelectedIcon: 'المحدد',
-    adminNoCategories: 'لم يتم العثور على فئات. أضف فئتك الأولى!'
+    adminNoCategories: 'لم يتم العثور على فئات. أضف فئتك الأولى!',
+    adminClearDate: 'مسح التاريخ'
   }
 };
