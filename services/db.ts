@@ -2013,6 +2013,23 @@ export const db = {
     }
   },
 
+  updatePassword: async (newPassword: string): Promise<{ error: string | null }> => {
+    if (!supabase) {
+      return { error: 'Supabase is not configured' };
+    }
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) return { error: error.message };
+      return { error: null };
+    } catch (error: any) {
+      return { error: error.message || 'Failed to update password' };
+    }
+  },
+
   // --- App Settings Methods (for demo mode, etc.) ---
   getAppSetting: async (key: string): Promise<string | null> => {
     if (!supabase) {

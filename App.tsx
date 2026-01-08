@@ -13,6 +13,7 @@ import { UIProvider, useUI } from './contexts/UIContext';
 import { useDebounce } from './hooks/useDebounce';
 import { Menu, X, MessageSquare, LayoutDashboard, LogOut, Shield, Info } from 'lucide-react';
 import { ContactModal } from './components/ContactModal';
+import { UpdatePasswordPage } from './components/UpdatePasswordPage';
 import { db } from './services/db';
 import { EnglishLevel, Course } from './types';
 import { TRANSLATIONS } from './translations';
@@ -25,7 +26,7 @@ const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(m =
 
 // Main App Content (uses contexts)
 const AppContent: React.FC = () => {
-  const { isAuthenticated, userProfile, isLoading: authLoading, login, logout, updateProfile, updateEnglishLevel } = useAuth();
+  const { isAuthenticated, userProfile, isLoading: authLoading, isPasswordRecovery, login, logout, updateProfile, updateEnglishLevel, completePasswordRecovery } = useAuth();
   const { courses, registrations, courseQueues, isLoading: coursesLoading, toggleRegistration, refreshCourses, updatePriority } = useCourses();
   const { language, theme, isSidebarOpen, activeTab, setLanguage, toggleTheme, setSidebarOpen, setActiveTab, isRtl } = useUI();
 
@@ -134,6 +135,18 @@ const AppContent: React.FC = () => {
   }, [courses, debouncedSearchQuery]);
 
   const hasNoSearchResults = debouncedSearchQuery.trim() && filteredCourses.length === 0;
+
+  // Show password update page when in recovery mode
+  if (isPasswordRecovery) {
+    return (
+      <UpdatePasswordPage 
+        onPasswordUpdated={completePasswordRecovery} 
+        language={language} 
+        setLanguage={setLanguage} 
+        theme={theme} 
+      />
+    );
+  }
 
   if (!isAuthenticated) {
     return <AuthScreen onLoginSuccess={login} language={language} setLanguage={setLanguage} theme={theme} />;

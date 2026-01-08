@@ -6,11 +6,13 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   userProfile: UserProfile;
   isLoading: boolean;
+  isPasswordRecovery: boolean;
   login: () => void;
   logout: () => Promise<void>;
   updateProfile: (profile: UserProfile) => void;
   updateEnglishLevel: (level: EnglishLevel) => Promise<void>;
   refreshProfile: () => Promise<void>;
+  completePasswordRecovery: () => void;
 }
 
 const defaultProfile: UserProfile = {
@@ -37,6 +39,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile>(defaultProfile);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   const loadUserProfile = useCallback(async () => {
     try {
@@ -64,6 +67,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
+        const type = hashParams.get('type');
+        
+        // Check if this is a password recovery flow
+        const isRecoveryFlow = type === 'recovery';
         
         if (accessToken && refreshToken) {
           const { data: { session }, error } = await supabase.auth.setSession({
@@ -72,17 +79,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           });
           
           if (session && !error) {
+            // Clear URL hash
             window.history.replaceState({}, document.title, '/Course-Cous/');
-            setIsAuthenticated(true);
-            await loadUserProfile();
+            
+            if (isRecoveryFlow) {
+              // Password recovery - set flag instead of auto-login
+              setIsPasswordRecovery(true);
+              setIsAuthenticated(true);
+              // Don't load profile yet - let user update password first
+            } else {
+              // Normal login flow
+              setIsAuthenticated(true);
+              await loadUserProfile();
+            }
           }
         }
 
-        // Check existing session
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          setIsAuthenticated(true);
-          await loadUserProfile();
+        // Check existing session (but not if we're in recovery mode)
+        if (!isPasswordRecovery) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            setIsAuthenticated(true);
+            await loadUserProfile();
+          }
         }
 
         // Listen to auth state changes
@@ -91,17 +110,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             console.log('Auth state changed:', event);
           }
           
-          if (event === 'SIGNED_IN' && session) {
+          // Handle PASSWORD_RECOVERY event from Supabase
+          if (event === 'PASSWORD_RECOVERY' && session) {
+            setIsPasswordRecovery(true);
+            setIsAuthenticated(true);
             if (window.location.hash) {
               window.history.replaceState({}, document.title, '/Course-Cous/');
             }
-            setIsAuthenticated(true);
-            loadUserProfile();
+          } else if (event === 'SIGNED_IN' && session) {
+            // Only auto-login if not in password recovery mode
+            if (!isPasswordRecovery) {
+              if (window.location.hash) {
+                window.history.replaceState({}, document.title, '/Course-Cous/');
+              }
+              setIsAuthenticated(true);
+              loadUserProfile();
+            }
           } else if (event === 'SIGNED_OUT') {
             setIsAuthenticated(false);
+            setIsPasswordRecovery(false);
             setUserProfile(defaultProfile);
           } else if (event === 'TOKEN_REFRESHED' && session) {
             setIsAuthenticated(true);
+          } else if (event === 'USER_UPDATED' && session) {
+            // Password was updated successfully
+            if (isPasswordRecovery) {
+              setIsPasswordRecovery(false);
+              loadUserProfile();
+            }
           }
         });
 
@@ -157,15 +193,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUserProfile(prev => ({ ...prev, englishLevel: level }));
   }, []);
 
+  const completePasswordRecovery = useCallback(() => {
+    setIsPasswordRecovery(false);
+    loadUserProfile();
+  }, [loadUserProfile]);
+
   const value: AuthContextValue = {
     isAuthenticated,
     userProfile,
     isLoading,
+    isPasswordRecovery,
     login,
     logout,
     updateProfile,
     updateEnglishLevel,
-    refreshProfile
+    refreshProfile,
+    completePasswordRecovery
   };
 
   return (
