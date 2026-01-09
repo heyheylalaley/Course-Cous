@@ -131,6 +131,29 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
     setSelectedDate(null);
   };
 
+  // Convert URLs in text to clickable links
+  const renderTextWithLinks = (text: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+    
+    return parts.map((part, index) => {
+      if (part.startsWith('http://') || part.startsWith('https://')) {
+        return (
+          <a
+            key={index}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-indigo-600 dark:text-indigo-400 hover:underline break-all"
+          >
+            {part}
+          </a>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
+  };
+
   if (!isOpen) return null;
 
   const selectedDayEvents = selectedDate ? getEventsForDay(parseInt(selectedDate.split('-')[2])) : null;
@@ -312,7 +335,9 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
                                 )}
                               </div>
                               {event.description && (
-                                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 break-words overflow-wrap-anywhere">{event.description}</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 break-words overflow-wrap-anywhere">
+                                  {renderTextWithLinks(event.description)}
+                                </p>
                               )}
                               {!event.isPublic && isAdmin && (event.createdByName || event.createdByEmail) && (
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
