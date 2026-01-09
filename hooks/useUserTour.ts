@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { TourStep } from '../components/UserTour';
 
 const TOUR_STORAGE_KEY = 'ccplearn_user_tour_completed';
-const TOUR_VERSION = '1.0'; // Increment to reset tours for all users
+const TOUR_VERSION = '1.1'; // Increment to reset tours for all users (Updated: Added calendar step)
 
 interface UseUserTourOptions {
   tourId: string;

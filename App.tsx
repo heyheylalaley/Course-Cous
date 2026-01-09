@@ -86,6 +86,17 @@ const AppContent: React.FC = () => {
         content: t.tourDashboardContent || 'View and manage your course registrations here.',
         position: 'right'
         // No action - just highlight the button, don't switch tabs during tour
+      },
+      {
+        id: 'calendar-button',
+        target: '[data-tour="calendar-button"]',
+        title: t.tourCalendarTitle || 'Event Calendar',
+        content: t.tourCalendarContent || 'View the calendar to see scheduled course dates and other events. You can see when courses start and what events are coming up.',
+        position: 'left',
+        action: () => {
+          // Open sidebar to show the calendar button on mobile
+          setSidebarOpen(true);
+        }
       }
     ];
 
@@ -152,7 +163,7 @@ const AppContent: React.FC = () => {
       }
       
       // For regular users, check if they're new
-      const hasCompletedTour = localStorage.getItem('ccplearn_user_tour_completed_main-tour_1.0');
+      const hasCompletedTour = localStorage.getItem('ccplearn_user_tour_completed_main-tour_1.1');
       const isNewUser = (!userProfile.firstName || userProfile.firstName.trim() === '') && 
                         (!userProfile.lastName || userProfile.lastName.trim() === '') &&
                         (!userProfile.name || userProfile.name.trim() === '') &&
@@ -232,7 +243,7 @@ const AppContent: React.FC = () => {
       // Start tour after first login profile is completed
       // Small delay to ensure DOM is ready and profile is updated
       setTimeout(() => {
-        const hasCompletedTour = localStorage.getItem('ccplearn_user_tour_completed_main-tour_1.0');
+        const hasCompletedTour = localStorage.getItem('ccplearn_user_tour_completed_main-tour_1.1');
         if (!hasCompletedTour && !isDemoUser) {
           startTour();
         }
@@ -248,7 +259,7 @@ const AppContent: React.FC = () => {
     setShowFirstLoginModal(false);
     // Start tour even if user skipped profile setup (they're still a new user)
     setTimeout(() => {
-      const hasCompletedTour = localStorage.getItem('ccplearn_user_tour_completed_main-tour_1.0');
+      const hasCompletedTour = localStorage.getItem('ccplearn_user_tour_completed_main-tour_1.1');
       if (!hasCompletedTour && !isDemoUser) {
         startTour();
       }
@@ -424,6 +435,7 @@ const AppContent: React.FC = () => {
             
             {/* Calendar Button */}
             <button 
+              data-tour="calendar-button"
               onClick={() => setShowCalendarModal(true)}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-600 hover:text-green-600 dark:hover:text-green-400 border border-transparent"
             >
