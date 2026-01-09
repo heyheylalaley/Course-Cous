@@ -287,7 +287,16 @@ export const TRANSLATIONS = {
     eventPrivateHint: 'Private events are only visible to administrators',
     eventAddedBy: 'Added by',
     adminNoEvents: 'No events found. Add your first event!',
-    eventSaveError: 'Failed to save event'
+    eventSaveError: 'Failed to save event',
+    adminSortBy: 'Sort by',
+    adminSortEventDateAsc: 'Event Date (Ascending)',
+    adminSortEventDateDesc: 'Event Date (Descending)',
+    adminSortTitleAsc: 'Title (A-Z)',
+    adminSortTitleDesc: 'Title (Z-A)',
+    adminSortPublicFirst: 'Public First',
+    adminSortPrivateFirst: 'Private First',
+    adminSortCreatedAsc: 'Created Date (Oldest First)',
+    adminSortCreatedDesc: 'Created Date (Newest First)'
   },
   ua: {
     loginTitle: 'З поверненням',
@@ -575,7 +584,16 @@ export const TRANSLATIONS = {
     eventPrivateHint: 'Приватні події видимі лише адміністраторам',
     eventAddedBy: 'Додано',
     adminNoEvents: 'Подій не знайдено. Додайте першу подію!',
-    eventSaveError: 'Не вдалося зберегти подію'
+    eventSaveError: 'Не вдалося зберегти подію',
+    adminSortBy: 'Сортувати за',
+    adminSortEventDateAsc: 'Дата події (за зростанням)',
+    adminSortEventDateDesc: 'Дата події (за спаданням)',
+    adminSortTitleAsc: 'Назва (А-Я)',
+    adminSortTitleDesc: 'Назва (Я-А)',
+    adminSortPublicFirst: 'Спочатку публічні',
+    adminSortPrivateFirst: 'Спочатку приватні',
+    adminSortCreatedAsc: 'Дата створення (старіші спочатку)',
+    adminSortCreatedDesc: 'Дата створення (новіші спочатку)'
   },
   ru: {
     loginTitle: 'Добро пожаловать',
@@ -863,7 +881,16 @@ export const TRANSLATIONS = {
     eventPrivateHint: 'Приватные события видны только администраторам',
     eventAddedBy: 'Добавлено',
     adminNoEvents: 'Событий не найдено. Добавьте первое событие!',
-    eventSaveError: 'Не удалось сохранить событие'
+    eventSaveError: 'Не удалось сохранить событие',
+    adminSortBy: 'Сортировать по',
+    adminSortEventDateAsc: 'Дата события (по возрастанию)',
+    adminSortEventDateDesc: 'Дата события (по убыванию)',
+    adminSortTitleAsc: 'Название (А-Я)',
+    adminSortTitleDesc: 'Название (Я-А)',
+    adminSortPublicFirst: 'Сначала публичные',
+    adminSortPrivateFirst: 'Сначала приватные',
+    adminSortCreatedAsc: 'Дата создания (старые сначала)',
+    adminSortCreatedDesc: 'Дата создания (новые сначала)'
   },
   ar: {
     loginTitle: 'مرحبًا بعودتك',
@@ -1151,6 +1178,15 @@ export const TRANSLATIONS = {
     eventPrivateHint: 'الأحداث الخاصة مرئية فقط للمسؤولين',
     eventAddedBy: 'تمت الإضافة بواسطة',
     adminNoEvents: 'لم يتم العثور على أحداث. أضف حدثك الأول!',
-    eventSaveError: 'فشل حفظ الحدث'
+    eventSaveError: 'فشل حفظ الحدث',
+    adminSortBy: 'ترتيب حسب',
+    adminSortEventDateAsc: 'تاريخ الحدث (تصاعدي)',
+    adminSortEventDateDesc: 'تاريخ الحدث (تنازلي)',
+    adminSortTitleAsc: 'العنوان (أ-ي)',
+    adminSortTitleDesc: 'العنوان (ي-أ)',
+    adminSortPublicFirst: 'العامة أولاً',
+    adminSortPrivateFirst: 'الخاصة أولاً',
+    adminSortCreatedAsc: 'تاريخ الإنشاء (الأقدم أولاً)',
+    adminSortCreatedDesc: 'تاريخ الإنشاء (الأحدث أولاً)'
   }
 };

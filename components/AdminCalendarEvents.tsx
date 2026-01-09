@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { CalendarEvent, Language } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { db } from '../services/db';
-import { Calendar, Plus, Edit2, Trash2, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Calendar, Plus, Edit2, Trash2, Loader2, Eye, EyeOff, ArrowUpDown } from 'lucide-react';
 import { CalendarEventModal } from './CalendarEventModal';
 import { ConfirmationModal } from './ConfirmationModal';
 import { AVAILABLE_ICONS } from './AdminCategoryManagement';
@@ -11,6 +11,8 @@ interface AdminCalendarEventsProps {
   language: Language;
 }
 
+type SortOption = 'eventDateAsc' | 'eventDateDesc' | 'titleAsc' | 'titleDesc' | 'isPublicAsc' | 'isPublicDesc' | 'createdAtAsc' | 'createdAtDesc';
+
 export const AdminCalendarEvents: React.FC<AdminCalendarEventsProps> = ({ language }) => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -18,6 +20,7 @@ export const AdminCalendarEvents: React.FC<AdminCalendarEventsProps> = ({ langua
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [deleteConfirmEvent, setDeleteConfirmEvent] = useState<CalendarEvent | null>(null);
+  const [sortOption, setSortOption] = useState<SortOption>('eventDateDesc');
 
   const t = TRANSLATIONS[language] as any;
   const isRtl = language === 'ar';
@@ -91,6 +94,44 @@ export const AdminCalendarEvents: React.FC<AdminCalendarEventsProps> = ({ langua
     return <Calendar className={className} />;
   };
 
+  // Sort events based on selected sort option
+  const sortedEvents = useMemo(() => {
+    const sorted = [...events];
+    
+    sorted.sort((a, b) => {
+      switch (sortOption) {
+        case 'eventDateAsc':
+          return new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime();
+        case 'eventDateDesc':
+          return new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime();
+        case 'titleAsc':
+          return (a.title || '').localeCompare(b.title || '');
+        case 'titleDesc':
+          return (b.title || '').localeCompare(a.title || '');
+        case 'isPublicAsc':
+          // Public first, then private
+          if (a.isPublic === b.isPublic) {
+            return new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime();
+          }
+          return a.isPublic ? -1 : 1;
+        case 'isPublicDesc':
+          // Private first, then public
+          if (a.isPublic === b.isPublic) {
+            return new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime();
+          }
+          return a.isPublic ? 1 : -1;
+        case 'createdAtAsc':
+          return (a.createdAt?.getTime() || 0) - (b.createdAt?.getTime() || 0);
+        case 'createdAtDesc':
+          return (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0);
+        default:
+          return 0;
+      }
+    });
+    
+    return sorted;
+  }, [events, sortOption]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -135,9 +176,31 @@ export const AdminCalendarEvents: React.FC<AdminCalendarEventsProps> = ({ langua
         </div>
       </div>
 
+      {/* Sort options */}
+      <div className="flex items-center gap-3">
+        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+          <ArrowUpDown className="w-4 h-4" />
+          <span>{t.adminSortBy || 'Sort by'}:</span>
+        </label>
+        <select
+          value={sortOption}
+          onChange={(e) => setSortOption(e.target.value as SortOption)}
+          className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/30 outline-none"
+        >
+          <option value="eventDateAsc">{t.adminSortEventDateAsc || 'Event Date (Ascending)'}</option>
+          <option value="eventDateDesc">{t.adminSortEventDateDesc || 'Event Date (Descending)'}</option>
+          <option value="titleAsc">{t.adminSortTitleAsc || 'Title (A-Z)'}</option>
+          <option value="titleDesc">{t.adminSortTitleDesc || 'Title (Z-A)'}</option>
+          <option value="isPublicAsc">{t.adminSortPublicFirst || 'Public First'}</option>
+          <option value="isPublicDesc">{t.adminSortPrivateFirst || 'Private First'}</option>
+          <option value="createdAtAsc">{t.adminSortCreatedAsc || 'Created Date (Oldest First)'}</option>
+          <option value="createdAtDesc">{t.adminSortCreatedDesc || 'Created Date (Newest First)'}</option>
+        </select>
+      </div>
+
       {/* Events list */}
       <div className="space-y-3">
-        {events.map((event) => (
+        {sortedEvents.map((event) => (
           <div
             key={event.id}
             className={`bg-white dark:bg-gray-800 rounded-xl border p-4 ${
@@ -206,7 +269,7 @@ export const AdminCalendarEvents: React.FC<AdminCalendarEventsProps> = ({ langua
         ))}
       </div>
 
-      {events.length === 0 && (
+      {sortedEvents.length === 0 && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
           <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
           <p>{t.adminNoEvents || 'No events found. Add your first event!'}</p>
