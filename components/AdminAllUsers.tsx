@@ -4,9 +4,10 @@ import { db } from '../services/db';
 import { useCourses } from '../hooks/useCourses';
 import { TRANSLATIONS } from '../translations';
 import { ConfirmationModal } from './ConfirmationModal';
+import { AdminUserProfileModal } from './AdminUserProfileModal';
 import { 
   Users, FileSpreadsheet, FileText, Mail, Phone, Calendar, GraduationCap, 
-  ArrowUp, ArrowDown, Filter, Search, CheckCircle, X, BookOpen, Award, ChevronDown, ChevronUp, Trash2
+  ArrowUp, ArrowDown, Filter, Search, CheckCircle, X, BookOpen, Award, ChevronDown, ChevronUp, Trash2, Edit
 } from 'lucide-react';
 
 interface AdminAllUsersProps {
@@ -28,6 +29,8 @@ interface UserWithDetails {
   registeredCourses: string[];
   completedCourses: string[];
   isProfileComplete: boolean;
+  ldcRef?: string;
+  irisId?: string;
 }
 
 type SortField = 'firstName' | 'lastName' | 'email' | 'englishLevel' | 'createdAt' | 'registeredCourses' | 'completedCourses' | 'isProfileComplete';
@@ -60,6 +63,9 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
   // Confirmation modal for removing completion
   const [completionToRemove, setCompletionToRemove] = useState<{ userId: string; courseId: string; courseTitle: string; userName: string } | null>(null);
   const [isRemovingCompletion, setIsRemovingCompletion] = useState(false);
+  
+  // Edit profile modal
+  const [editingUser, setEditingUser] = useState<UserWithDetails | null>(null);
 
   useEffect(() => {
     loadUsers();
@@ -633,6 +639,15 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                     {t.adminCreatedAt || 'Joined'}
                     <SortIcon field="createdAt" />
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    LDC Ref
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    IRIS ID
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    {t.adminActions || 'Actions'}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -724,12 +739,30 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                             </div>
                           ) : '-'}
                         </td>
+                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                          {user.ldcRef || '-'}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                          {user.irisId || '-'}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingUser(user);
+                            }}
+                            className="p-2 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 transition-colors"
+                            title={t.adminEditProfile || 'Edit Profile'}
+                          >
+                            <Edit size={16} />
+                          </button>
+                        </td>
                       </tr>
                       
                       {/* Expanded row showing completed courses */}
                       {isExpanded && hasCompletedCourses && (
                         <tr className="bg-green-50 dark:bg-green-900/10">
-                          <td colSpan={8} className="px-4 py-3">
+                          <td colSpan={11} className="px-4 py-3">
                             <div className="ml-6">
                               <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                                 <Award size={16} className="text-green-600 dark:text-green-400" />
@@ -796,6 +829,34 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
         language={language}
         type="warning"
         isLoading={isRemovingCompletion}
+      />
+
+      {/* Edit User Profile Modal */}
+      <AdminUserProfileModal
+        isOpen={!!editingUser}
+        onClose={() => setEditingUser(null)}
+        onSave={() => {
+          loadUsers();
+        }}
+        language={language}
+        user={editingUser ? {
+          userId: editingUser.userId,
+          email: editingUser.email,
+          firstName: editingUser.firstName,
+          lastName: editingUser.lastName,
+          mobileNumber: editingUser.mobileNumber,
+          address: editingUser.address,
+          eircode: editingUser.eircode,
+          dateOfBirth: editingUser.dateOfBirth,
+          englishLevel: editingUser.englishLevel,
+          isAdmin: editingUser.isAdmin,
+          createdAt: editingUser.createdAt,
+          registeredCourses: editingUser.registeredCourses,
+          completedCourses: editingUser.completedCourses,
+          isProfileComplete: editingUser.isProfileComplete,
+          ldcRef: editingUser.ldcRef,
+          irisId: editingUser.irisId
+        } : null}
       />
     </div>
   );

@@ -429,6 +429,68 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
     }
   },
 
+  // Update user profile by admin (can update any user's profile including admin-only fields)
+  updateUserProfileByAdmin: async (userId: string, profileData: {
+    firstName?: string;
+    lastName?: string;
+    mobileNumber?: string;
+    address?: string;
+    eircode?: string;
+    dateOfBirth?: string;
+    englishLevel?: EnglishLevel;
+    ldcRef?: string;
+    irisId?: string;
+  }): Promise<void> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    // Check if user is admin
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    if (!supabase) {
+      // Mock fallback: not supported for admin operations
+      throw new Error("Supabase not configured");
+    }
+
+    const updateData: any = {};
+    if (profileData.firstName !== undefined) updateData.first_name = profileData.firstName.trim() || null;
+    if (profileData.lastName !== undefined) updateData.last_name = profileData.lastName.trim() || null;
+    if (profileData.mobileNumber !== undefined) updateData.mobile_number = profileData.mobileNumber.trim() || null;
+    if (profileData.address !== undefined) updateData.address = profileData.address.trim() || null;
+    if (profileData.eircode !== undefined) updateData.eircode = profileData.eircode.trim() || null;
+    if (profileData.dateOfBirth !== undefined) updateData.date_of_birth = profileData.dateOfBirth.trim() || null;
+    if (profileData.englishLevel !== undefined) updateData.english_level = profileData.englishLevel;
+    if (profileData.ldcRef !== undefined) updateData.ldc_ref = profileData.ldcRef.trim() || null;
+    if (profileData.irisId !== undefined) updateData.iris_id = profileData.irisId.trim() || null;
+
+    // Check if profile exists
+    const { data: existingProfile, error: selectError } = await supabase
+      .from('profiles')
+      .select('id, email')
+      .eq('id', userId)
+      .single();
+
+    if (selectError && selectError.code === 'PGRST116') {
+      // Profile doesn't exist - this shouldn't happen, but handle it gracefully
+      throw new Error("User profile not found");
+    } else if (selectError) {
+      throw new Error(selectError.message || 'Failed to check profile');
+    } else {
+      // Profile exists, update it
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('id', userId);
+
+      if (updateError) {
+        throw new Error(updateError.message || 'Failed to update profile');
+      }
+    }
+  },
+
   // --- Registration Methods ---
   getRegistrations: async (): Promise<Registration[]> => {
     const session = db.getCurrentSession();
@@ -894,7 +956,9 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
           address: p.address || undefined,
           eircode: p.eircode || undefined,
           dateOfBirth: p.date_of_birth ? new Date(p.date_of_birth).toISOString().split('T')[0] : undefined,
-          isAdmin: p.is_admin || false
+          isAdmin: p.is_admin || false,
+          ldcRef: p.ldc_ref || undefined,
+          irisId: p.iris_id || undefined
         };
       });
     }
@@ -952,7 +1016,9 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
           createdAt: row.created_at ? new Date(row.created_at) : undefined,
           registeredCourses: row.registered_courses || [],
           completedCourses: row.completed_courses || [],
-          isProfileComplete: row.is_profile_complete || false
+          isProfileComplete: row.is_profile_complete || false,
+          ldcRef: row.ldc_ref || undefined,
+          irisId: row.iris_id || undefined
         };
       });
     }
@@ -999,7 +1065,9 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
           dateOfBirth: row.date_of_birth ? new Date(row.date_of_birth).toISOString().split('T')[0] : undefined,
           englishLevel: (row.english_level as EnglishLevel) || 'None',
           registeredAt: new Date(row.registered_at),
-          priority: row.priority || 999
+          priority: row.priority || 999,
+          ldcRef: row.ldc_ref || undefined,
+          irisId: row.iris_id || undefined
         };
       });
     }
@@ -1749,6 +1817,25 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
     if (!session) return [];
 
     const targetUserId = userId || session.id;
+
+    // Return mock data for demo users
+    if (db.isDemoUserSync()) {
+      const completions: Array<{ courseId: string; completedAt: Date }> = [];
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith(`course_completion_${targetUserId}_`)) {
+          try {
+            const data = JSON.parse(localStorage.getItem(key) || '{}');
+            completions.push({
+              courseId: data.courseId,
+              completedAt: new Date(data.completedAt)
+            });
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+      }
+      return completions;
+    }
 
     // If requesting another user's completions, must be admin
     if (targetUserId !== session.id) {

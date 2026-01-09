@@ -47,6 +47,9 @@ GRANT EXECUTE ON FUNCTION update_registration_priorities(UUID, JSONB) TO authent
 -- Заменяет 2 отдельных запроса одним с JOIN
 -- Использование: SELECT * FROM get_course_student_details('course_id');
 
+-- Drop existing function first to allow changing return type
+DROP FUNCTION IF EXISTS get_course_student_details(TEXT);
+
 CREATE OR REPLACE FUNCTION get_course_student_details(p_course_id TEXT)
 RETURNS TABLE (
   user_id UUID,
@@ -59,7 +62,9 @@ RETURNS TABLE (
   date_of_birth DATE,
   english_level TEXT,
   registered_at TIMESTAMPTZ,
-  priority INTEGER
+  priority INTEGER,
+  ldc_ref TEXT,
+  iris_id TEXT
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -78,7 +83,9 @@ BEGIN
     p.date_of_birth,
     p.english_level,
     r.registered_at,
-    r.priority
+    r.priority,
+    p.ldc_ref,
+    p.iris_id
   FROM registrations r
   INNER JOIN profiles p ON r.user_id = p.id
   WHERE r.course_id = p_course_id
@@ -93,6 +100,9 @@ GRANT EXECUTE ON FUNCTION get_course_student_details(TEXT) TO authenticated;
 -- ============================================================================
 -- Заменяет 3 отдельных запроса одним с JOIN
 -- Использование: SELECT * FROM get_all_users_with_details();
+
+-- Drop existing function first to allow changing return type
+DROP FUNCTION IF EXISTS get_all_users_with_details();
 
 CREATE OR REPLACE FUNCTION get_all_users_with_details()
 RETURNS TABLE (
@@ -109,7 +119,9 @@ RETURNS TABLE (
   created_at TIMESTAMPTZ,
   registered_courses TEXT[],
   completed_courses TEXT[],
-  is_profile_complete BOOLEAN
+  is_profile_complete BOOLEAN,
+  ldc_ref TEXT,
+  iris_id TEXT
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -146,13 +158,15 @@ BEGIN
         AND p.date_of_birth IS NOT NULL
       THEN TRUE
       ELSE FALSE
-    END AS is_profile_complete
+    END AS is_profile_complete,
+    p.ldc_ref,
+    p.iris_id
   FROM profiles p
   LEFT JOIN registrations r ON p.id = r.user_id
   LEFT JOIN course_completions c ON p.id = c.user_id
   GROUP BY p.id, p.email, p.first_name, p.last_name, p.mobile_number, 
            p.address, p.eircode, p.date_of_birth, p.english_level, 
-           p.is_admin, p.created_at
+           p.is_admin, p.created_at, p.ldc_ref, p.iris_id
   ORDER BY p.created_at DESC;
 END;
 $$;

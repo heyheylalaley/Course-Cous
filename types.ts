@@ -42,6 +42,8 @@ export interface UserProfile {
   eircode?: string;
   dateOfBirth?: string; // ISO date string (YYYY-MM-DD)
   isAdmin?: boolean; // Admin access flag
+  ldcRef?: string; // LDC Reference (admin only)
+  irisId?: string; // IRIS ID (admin only)
 }
 
 export interface AdminCourseStats {
@@ -64,6 +66,8 @@ export interface AdminStudentDetail {
   priority: number;
   isCompleted?: boolean; // Whether admin marked this course as completed for this user
   completedAt?: Date;
+  ldcRef?: string; // LDC Reference (admin only)
+  irisId?: string; // IRIS ID (admin only)
 }
 
 export interface Registration {
@@ -99,6 +103,8 @@ export interface AdminUserDetail {
   registeredCourses: string[]; // Course IDs the user is registered for
   completedCourses: string[]; // Course IDs marked as completed
   isProfileComplete: boolean;
+  ldcRef?: string; // LDC Reference (admin only)
+  irisId?: string; // IRIS ID (admin only)
 }
 
 export interface CourseCategory {
