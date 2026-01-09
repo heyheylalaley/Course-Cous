@@ -65,23 +65,27 @@ const AppContent: React.FC = () => {
         target: '[data-tour="chat-tab"]',
         title: t.tourChatTitle || 'AI Assistant Chat',
         content: t.tourChatContent || 'Chat with our AI assistant to get personalized course recommendations.',
-        position: 'right',
-        action: () => setActiveTab('chat')
+        position: 'right'
+        // No action - just highlight the button, don't switch tabs during tour
       },
       {
         id: 'sidebar',
         target: '[data-tour="course-catalog"]',
         title: t.tourSidebarTitle || 'Course Catalog',
         content: t.tourSidebarContent || 'Browse all available courses here. Use the search bar to find specific courses.',
-        position: 'left'
+        position: 'left',
+        action: () => {
+          // Open sidebar to show the catalog on mobile
+          setSidebarOpen(true);
+        }
       },
       {
         id: 'dashboard-tab',
         target: '[data-tour="dashboard-tab"]',
         title: t.tourDashboardTitle || 'My Profile',
         content: t.tourDashboardContent || 'View and manage your course registrations here.',
-        position: 'right',
-        action: () => setActiveTab('dashboard')
+        position: 'right'
+        // No action - just highlight the button, don't switch tabs during tour
       }
     ];
 
@@ -92,20 +96,20 @@ const AppContent: React.FC = () => {
         target: '[data-tour="admin-tab"]',
         title: t.tourAdminTitle || 'Admin Panel',
         content: t.tourAdminContent || 'As an admin, you can manage courses and view student registrations.',
-        position: 'right',
-        action: () => setActiveTab('admin')
+        position: 'right'
+        // No action - just highlight the button, don't switch tabs during tour
       });
     }
 
     return baseSteps;
-  }, [language, userProfile.isAdmin, t, setActiveTab]);
+  }, [language, userProfile.isAdmin, t, setSidebarOpen]);
 
   const {
     isOpen: isTourOpen,
     currentStep: tourStep,
     startTour,
     closeTour,
-    completeTour,
+    completeTour: baseCompleteTour,
     setCurrentStep: setTourStep
   } = useUserTour({
     tourId: 'main-tour',
@@ -114,6 +118,26 @@ const AppContent: React.FC = () => {
     autoStart: false, // We'll trigger it manually after first login
     isDemoUser: isDemoUser // Pass demo user flag to skip saving completion state
   });
+
+  // Wrap completeTour to switch to chat and close sidebar after tour
+  const completeTour = useCallback(() => {
+    baseCompleteTour();
+    // After tour completes, switch to chat and close sidebar
+    setActiveTab('chat');
+    setSidebarOpen(false);
+  }, [baseCompleteTour, setActiveTab, setSidebarOpen]);
+
+  // Open sidebar when tour starts (so buttons are visible on mobile)
+  // Keep it open during the entire tour
+  useEffect(() => {
+    if (isTourOpen) {
+      // Open sidebar on mobile to show navigation buttons and catalog
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      if (isMobile) {
+        setSidebarOpen(true);
+      }
+    }
+  }, [isTourOpen, setSidebarOpen]);
 
   // Auto-start tour for new users after first login modal is closed
   // For demo users, always start tour on login

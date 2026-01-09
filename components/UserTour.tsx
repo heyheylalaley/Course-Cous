@@ -190,6 +190,20 @@ export const UserTour: React.FC<UserTourProps> = ({
     };
   }, [isOpen, currentStep, currentStepData]);
 
+  // Execute action when entering a step (not when leaving)
+  useEffect(() => {
+    if (!isOpen || !currentStepData) return;
+    
+    // Execute action when entering this step
+    if (currentStepData.action) {
+      // Small delay to ensure DOM is ready
+      const timeout = setTimeout(() => {
+        currentStepData.action?.();
+      }, 100);
+      return () => clearTimeout(timeout);
+    }
+  }, [isOpen, currentStep, currentStepData]);
+
   useEffect(() => {
     if (!isOpen || !highlightElement) return;
 
@@ -216,9 +230,7 @@ export const UserTour: React.FC<UserTourProps> = ({
   const isLastStep = currentStep === steps.length - 1;
 
   const handleNext = () => {
-    if (currentStepData.action) {
-      currentStepData.action();
-    }
+    // Action is now called when entering a step, not when leaving
     if (isLastStep) {
       onComplete();
     } else {
@@ -380,10 +392,19 @@ export const UserTour: React.FC<UserTourProps> = ({
 
       <style>{`
         .tour-highlight {
-          outline: 3px solid rgba(34, 197, 94, 0.5) !important;
-          outline-offset: 4px !important;
-          border-radius: 8px !important;
-          background-color: rgba(34, 197, 94, 0.1) !important;
+          outline: 4px solid rgba(34, 197, 94, 0.8) !important;
+          outline-offset: 6px !important;
+          border-radius: 12px !important;
+          background-color: rgba(34, 197, 94, 0.15) !important;
+          box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.3), 0 0 20px rgba(34, 197, 94, 0.2) !important;
+          transition: all 0.3s ease !important;
+        }
+        @media (max-width: 768px) {
+          .tour-highlight {
+            outline: 5px solid rgba(34, 197, 94, 0.9) !important;
+            outline-offset: 8px !important;
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.4), 0 0 30px rgba(34, 197, 94, 0.3) !important;
+          }
         }
       `}</style>
     </>
