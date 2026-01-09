@@ -1,6 +1,6 @@
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { UserProfile, Language, Course, EnglishLevel } from '../types';
-import { db } from './db';
+import { db, supabase } from './db';
 
 // Cache for chat session and courses hash
 let chatSession: Chat | null = null;
@@ -37,12 +37,75 @@ const getAiClient = () => {
   return new GoogleGenAI({ apiKey });
 };
 
+// Load courses with all translations for bot (so it can use descriptions in response language)
+const loadCoursesWithAllTranslations = async (): Promise<(Course & { _translations?: Record<string, { title: string | null; description: string }> })[]> => {
+  if (!supabase) {
+    // Fallback: load with default language
+    return await db.getActiveCourses('en') as any;
+  }
+
+  try {
+    // Load all active courses
+    const { data: coursesData, error: coursesError } = await supabase
+      .from('courses')
+      .select('*')
+      .eq('is_active', true)
+      .order('title', { ascending: true });
+
+    if (coursesError) throw new Error(coursesError.message);
+    if (!coursesData || coursesData.length === 0) return [];
+
+    // Load ALL translations for all courses at once
+    const courseIds = coursesData.map((c: any) => c.id);
+    const { data: translationsData, error: translationsError } = await supabase
+      .from('course_translations')
+      .select('course_id, language, title, description')
+      .in('course_id', courseIds);
+
+    if (translationsError && import.meta.env.DEV) {
+      console.warn('[Gemini] Failed to load translations:', translationsError);
+    }
+
+    // Build translations map: courseId -> language -> {title, description}
+    const translationsMap: Record<string, Record<string, { title: string | null; description: string }>> = {};
+    (translationsData || []).forEach((t: any) => {
+      if (!translationsMap[t.course_id]) {
+        translationsMap[t.course_id] = {};
+      }
+      translationsMap[t.course_id][t.language] = {
+        title: t.title,
+        description: t.description
+      };
+    });
+
+    // Return courses with English descriptions (bot will use translations from map)
+    return coursesData.map((c: any) => ({
+      id: c.id,
+      title: c.title,
+      category: c.category,
+      description: c.description, // English description as default
+      difficulty: c.difficulty as 'Beginner' | 'Intermediate' | 'Advanced',
+      nextCourseDate: c.next_course_date ? new Date(c.next_course_date).toISOString().split('T')[0] : undefined,
+      minEnglishLevel: c.min_english_level as EnglishLevel | undefined,
+      isActive: c.is_active,
+      createdAt: c.created_at ? new Date(c.created_at) : undefined,
+      updatedAt: c.updated_at ? new Date(c.updated_at) : undefined,
+      // Store all translations in a custom field for bot
+      _translations: translationsMap[c.id] || {}
+    } as Course & { _translations?: Record<string, { title: string | null; description: string }> }));
+  } catch (error) {
+    console.error('Failed to load courses with translations:', error);
+    // Fallback to single language
+    return await db.getActiveCourses('en') as any;
+  }
+};
+
 // Check if we need to reinitialize the chat session
 const shouldReinitialize = async (language: Language): Promise<{ needsReinit: boolean; courses: Course[]; profile: UserProfile | null; completedCourseIds: string[] }> => {
-  // Load courses from database
+  // Load courses with all translations (not just UI language)
   let availableCourses: Course[] = [];
   try {
-    availableCourses = await db.getActiveCourses('en');
+    availableCourses = await loadCoursesWithAllTranslations();
     
     // Verify no inactive courses slipped through
     availableCourses = availableCourses.filter(c => c.isActive !== false);
@@ -89,10 +152,10 @@ const shouldReinitialize = async (language: Language): Promise<{ needsReinit: bo
 export const initializeChat = async (userProfile?: UserProfile, language: Language = 'en', forcedCourses?: Course[], completedCourseIds?: string[]): Promise<Chat> => {
   const ai = getAiClient();
   
-  // Use provided courses or load from database
+  // Use provided courses or load from database with all translations
   const availableCourses = forcedCourses || await (async () => {
     try {
-      const courses = await db.getActiveCourses('en');
+      const courses = await loadCoursesWithAllTranslations();
       return courses.filter(c => c.isActive !== false);
     } catch (error) {
       console.error('Failed to load courses from database:', error);
@@ -114,9 +177,11 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
     console.log(`[Gemini] Bot has ${availableCourses.length} courses available`);
   }
 
-  // Build compact course list for bot (saves ~60% tokens vs JSON)
+  // Build compact course list for bot with all translations
   // Filter out completed courses from the recommendation list
   const availableForRecommendation = availableCourses.filter(c => !completedIds.includes(c.id));
+  
+  // Build course list with translations - bot should use description in response language
   const courseListForBot = availableForRecommendation.map(c => {
     const level = c.minEnglishLevel || 'None';
     const levelStr = level === 'None' ? '' : ` [${level}+]`;
@@ -124,8 +189,23 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
     const dateStr = c.nextCourseDate 
       ? ` (next: ${new Date(c.nextCourseDate).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })})`
       : '';
-    return `• **${c.title}**${levelStr} — ${c.description}${dateStr}`;
-  }).join('\n');
+    
+    // Get translations if available
+    const translations = (c as any)._translations || {};
+    const enDesc = c.description;
+    const uaDesc = translations['ua']?.description || enDesc;
+    const ruDesc = translations['ru']?.description || enDesc;
+    const arDesc = translations['ar']?.description || enDesc;
+    
+    // Format: Course name with all language descriptions
+    // Bot should use the description in the language it's responding in
+    // When responding in English, use EN description; in Ukrainian, use UA; in Russian, use RU; in Arabic, use AR
+    return `• **${c.title}**${levelStr}${dateStr}
+  [EN] ${enDesc}
+  [UA] ${uaDesc}
+  [RU] ${ruDesc}
+  [AR] ${arDesc}`;
+  }).join('\n\n');
 
   // Build list of completed courses to inform bot
   const completedCoursesList = completedIds.length > 0 

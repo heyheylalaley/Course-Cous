@@ -44,12 +44,15 @@ CREATE INDEX IF NOT EXISTS idx_registrations_priority ON registrations(user_id, 
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER 
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
 BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 -- Triggers for updated_at
 DROP TRIGGER IF EXISTS update_profiles_updated_at ON profiles;
@@ -94,13 +97,17 @@ CREATE POLICY "Users can delete own registrations" ON registrations
 
 -- Function to automatically create profile on user signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER 
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
   INSERT INTO public.profiles (id, email, english_level)
   VALUES (NEW.id, NEW.email, 'None');
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 -- Trigger to create profile on user signup
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
@@ -236,12 +243,15 @@ CREATE INDEX IF NOT EXISTS idx_course_translations_course_id ON course_translati
 CREATE INDEX IF NOT EXISTS idx_course_translations_language ON course_translations(language);
 
 CREATE OR REPLACE FUNCTION update_course_translations_updated_at()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER 
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
 BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 DROP TRIGGER IF EXISTS update_course_translations_updated_at ON course_translations;
 CREATE TRIGGER update_course_translations_updated_at 
@@ -385,6 +395,7 @@ CREATE OR REPLACE FUNCTION get_course_queue_counts()
 RETURNS TABLE(course_id TEXT, queue_length BIGINT) 
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   RETURN QUERY
@@ -517,6 +528,7 @@ CREATE OR REPLACE FUNCTION setup_demo_user(demo_email TEXT DEFAULT 'demo@example
 RETURNS TEXT
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   demo_user_id UUID;
