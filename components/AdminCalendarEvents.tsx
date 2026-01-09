@@ -101,9 +101,27 @@ export const AdminCalendarEvents: React.FC<AdminCalendarEventsProps> = ({ langua
     sorted.sort((a, b) => {
       switch (sortOption) {
         case 'eventDateAsc':
-          return new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime();
+          const dateA = new Date(a.eventDate).getTime();
+          const dateB = new Date(b.eventDate).getTime();
+          if (dateA !== dateB) return dateA - dateB;
+          // If dates are equal, sort by time
+          if (a.eventTime && b.eventTime) {
+            return a.eventTime.localeCompare(b.eventTime);
+          }
+          if (a.eventTime && !b.eventTime) return -1;
+          if (!a.eventTime && b.eventTime) return 1;
+          return 0;
         case 'eventDateDesc':
-          return new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime();
+          const dateADesc = new Date(a.eventDate).getTime();
+          const dateBDesc = new Date(b.eventDate).getTime();
+          if (dateADesc !== dateBDesc) return dateBDesc - dateADesc;
+          // If dates are equal, sort by time (descending)
+          if (a.eventTime && b.eventTime) {
+            return b.eventTime.localeCompare(a.eventTime);
+          }
+          if (a.eventTime && !b.eventTime) return -1;
+          if (!a.eventTime && b.eventTime) return 1;
+          return 0;
         case 'titleAsc':
           return (a.title || '').localeCompare(b.title || '');
         case 'titleDesc':
@@ -111,13 +129,31 @@ export const AdminCalendarEvents: React.FC<AdminCalendarEventsProps> = ({ langua
         case 'isPublicAsc':
           // Public first, then private
           if (a.isPublic === b.isPublic) {
-            return new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime();
+            const dateA = new Date(a.eventDate).getTime();
+            const dateB = new Date(b.eventDate).getTime();
+            if (dateA !== dateB) return dateA - dateB;
+            // If dates are equal, sort by time
+            if (a.eventTime && b.eventTime) {
+              return a.eventTime.localeCompare(b.eventTime);
+            }
+            if (a.eventTime && !b.eventTime) return -1;
+            if (!a.eventTime && b.eventTime) return 1;
+            return 0;
           }
           return a.isPublic ? -1 : 1;
         case 'isPublicDesc':
           // Private first, then public
           if (a.isPublic === b.isPublic) {
-            return new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime();
+            const dateA = new Date(a.eventDate).getTime();
+            const dateB = new Date(b.eventDate).getTime();
+            if (dateA !== dateB) return dateA - dateB;
+            // If dates are equal, sort by time
+            if (a.eventTime && b.eventTime) {
+              return a.eventTime.localeCompare(b.eventTime);
+            }
+            if (a.eventTime && !b.eventTime) return -1;
+            if (!a.eventTime && b.eventTime) return 1;
+            return 0;
           }
           return a.isPublic ? 1 : -1;
         case 'createdAtAsc':
@@ -235,6 +271,11 @@ export const AdminCalendarEvents: React.FC<AdminCalendarEventsProps> = ({ langua
                   </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     {formatDate(event.eventDate)}
+                    {event.eventTime && (
+                      <span className="ml-2 font-medium">
+                        {event.eventTime}
+                      </span>
+                    )}
                   </p>
                   {event.description && (
                     <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 line-clamp-2 break-words overflow-wrap-anywhere">
