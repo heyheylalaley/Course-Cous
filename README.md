@@ -57,37 +57,49 @@ CCPLearn is a full-stack web application designed for Cork City Partnership to h
 
 | Feature | Description |
 |---------|-------------|
-| **Streaming Responses** | Real-time text generation using Google Gemini 2.0 Flash |
-| **Context Awareness** | Remembers user's English level and conversation history |
-| **Language Detection** | Automatically responds in user's language (EN, RU, UA, AR) |
-| **Course Recommendations** | Smart suggestions based on English level requirements |
-| **External Resources** | Provides links to job sites, housing, English courses, etc. |
-| **Clickable Course Names** | Bold course names in chat open registration modal |
-| **External Links** | Links open in new tab with visual indicators |
+| **Streaming Responses** | Real-time text generation using Google Gemini 2.0 Flash with token-by-token streaming |
+| **Context Awareness** | Remembers user's English level, completed courses, and full conversation history |
+| **Language Detection** | Automatically detects and responds in user's language (EN, RU, UA, AR) |
+| **Course Recommendations** | Smart suggestions based on English level requirements and course availability |
+| **External Resources** | Provides links to job sites, housing, English courses, government services, etc. |
+| **Clickable Course Names** | Bold course names in chat open registration modal directly |
+| **External Links** | Links open in new tab with visual indicators and proper security |
+| **Chat History Persistence** | All conversations saved to database and restored on login |
+| **Session Management** | Intelligent session caching with automatic reinitialization on course/profile changes |
+| **Markdown Support** | Rich text formatting with React Markdown for better readability |
+| **Error Handling** | Graceful error recovery with retry logic and user-friendly messages |
 
 ### 📚 Course Management
 
-- **Course Catalog**: Browse all available courses with filtering
+- **Course Catalog**: Browse all available courses with search and filtering
 - **Course Details**: View description, schedule, requirements, and availability
 - **Real-time Availability**: See how many spots are left in each course
-- **Priority Queue**: Position tracking when courses are full
-- **Course Completion**: Track completed courses separately
+- **Priority Queue**: Position tracking when courses are full (automatic numbering)
+- **Course Completion**: Track completed courses separately from active registrations
+- **Category Organization**: Courses organized by categories with visual indicators
+- **Calendar Integration**: View all course dates and events in calendar format
 
 ### 👤 User Features
 
-- **Profile Management**: Set name, phone number, and English level
+- **Profile Management**: Set name, phone number, address, eircode, date of birth, and English level
 - **Registration Limit**: Maximum 3 active course registrations
-- **Registration Priority**: Automatic position assignment (1, 2, 3...)
-- **Course History**: View completed courses
-- **Language Preference**: Switch UI language anytime
+- **Registration Priority**: Automatic position assignment (1, 2, 3...) when courses are full
+- **Course History**: View completed courses separately from active registrations
+- **Language Preference**: Switch UI language anytime (EN, UA, RU, AR)
 - **Dark Mode**: Toggle with localStorage persistence
+- **Calendar View**: View all course dates and events in a calendar interface
+- **Contact Information**: Quick access to organization contact details
+- **Chat History**: Persistent conversation history saved to database
+- **Password Recovery**: Email-based password reset functionality
 
 ### 🔐 Authentication
 
-- **Email/Password**: Traditional signup and login
-- **Google OAuth**: One-click sign-in with Google
-- **Session Persistence**: Stay logged in across browser sessions
-- **Secure Tokens**: JWT-based authentication via Supabase
+- **Email/Password**: Traditional signup and login with validation
+- **Google OAuth**: One-click sign-in with Google account
+- **Password Recovery**: Email-based password reset flow with secure token validation
+- **Session Persistence**: Stay logged in across browser sessions with secure token storage
+- **Secure Tokens**: JWT-based authentication via Supabase Auth
+- **Profile Onboarding**: First-time user setup modal for essential profile information
 
 ### 👨‍💼 Admin Panel
 
@@ -147,17 +159,22 @@ CCPLearn is a full-stack web application designed for Cork City Partnership to h
 │   ├── AuthScreen.tsx         # Login/signup forms
 │   ├── ChatInterface.tsx      # AI chat with message history
 │   ├── ConfirmationModal.tsx  # Reusable confirmation dialog
+│   ├── CalendarModal.tsx       # Calendar view for course dates and events
 │   ├── ContactModal.tsx       # Contact information popup
 │   ├── CourseCard.tsx         # Course display card component
 │   ├── CourseDetailsModal.tsx # Course information modal
 │   ├── CourseEditModal.tsx    # Admin: course editor
+│   ├── CourseRegistrationConfirmModal.tsx # Course registration confirmation
 │   ├── Dashboard.tsx          # User dashboard with sidebar
+│   ├── EmailConfirmationModal.tsx # Email confirmation dialog
+│   ├── FirstLoginProfileModal.tsx # First-time user profile setup
 │   ├── LanguageLevelModal.tsx # English level selection
 │   ├── MessageBubble.tsx      # Chat message with markdown support
 │   ├── NameModal.tsx          # Name input modal
 │   ├── OnboardingModal.tsx    # First-time user setup
 │   ├── ProfileInfoModal.tsx   # User profile editor
-│   └── Skeletons.tsx          # Loading skeleton components
+│   ├── Skeletons.tsx          # Loading skeleton components
+│   └── UpdatePasswordPage.tsx # Password recovery page
 │
 ├── contexts/                   # React Context providers
 │   ├── AuthContext.tsx        # Authentication state management
@@ -275,7 +292,9 @@ npm run dev
 
 7. **Open in browser**
 
-Navigate to `http://localhost:3000`
+Navigate to `http://localhost:5173` (default Vite port)
+
+> **Note**: The port may vary. Check the terminal output for the actual URL.
 
 ---
 
@@ -320,12 +339,15 @@ VITE_GOOGLE_TRANSLATE_API_KEY=your-translate-api-key
 
 | Table | Purpose |
 |-------|---------|
-| `profiles` | User profiles (name, phone, English level) |
-| `courses` | Course catalog (title, description, schedule, requirements) |
-| `course_translations` | Translated course content (UA, RU, AR) |
-| `registrations` | User course registrations with priority |
-| `course_completions` | Completed course records |
-| `bot_instructions` | AI configuration (main, contacts, links) |
+| `profiles` | User profiles (name, phone, address, eircode, date of birth, English level, admin flag) |
+| `courses` | Course catalog (title, description, schedule, requirements, difficulty, category, active status) |
+| `course_translations` | Translated course content (UA, RU, AR) for multilingual support |
+| `course_categories` | Course categories with icons and colors for organization |
+| `registrations` | User course registrations with priority queue system |
+| `course_completions` | Completed course records with admin tracking |
+| `bot_instructions` | AI configuration (main instructions, contacts, external links) |
+| `chat_messages` | Persistent chat history for all users |
+| `calendar_events` | Public and private calendar events for course dates and announcements |
 
 ### Row Level Security (RLS)
 
@@ -418,18 +440,21 @@ KNOWLEDGE BASE
 - Registration trends
 
 #### 📚 Course Management
-- **Create Course**: Add new courses with all details
-- **Edit Course**: Modify existing course information
-- **Delete Course**: Remove courses (with confirmation)
-- **Translate**: Auto-translate to UA/RU/AR using Google Translate
-- **Toggle Active**: Show/hide courses from catalog
+- **Create Course**: Add new courses with all details (title, description, category, difficulty, dates, English level requirements)
+- **Edit Course**: Modify existing course information with real-time updates
+- **Delete Course**: Remove courses (with confirmation and safety checks)
+- **Translate**: Auto-translate course descriptions to UA/RU/AR using Google Translate API
+- **Toggle Active**: Show/hide courses from catalog without deletion
+- **Category Management**: Organize courses by categories with custom icons and colors
+- **Calendar Events**: Create and manage calendar events for course dates and announcements
 
 #### 👥 Student Management
-- View registrations per course
-- See student profiles (name, phone, English level)
-- Mark courses as completed
-- Remove students from courses
-- Export data to Excel
+- View registrations per course with priority queue
+- See complete student profiles (name, phone, address, English level, etc.)
+- Mark courses as completed with timestamp tracking
+- Remove students from courses with confirmation
+- Export student data to Excel (XLSX format)
+- Filter and search students by various criteria
 
 #### 🤖 Bot Instructions
 - Edit main AI instructions
@@ -438,10 +463,17 @@ KNOWLEDGE BASE
 - Preview changes before saving
 
 #### 👤 All Users
-- View all registered users
-- See profile completion status
-- Filter by English level
-- Export user data
+- View all registered users with complete profiles
+- See profile completion status at a glance
+- Filter by English level, registration status, and more
+- Export user data to Excel for reporting
+- View user's registered and completed courses
+
+#### 📅 Calendar Management
+- Create public and private calendar events
+- View all course dates in calendar format
+- Manage course schedules and announcements
+- Filter events by visibility (public/admin-only)
 
 ---
 
@@ -451,12 +483,15 @@ KNOWLEDGE BASE
 
 ```
 1. Landing Page → Click "Sign Up"
-2. Enter email and password (or use Google)
-3. Onboarding Modal:
-   - Enter name
+2. Enter email and password (or use Google OAuth)
+3. First Login Profile Modal appears:
+   - Enter first name and last name
    - Enter phone number
+   - Enter address and eircode (optional)
+   - Enter date of birth (optional)
    - Select English level
 4. Dashboard with AI chat ready
+5. Welcome message from AI assistant
 ```
 
 ### Returning User
@@ -470,12 +505,13 @@ KNOWLEDGE BASE
 ### Course Registration
 
 ```
-1. Browse courses in sidebar or ask AI
+1. Browse courses in sidebar or ask AI for recommendations
 2. Click course name (in chat or sidebar)
-3. View course details modal
+3. View course details modal with full information
 4. Click "Register" button
-5. Confirmation message
-6. Course appears in "My Courses" section
+5. Confirmation modal appears
+6. Course appears in "My Courses" section with priority number
+7. If course is full, user is added to priority queue
 ```
 
 ### Course Completion (Admin)
@@ -505,21 +541,23 @@ KNOWLEDGE BASE
 
 | Optimization | Implementation |
 |--------------|----------------|
-| React.memo | Prevent unnecessary re-renders |
-| useMemo/useCallback | Memoize expensive computations |
-| Lazy loading | `React.lazy()` for heavy components |
-| Skeleton loaders | Perceived performance improvement |
-| useDebounce | Throttle search input |
-| Optimistic updates | Instant UI feedback |
+| React.memo | Prevent unnecessary re-renders of course cards and messages |
+| useMemo/useCallback | Memoize expensive computations (filtered courses, translations) |
+| Lazy loading | `React.lazy()` for heavy components (Chat, Dashboard, Admin) |
+| Skeleton loaders | Perceived performance improvement during data loading |
+| useDebounce | Throttle search input (300ms delay) |
+| Optimistic updates | Instant UI feedback for registrations and profile updates |
+| Code splitting | Separate bundles for admin and user features |
 
 ### Data Fetching
 
 | Optimization | Implementation |
 |--------------|----------------|
-| Supabase Realtime | Live updates without polling |
-| Session caching | Gemini context persistence |
-| Local storage | Theme and language preferences |
-| IndexedDB fallback | Offline mock data support |
+| Supabase Realtime | Live updates without polling for courses and registrations |
+| Session caching | Gemini context persistence with smart reinitialization |
+| Local storage | Theme and language preferences with persistence |
+| Chat history caching | Database-backed chat history with efficient loading |
+| Optimistic UI updates | Instant feedback before server confirmation |
 
 ---
 
@@ -601,8 +639,15 @@ npm run preview
 
 #### Translations not working
 - `VITE_GOOGLE_TRANSLATE_API_KEY` is optional
-- Without it, translation buttons won't appear
-- Check Google Cloud Console for API status
+- Without it, translation buttons won't appear in admin panel
+- Check Google Cloud Console for API status and billing
+- Ensure Cloud Translation API is enabled in your project
+
+#### Chat history not loading
+- Check Supabase database connection
+- Verify `chat_messages` table exists and has proper RLS policies
+- Check browser console for database errors
+- Ensure user is properly authenticated
 
 ### Getting Help
 
@@ -636,8 +681,26 @@ Contributions are welcome! Please follow these steps:
 
 ## 📖 Additional Documentation
 
-- [SUPABASE-SETUP.md](SUPABASE-SETUP.md) - Detailed database setup guide
-- [GOOGLE-TRANSLATE-SETUP.md](GOOGLE-TRANSLATE-SETUP.md) - Translation API configuration
+- [SUPABASE-SETUP.md](SUPABASE-SETUP.md) - Detailed database setup guide with RLS policies
+- [GOOGLE-TRANSLATE-SETUP.md](GOOGLE-TRANSLATE-SETUP.md) - Translation API configuration and usage
+- [SUPABASE-EMAIL-TEMPLATES.md](SUPABASE-EMAIL-TEMPLATES.md) - Email template configuration for password recovery
+
+## 🎨 UI/UX Features
+
+### Design Principles
+- **Responsive Design**: Mobile-first approach with breakpoints for all screen sizes
+- **Accessibility**: Semantic HTML, ARIA labels, keyboard navigation support
+- **RTL Support**: Full right-to-left layout support for Arabic language
+- **Dark Mode**: Complete dark theme with smooth transitions
+- **Loading States**: Skeleton loaders and spinners for better perceived performance
+- **Error Handling**: User-friendly error messages with actionable suggestions
+
+### User Experience
+- **Onboarding Flow**: Smooth first-time user experience with guided setup
+- **Real-time Feedback**: Instant UI updates for all user actions
+- **Search & Filter**: Fast course search with debounced input
+- **Modal System**: Consistent modal patterns for confirmations and information
+- **Toast Notifications**: Non-intrusive success/error messages
 
 ---
 

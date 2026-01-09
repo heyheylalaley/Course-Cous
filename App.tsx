@@ -11,7 +11,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CoursesProvider, useCourses } from './contexts/CoursesContext';
 import { UIProvider, useUI } from './contexts/UIContext';
 import { useDebounce } from './hooks/useDebounce';
-import { Menu, X, MessageSquare, LayoutDashboard, LogOut, Shield, Info, Calendar } from 'lucide-react';
+import { Menu, X, MessageSquare, LayoutDashboard, LogOut, Shield, Info, Calendar, Sparkles } from 'lucide-react';
 import { ContactModal } from './components/ContactModal';
 import { CalendarModal } from './components/CalendarModal';
 import { UpdatePasswordPage } from './components/UpdatePasswordPage';
@@ -19,6 +19,8 @@ import { db } from './services/db';
 import { EnglishLevel, Course } from './types';
 import { TRANSLATIONS } from './translations';
 import { Moon, Sun } from 'lucide-react';
+import { UserTour, TourStep } from './components/UserTour';
+import { useUserTour } from './hooks/useUserTour';
 
 // Lazy load heavy components
 const ChatInterface = lazy(() => import('./components/ChatInterface').then(m => ({ default: m.ChatInterface })));
@@ -47,6 +49,91 @@ const AppContent: React.FC = () => {
   const debouncedSearchQuery = useDebounce(courseSearchQuery, 300);
 
   const t = TRANSLATIONS[language] as any;
+
+  // User Tour setup
+  const tourSteps: TourStep[] = useMemo(() => {
+    const baseSteps: TourStep[] = [
+      {
+        id: 'welcome',
+        target: 'body',
+        title: t.tourWelcomeTitle || 'Welcome to CCPLearn!',
+        content: t.tourWelcomeContent || 'Let\'s take a quick tour to help you get started.',
+        position: 'center'
+      },
+      {
+        id: 'chat-tab',
+        target: '[data-tour="chat-tab"]',
+        title: t.tourChatTitle || 'AI Assistant Chat',
+        content: t.tourChatContent || 'Chat with our AI assistant to get personalized course recommendations.',
+        position: 'right',
+        action: () => setActiveTab('chat')
+      },
+      {
+        id: 'sidebar',
+        target: '[data-tour="course-catalog"]',
+        title: t.tourSidebarTitle || 'Course Catalog',
+        content: t.tourSidebarContent || 'Browse all available courses here. Use the search bar to find specific courses.',
+        position: 'left'
+      },
+      {
+        id: 'dashboard-tab',
+        target: '[data-tour="dashboard-tab"]',
+        title: t.tourDashboardTitle || 'My Profile',
+        content: t.tourDashboardContent || 'View and manage your course registrations here.',
+        position: 'right',
+        action: () => setActiveTab('dashboard')
+      }
+    ];
+
+    // Add admin tour step if user is admin
+    if (userProfile.isAdmin) {
+      baseSteps.push({
+        id: 'admin-tab',
+        target: '[data-tour="admin-tab"]',
+        title: t.tourAdminTitle || 'Admin Panel',
+        content: t.tourAdminContent || 'As an admin, you can manage courses and view student registrations.',
+        position: 'right',
+        action: () => setActiveTab('admin')
+      });
+    }
+
+    return baseSteps;
+  }, [language, userProfile.isAdmin, t, setActiveTab]);
+
+  const {
+    isOpen: isTourOpen,
+    currentStep: tourStep,
+    startTour,
+    closeTour,
+    completeTour,
+    setCurrentStep: setTourStep
+  } = useUserTour({
+    tourId: 'main-tour',
+    steps: tourSteps,
+    enabled: isAuthenticated && !authLoading,
+    autoStart: false // We'll trigger it manually after first login
+  });
+
+  // Auto-start tour for new users after first login modal is closed
+  useEffect(() => {
+    if (isAuthenticated && !authLoading && !showFirstLoginModal && userProfile.id) {
+      const hasCompletedTour = localStorage.getItem('ccplearn_user_tour_completed_main-tour_1.0');
+      const isNewUser = (!userProfile.firstName || userProfile.firstName.trim() === '') && 
+                        (!userProfile.lastName || userProfile.lastName.trim() === '') &&
+                        (!userProfile.name || userProfile.name.trim() === '') &&
+                        (userProfile.englishLevel === 'None') &&
+                        (!userProfile.mobileNumber || userProfile.mobileNumber.trim() === '');
+      
+      // Start tour for new users who haven't completed it
+      if (isNewUser && !hasCompletedTour) {
+        // Small delay to ensure DOM is ready
+        const timer = setTimeout(() => {
+          startTour();
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isAuthenticated, authLoading, showFirstLoginModal, userProfile, startTour]);
 
   // Check if first login profile setup is needed
   useEffect(() => {
@@ -242,6 +329,7 @@ const AppContent: React.FC = () => {
           {/* Sidebar Navigation */}
           <div className="p-4 space-y-2">
             <button 
+              data-tour="chat-tab"
               onClick={() => setActiveTab('chat')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm
                 ${activeTab === 'chat' 
@@ -253,6 +341,7 @@ const AppContent: React.FC = () => {
               {t.chatTab}
             </button>
             <button 
+              data-tour="dashboard-tab"
               onClick={() => setActiveTab('dashboard')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm
                 ${activeTab === 'dashboard' 
@@ -302,7 +391,7 @@ const AppContent: React.FC = () => {
           </div>
 
           {/* Course Catalog */}
-          <div className="flex-1 overflow-y-auto px-3 sm:px-4 pb-4 custom-scrollbar flex flex-col">
+          <div data-tour="course-catalog" className="flex-1 overflow-y-auto px-3 sm:px-4 pb-4 custom-scrollbar flex flex-col">
             <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 px-1 mt-2">{t.quickCatalog}</h3>
             
             {/* Search Input */}
@@ -363,6 +452,13 @@ const AppContent: React.FC = () => {
                 ))}
               </div>
               <div className="flex gap-2">
+                <button 
+                  onClick={startTour}
+                  className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  title={t.tourStartTour || 'Start Tour'}
+                >
+                  <Sparkles size={18} />
+                </button>
                 <button 
                   onClick={toggleTheme}
                   className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -458,6 +554,15 @@ const AppContent: React.FC = () => {
           confirmText={t.logoutBtn || 'Log Out'}
           language={language}
           type="danger"
+        />
+        <UserTour
+          isOpen={isTourOpen}
+          steps={tourSteps}
+          onClose={closeTour}
+          onComplete={completeTour}
+          language={language}
+          currentStep={tourStep}
+          onStepChange={setTourStep}
         />
       </div>
     </>
