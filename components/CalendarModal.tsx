@@ -213,7 +213,7 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
                   }
 
                   const dateStr = `${calendarData.year}-${String(calendarData.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                  const { hasCourses, hasEvents } = hasEvents(day);
+                  const { hasCourses: dayHasCourses, hasEvents: dayHasEvents } = hasEvents(day);
                   const isSelected = selectedDate === dateStr;
                   const isTodayDate = isToday(day);
 
@@ -230,12 +230,12 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
                       }`}
                     >
                       <span className="text-sm font-medium">{day}</span>
-                      {(hasCourses || hasEvents) && (
+                      {(dayHasCourses || dayHasEvents) && (
                         <div className="flex gap-0.5 mt-0.5">
-                          {hasCourses && (
+                          {dayHasCourses && (
                             <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-green-300' : 'bg-green-500'}`} />
                           )}
-                          {hasEvents && (
+                          {dayHasEvents && (
                             <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-purple-300' : 'bg-purple-500'}`} />
                           )}
                         </div>
