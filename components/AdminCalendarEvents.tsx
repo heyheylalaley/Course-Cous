@@ -282,7 +282,7 @@ export const AdminCalendarEvents: React.FC<AdminCalendarEventsProps> = ({ langua
                       {event.description}
                     </p>
                   )}
-                  {!event.isPublic && (event.createdByName || event.createdByEmail) && (
+                  {(event.createdByName || event.createdByEmail) && (
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       {t.eventAddedBy || 'Added by'} {event.createdByName || event.createdByEmail}
                     </p>
