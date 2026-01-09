@@ -103,6 +103,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
     
     const loadData = async () => {
       try {
+        // Always reload registrations to get latest priorities
         const regs = await db.getRegistrations();
         setCourseRegistrations(regs);
         
@@ -174,10 +175,16 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
     if (newPriority < 1 || newPriority > courseRegistrations.length) return;
 
     try {
-      await db.updateRegistrationPriority(courseId, newPriority);
+      // Update priority via context
+      if (onUpdatePriority) {
+        await onUpdatePriority(courseId, newPriority);
+      } else {
+        // Fallback if context not available
+        await db.updateRegistrationPriority(courseId, newPriority);
+      }
+      // Reload registrations to get updated data
       const updated = await db.getRegistrations();
       setCourseRegistrations(updated);
-      onUpdatePriority?.(courseId, newPriority);
     } catch (error) {
       console.error("Failed to update priority", error);
     }

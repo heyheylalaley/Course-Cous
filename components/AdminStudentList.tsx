@@ -194,6 +194,8 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
       t.adminExportEircode || 'Eircode',
       t.adminExportDateOfBirth || 'Date of Birth',
       t.adminExportEnglishLevel || 'English Level',
+      'LDC Ref',
+      'IRIS ID',
       t.adminExportPriority || 'Priority',
       t.adminExportRegisteredAt || 'Registered At'
     ];
@@ -207,6 +209,8 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
       student.eircode || '',
       student.dateOfBirth || '',
       student.englishLevel || '',
+      student.ldcRef || '',
+      student.irisId || '',
       student.priority?.toString() || '',
       student.registeredAt.toLocaleString()
     ]);
@@ -280,6 +284,8 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
         t.adminExportEircode || 'Eircode',
         t.adminExportDateOfBirth || 'Date of Birth',
         t.adminExportEnglishLevel || 'English Level',
+        'LDC Ref',
+        'IRIS ID',
         t.adminExportPriority || 'Priority',
         t.adminExportRegisteredAt || 'Registered At'
       ];
@@ -293,8 +299,10 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
         [headers[5]]: student.eircode || '',
         [headers[6]]: student.dateOfBirth || '',
         [headers[7]]: student.englishLevel || '',
-        [headers[8]]: student.priority?.toString() || '',
-        [headers[9]]: student.registeredAt.toLocaleString()
+        [headers[8]]: student.ldcRef || '',
+        [headers[9]]: student.irisId || '',
+        [headers[10]]: student.priority?.toString() || '',
+        [headers[11]]: student.registeredAt.toLocaleString()
       }));
 
       const ws = XLSX.utils.json_to_sheet(data);
