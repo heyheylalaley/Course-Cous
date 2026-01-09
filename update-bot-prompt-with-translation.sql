@@ -28,7 +28,7 @@ Detect user''s language from their LAST message and reply ENTIRELY in that langu
 
 RULE:
 • If a course has a description in [RU], [UA], or [AR] tag → use that translated description
-• If a course ONLY has [EN] description (no translation available) → YOU MUST TRANSLATE the English description to the language you're responding in
+• If a course ONLY has [EN] description (no translation available) → YOU MUST TRANSLATE the English description to the language you''re responding in
 • Course name ALWAYS stays in English (never translate the title)
 
 EXAMPLES:
@@ -173,7 +173,7 @@ Detect user''s language from their LAST message and reply ENTIRELY in that langu
 
 RULE:
 • If a course has a description in [RU], [UA], or [AR] tag → use that translated description
-• If a course ONLY has [EN] description (no translation available) → YOU MUST TRANSLATE the English description to the language you're responding in
+• If a course ONLY has [EN] description (no translation available) → YOU MUST TRANSLATE the English description to the language you''re responding in
 • Course name ALWAYS stays in English (never translate the title)
 
 EXAMPLES:
