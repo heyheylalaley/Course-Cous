@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Language } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { db } from '../services/db';
-import { Settings, Play, Loader2, Save, Eye, EyeOff } from 'lucide-react';
+import { Settings, Play, Loader2 } from 'lucide-react';
 
 interface AdminAppSettingsProps {
   language: Language;
@@ -10,9 +10,6 @@ interface AdminAppSettingsProps {
 
 export const AdminAppSettings: React.FC<AdminAppSettingsProps> = ({ language }) => {
   const [demoEnabled, setDemoEnabled] = useState(false);
-  const [demoEmail, setDemoEmail] = useState('');
-  const [demoPassword, setDemoPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -30,12 +27,6 @@ export const AdminAppSettings: React.FC<AdminAppSettingsProps> = ({ language }) 
     try {
       const enabled = await db.getDemoEnabled();
       setDemoEnabled(enabled);
-      
-      const credentials = await db.getDemoCredentials();
-      if (credentials) {
-        setDemoEmail(credentials.email);
-        setDemoPassword(credentials.password);
-      }
     } catch (err: any) {
       setError(err.message || 'Failed to load settings');
     } finally {
@@ -61,32 +52,6 @@ export const AdminAppSettings: React.FC<AdminAppSettingsProps> = ({ language }) 
       }
     } catch (err: any) {
       setError(err.message || 'Failed to save setting');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleSaveCredentials = async () => {
-    if (!demoEmail || !demoPassword) {
-      setError('Email and password are required');
-      return;
-    }
-    
-    setIsSaving(true);
-    setError(null);
-    setSaveSuccess(false);
-    
-    try {
-      const { error } = await db.setDemoCredentials(demoEmail, demoPassword);
-      
-      if (error) {
-        setError(error);
-      } else {
-        setSaveSuccess(true);
-        setTimeout(() => setSaveSuccess(false), 2000);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to save credentials');
     } finally {
       setIsSaving(false);
     }
@@ -166,65 +131,11 @@ export const AdminAppSettings: React.FC<AdminAppSettingsProps> = ({ language }) 
         </div>
       </div>
 
-      {/* Demo Credentials */}
+      {/* Demo Mode Info */}
       {demoEnabled && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 space-y-4">
-          <h3 className="font-medium text-gray-900 dark:text-white mb-4">
-            {t.adminDemoCredentials}
-          </h3>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {t.adminDemoEmail}
-            </label>
-            <input
-              type="email"
-              value={demoEmail}
-              onChange={(e) => setDemoEmail(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 focus:border-indigo-500 dark:focus:border-indigo-600 outline-none transition-all"
-              placeholder="demo@example.com"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {t.adminDemoPassword}
-            </label>
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={demoPassword}
-                onChange={(e) => setDemoPassword(e.target.value)}
-                className="w-full px-4 py-2 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 focus:border-indigo-500 dark:focus:border-indigo-600 outline-none transition-all"
-                placeholder="••••••••"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-          </div>
-
-          <div className="pt-2">
-            <button
-              onClick={handleSaveCredentials}
-              disabled={isSaving || !demoEmail || !demoPassword}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSaving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save size={18} />
-              )}
-              {t.save}
-            </button>
-          </div>
-
-          <p className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg">
-            {t.adminDemoNote}
+        <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800 p-4">
+          <p className="text-sm text-amber-700 dark:text-amber-300">
+            {(t as any).demoModeAdminInfo || 'Demo mode allows users to explore the app without registration. Demo users cannot register for courses - they need to create an account to do so.'}
           </p>
         </div>
       )}

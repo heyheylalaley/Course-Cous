@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
-import { Message, Language } from '../types';
+import { Message, Language, Course } from '../types';
 import { sendMessageToGemini, initializeChat } from '../services/geminiService';
 import { MessageBubble } from './MessageBubble';
 import { AlertModal } from './AlertModal';
+import { CourseRegistrationConfirmModal } from './CourseRegistrationConfirmModal';
 import { Send, Sparkles, Loader2, Menu, Trash2 } from 'lucide-react';
 import { db } from '../services/db';
 import { TRANSLATIONS } from '../translations';
@@ -26,6 +27,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
     actionButton?: { text: string; onClick: () => void };
   }>({ isOpen: false, message: '', type: 'info' });
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    course: Course | null;
+  }>({ isOpen: false, course: null });
+  const [isRegistering, setIsRegistering] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
   const t = TRANSLATIONS[language] as any;
@@ -36,8 +42,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
   // Get UI context for navigation
   const { setActiveTab } = useUI();
   
-  // Get user profile from auth context (avoids extra DB calls)
-  const { userProfile } = useAuth();
+  // Get user profile and demo status from auth context
+  const { userProfile, isDemoUser } = useAuth();
 
   // Load chat history from database
   const loadChatHistory = async (): Promise<Message[]> => {
@@ -163,8 +169,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
     scrollToBottom();
   }, [messages]);
 
-  // Handle course click for registration
+  // Handle course click - show confirmation modal instead of direct registration
   const handleCourseClick = useCallback(async (courseId: string, courseTitle: string) => {
+    // Check if this is a demo user
+    if (isDemoUser) {
+      setAlertModal({
+        isOpen: true,
+        message: t.demoModeAlert || 'You are in demo mode. To register for courses, please create an account or sign in with Google.',
+        type: 'info'
+      });
+      return;
+    }
+
     try {
       // Check if course is already completed
       const completedCourses = await db.getUserCompletedCourses();
@@ -192,21 +208,62 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
         return;
       }
       
-      // Register for course
-      await db.addRegistration(courseId);
+      // Find the course details
+      const course = courses.find(c => c.id === courseId);
+      if (!course) {
+        setAlertModal({
+          isOpen: true,
+          message: t.courseNotFound || 'Course not found',
+          type: 'error'
+        });
+        return;
+      }
       
+      // Show confirmation modal
+      setConfirmModal({
+        isOpen: true,
+        course: course
+      });
+    } catch (error: any) {
+      console.error('Course click error:', error);
       setAlertModal({
         isOpen: true,
-        message: `${t.courseRegistrationSuccess}: "${courseTitle}"`,
+        message: t.courseRegistrationError || 'An error occurred',
+        type: 'error'
+      });
+    }
+  }, [t, isDemoUser, courses]);
+
+  // Handle confirmed registration
+  const handleConfirmRegistration = useCallback(async () => {
+    if (!confirmModal.course) return;
+    
+    setIsRegistering(true);
+    
+    try {
+      await db.addRegistration(confirmModal.course.id);
+      
+      setConfirmModal({ isOpen: false, course: null });
+      setAlertModal({
+        isOpen: true,
+        message: `${t.courseRegistrationSuccess}: "${confirmModal.course.title}"`,
         type: 'success'
       });
     } catch (error: any) {
       console.error('Course registration error:', error);
       
-      // Check for specific error messages
       const errorMessage = error?.message || t.courseRegistrationError;
       
-      if (errorMessage.includes('Maximum 3 courses') || errorMessage.includes('Максимум')) {
+      // Close confirmation modal first
+      setConfirmModal({ isOpen: false, course: null });
+      
+      if (errorMessage === 'DEMO_USER_CANNOT_REGISTER') {
+        setAlertModal({
+          isOpen: true,
+          message: t.demoModeAlert || 'You are in demo mode. To register for courses, please create an account or sign in with Google.',
+          type: 'info'
+        });
+      } else if (errorMessage.includes('Maximum 3 courses') || errorMessage.includes('Максимум')) {
         setAlertModal({
           isOpen: true,
           message: t.maxCoursesReached,
@@ -235,8 +292,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
           type: 'error'
         });
       }
+    } finally {
+      setIsRegistering(false);
     }
-  }, [t, setActiveTab]);
+  }, [confirmModal.course, t, setActiveTab]);
 
   // Handle chat clear
   const handleClearChat = useCallback(async () => {
@@ -481,6 +540,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
         language={language}
         type={alertModal.type}
         actionButton={alertModal.actionButton}
+      />
+
+      {/* Course Registration Confirmation Modal */}
+      <CourseRegistrationConfirmModal
+        isOpen={confirmModal.isOpen}
+        course={confirmModal.course}
+        onClose={() => setConfirmModal({ isOpen: false, course: null })}
+        onConfirm={handleConfirmRegistration}
+        language={language}
+        isLoading={isRegistering}
       />
     </div>
   );

@@ -4,6 +4,7 @@ import { Loader2, Moon, Sun, Info, ArrowLeft, Play } from 'lucide-react';
 import { Language, Theme } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { ContactModal } from './ContactModal';
+import { AlertModal } from './AlertModal';
 
 interface AuthScreenProps {
   onLoginSuccess: () => void;
@@ -27,6 +28,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
   const isRtl = language === 'ar';
   const [localTheme, setLocalTheme] = useState<Theme>(theme);
   const [showContactModal, setShowContactModal] = useState(false);
+  const [showDemoAlert, setShowDemoAlert] = useState(false);
 
   // Check if demo mode is enabled
   useEffect(() => {
@@ -121,13 +123,19 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
       if (error) {
         setError(error);
       } else if (user) {
-        onLoginSuccess();
+        // Show demo alert before proceeding to app
+        setShowDemoAlert(true);
       }
     } catch (err) {
       setError("Demo sign-in failed");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDemoAlertClose = () => {
+    setShowDemoAlert(false);
+    onLoginSuccess();
   };
 
   const toggleTheme = () => {
@@ -390,6 +398,15 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
       isOpen={showContactModal}
       onClose={() => setShowContactModal(false)}
       language={language}
+    />
+    
+    {/* Demo Mode Alert */}
+    <AlertModal
+      isOpen={showDemoAlert}
+      onClose={handleDemoAlertClose}
+      message={(t as any).demoModeAlert || 'You are in demo mode. To register for courses, please create an account or sign in with Google.'}
+      language={language}
+      type="info"
     />
     </>
   );

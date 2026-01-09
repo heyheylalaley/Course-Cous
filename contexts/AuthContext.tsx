@@ -7,6 +7,7 @@ interface AuthContextValue {
   userProfile: UserProfile;
   isLoading: boolean;
   isPasswordRecovery: boolean;
+  isDemoUser: boolean;
   login: () => void;
   logout: () => Promise<void>;
   updateProfile: (profile: UserProfile) => void;
@@ -40,6 +41,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [userProfile, setUserProfile] = useState<UserProfile>(defaultProfile);
   const [isLoading, setIsLoading] = useState(true);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const [isDemoUser, setIsDemoUser] = useState(false);
 
   const loadUserProfile = useCallback(async () => {
     try {
@@ -61,6 +63,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const initAuth = async () => {
       setIsLoading(true);
+      
+      // Check for demo session first
+      const isDemo = await db.isDemoUser();
+      if (isDemo) {
+        setIsDemoUser(true);
+        setIsAuthenticated(true);
+        await loadUserProfile();
+        setIsLoading(false);
+        return;
+      }
       
       // Handle Supabase auth callback
       if (supabase) {
@@ -129,6 +141,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           } else if (event === 'SIGNED_OUT') {
             setIsAuthenticated(false);
             setIsPasswordRecovery(false);
+            setIsDemoUser(false);
             setUserProfile(defaultProfile);
           } else if (event === 'TOKEN_REFRESHED' && session) {
             setIsAuthenticated(true);
@@ -157,16 +170,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initAuth();
   }, [loadUserProfile]);
 
-  const login = useCallback(() => {
+  const login = useCallback(async () => {
     setIsAuthenticated(true);
+    // Check if this is a demo login
+    const isDemo = await db.isDemoUser();
+    setIsDemoUser(isDemo);
     loadUserProfile();
   }, [loadUserProfile]);
 
   const logout = useCallback(async () => {
-    // Reset demo user data before signing out
-    await db.resetDemoUserData();
     await db.signOut();
     setIsAuthenticated(false);
+    setIsDemoUser(false);
     setUserProfile(defaultProfile);
   }, []);
 
@@ -203,6 +218,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     userProfile,
     isLoading,
     isPasswordRecovery,
+    isDemoUser,
     login,
     logout,
     updateProfile,

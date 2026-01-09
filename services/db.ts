@@ -24,8 +24,14 @@ export const supabase = (SUPABASE_URL && SUPABASE_KEY)
 const STORAGE_KEYS = {
   SESSION: 'auth_session',
   PROFILE: (userId: string) => `user_profile_${userId}`,
-  REGISTRATIONS: (userId: string) => `user_registrations_${userId}`
+  REGISTRATIONS: (userId: string) => `user_registrations_${userId}`,
+  DEMO_SESSION: 'demo_session',
+  DEMO_CHAT: 'demo_chat_messages'
 };
+
+// Demo user constants - these are local-only, not stored in database
+const DEMO_USER_ID = 'demo-user-local';
+const DEMO_USER_EMAIL = 'demo@local.example';
 
 export const db = {
   // --- Auth Methods ---
@@ -121,6 +127,16 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
   },
 
   signOut: async () => {
+    // Check if this is a demo user session
+    const isDemoSession = localStorage.getItem(STORAGE_KEYS.DEMO_SESSION) === 'true';
+    
+    if (isDemoSession) {
+      // Just clear local demo data
+      localStorage.removeItem(STORAGE_KEYS.DEMO_SESSION);
+      localStorage.removeItem(STORAGE_KEYS.DEMO_CHAT);
+      return;
+    }
+    
     if (supabase) {
       await supabase.auth.signOut();
     } else {
@@ -129,6 +145,12 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
   },
 
   getCurrentSession: () => {
+    // First check if there's a demo session
+    const isDemoSession = localStorage.getItem(STORAGE_KEYS.DEMO_SESSION) === 'true';
+    if (isDemoSession) {
+      return { id: DEMO_USER_ID, email: DEMO_USER_EMAIL };
+    }
+    
     if (supabase) {
       // Try to get session from localStorage (Supabase stores it there)
       // This is a synchronous check for immediate access
@@ -176,6 +198,22 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
   getProfile: async (): Promise<UserProfile> => {
     const session = db.getCurrentSession();
     if (!session) throw new Error("Not authenticated");
+
+    // Return mock profile for demo user
+    if (db.isDemoUserSync()) {
+      return {
+        id: DEMO_USER_ID,
+        email: DEMO_USER_EMAIL,
+        englishLevel: 'B1',
+        firstName: 'Demo',
+        lastName: 'User',
+        mobileNumber: '+353000000000',
+        address: 'Demo Address, Cork City',
+        eircode: 'T12DEMO',
+        dateOfBirth: '1990-01-01',
+        isAdmin: false
+      };
+    }
 
     if (supabase) {
       const { data, error } = await supabase
@@ -396,6 +434,11 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
     const session = db.getCurrentSession();
     if (!session) return [];
 
+    // Demo users cannot have registrations
+    if (db.isDemoUserSync()) {
+      return [];
+    }
+
     if (supabase) {
       const { data, error } = await supabase
         .from('registrations')
@@ -447,6 +490,11 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
   addRegistration: async (courseId: string): Promise<void> => {
     const session = db.getCurrentSession();
     if (!session) throw new Error("Not authenticated");
+
+    // Demo users cannot register for courses
+    if (db.isDemoUserSync()) {
+      throw new Error('DEMO_USER_CANNOT_REGISTER');
+    }
 
     // Check if profile is complete
     const isComplete = await db.isProfileComplete();
@@ -1403,6 +1451,23 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
     const session = db.getCurrentSession();
     if (!session) throw new Error("Not authenticated");
 
+    // Demo users save chat to localStorage only
+    if (db.isDemoUserSync()) {
+      try {
+        const existing = JSON.parse(localStorage.getItem(STORAGE_KEYS.DEMO_CHAT) || '[]');
+        existing.push({
+          id: Date.now().toString(),
+          role,
+          content,
+          timestamp: new Date().toISOString()
+        });
+        localStorage.setItem(STORAGE_KEYS.DEMO_CHAT, JSON.stringify(existing));
+      } catch (e) {
+        console.error('Failed to save demo chat message:', e);
+      }
+      return;
+    }
+
     if (supabase) {
       const { error } = await supabase
         .from('chat_messages')
@@ -1436,6 +1501,24 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
   getChatHistory: async (): Promise<Message[]> => {
     const session = db.getCurrentSession();
     if (!session) return [];
+
+    // Demo users load chat from localStorage only
+    if (db.isDemoUserSync()) {
+      const stored = localStorage.getItem(STORAGE_KEYS.DEMO_CHAT);
+      if (!stored) return [];
+      try {
+        const messages = JSON.parse(stored);
+        return messages.map((msg: any) => ({
+          id: msg.id,
+          role: msg.role as 'user' | 'model',
+          content: msg.content,
+          timestamp: new Date(msg.timestamp)
+        }));
+      } catch (e) {
+        console.error('Failed to parse demo chat messages:', e);
+        return [];
+      }
+    }
 
     if (supabase) {
       const { data, error } = await supabase
@@ -1476,6 +1559,12 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
   clearChatHistory: async (): Promise<void> => {
     const session = db.getCurrentSession();
     if (!session) throw new Error("Not authenticated");
+
+    // Demo users clear chat from localStorage only
+    if (db.isDemoUserSync()) {
+      localStorage.removeItem(STORAGE_KEYS.DEMO_CHAT);
+      return;
+    }
 
     if (supabase) {
       const { error } = await supabase
@@ -1944,25 +2033,7 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
     return db.setAppSetting('demo_enabled', enabled ? 'true' : 'false');
   },
 
-  getDemoCredentials: async (): Promise<{ email: string; password: string } | null> => {
-    const email = await db.getAppSetting('demo_email');
-    const password = await db.getAppSetting('demo_password');
-    
-    if (email && password) {
-      return { email, password };
-    }
-    
-    // Default demo credentials if not configured
-    return { email: 'demo@example.com', password: 'demo123456' };
-  },
-
-  setDemoCredentials: async (email: string, password: string): Promise<{ error: string | null }> => {
-    const emailResult = await db.setAppSetting('demo_email', email);
-    if (emailResult.error) return emailResult;
-    
-    return db.setAppSetting('demo_password', password);
-  },
-
+  // Sign in as demo user - creates local session only, no database interaction
   signInAsDemo: async (): Promise<{ user: { id: string, email: string } | null, error: string | null }> => {
     // Check if demo mode is enabled
     const demoEnabled = await db.getDemoEnabled();
@@ -1970,84 +2041,23 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
       return { user: null, error: 'Demo mode is not enabled' };
     }
 
-    // Get demo credentials
-    const credentials = await db.getDemoCredentials();
-    if (!credentials) {
-      return { user: null, error: 'Demo credentials not configured' };
-    }
-
-    // Sign in with demo credentials
-    return db.signIn(credentials.email, credentials.password);
+    // Create local demo session
+    localStorage.setItem(STORAGE_KEYS.DEMO_SESSION, 'true');
+    
+    return { 
+      user: { id: DEMO_USER_ID, email: DEMO_USER_EMAIL }, 
+      error: null 
+    };
   },
 
-  // Check if current user is the demo user
+  // Synchronous check if current user is demo user (for use in other db methods)
+  isDemoUserSync: (): boolean => {
+    return localStorage.getItem(STORAGE_KEYS.DEMO_SESSION) === 'true';
+  },
+
+  // Async check if current user is demo user (for external use)
   isDemoUser: async (): Promise<boolean> => {
-    const session = db.getCurrentSession();
-    if (!session) return false;
-
-    const credentials = await db.getDemoCredentials();
-    if (!credentials) return false;
-
-    return session.email === credentials.email;
-  },
-
-  // Reset demo user data (profile, registrations, chat history)
-  resetDemoUserData: async (): Promise<void> => {
-    const session = db.getCurrentSession();
-    if (!session) return;
-
-    // Check if this is the demo user
-    const isDemo = await db.isDemoUser();
-    if (!isDemo) return;
-
-    if (supabase) {
-      // Reset profile to default demo values
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          first_name: 'Demo',
-          last_name: 'User',
-          english_level: 'B1',
-          mobile_number: '+353000000000',
-          address: 'Demo Address, Cork City',
-          eircode: 'T12DEMO',
-          date_of_birth: '1990-01-01'
-        })
-        .eq('id', session.id);
-
-      if (profileError) {
-        console.error('Error resetting demo profile:', profileError);
-      }
-
-      // Delete all registrations for demo user
-      const { error: regError } = await supabase
-        .from('registrations')
-        .delete()
-        .eq('user_id', session.id);
-
-      if (regError) {
-        console.error('Error deleting demo registrations:', regError);
-      }
-
-      // Clear chat history for demo user
-      const { error: chatError } = await supabase
-        .from('chat_messages')
-        .delete()
-        .eq('user_id', session.id);
-
-      if (chatError) {
-        console.error('Error clearing demo chat history:', chatError);
-      }
-
-      if (import.meta.env.DEV) {
-        console.log('Demo user data reset successfully');
-      }
-    } else {
-      // Mock fallback: clear localStorage data
-      localStorage.removeItem(STORAGE_KEYS.PROFILE(session.id));
-      localStorage.removeItem(STORAGE_KEYS.REGISTRATIONS(session.id));
-      localStorage.removeItem(`chat_messages_${session.id}`);
-    }
+    return db.isDemoUserSync();
   },
 
   // --- Course Category Methods ---
