@@ -31,8 +31,7 @@ BEGIN
   FOR item IN SELECT * FROM jsonb_array_elements(p_priorities)
   LOOP
     UPDATE registrations
-    SET priority = (item->>'priority')::INTEGER,
-        updated_at = NOW()
+    SET priority = (item->>'priority')::INTEGER
     WHERE user_id = p_user_id
       AND course_id = item->>'course_id';
   END LOOP;

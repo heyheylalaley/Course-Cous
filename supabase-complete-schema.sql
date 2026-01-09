@@ -130,10 +130,14 @@ $$;
 
 -- Admin RLS policies
 DROP POLICY IF EXISTS "Admins can read all profiles" ON profiles;
+DROP POLICY IF EXISTS "Admins can update all profiles" ON profiles;
 DROP POLICY IF EXISTS "Admins can read all registrations" ON registrations;
 
 CREATE POLICY "Admins can read all profiles" ON profiles
   FOR SELECT USING (is_admin_user() = TRUE);
+
+CREATE POLICY "Admins can update all profiles" ON profiles
+  FOR UPDATE USING (is_admin_user() = TRUE);
 
 CREATE POLICY "Admins can read all registrations" ON registrations
   FOR SELECT USING (is_admin_user() = TRUE);
