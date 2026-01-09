@@ -204,6 +204,15 @@ const AppContent: React.FC = () => {
       const updatedProfile = await db.getProfile();
       updateProfile(updatedProfile);
       setShowFirstLoginModal(false);
+      
+      // Start tour after first login profile is completed
+      // Small delay to ensure DOM is ready and profile is updated
+      setTimeout(() => {
+        const hasCompletedTour = localStorage.getItem('ccplearn_user_tour_completed_main-tour_1.0');
+        if (!hasCompletedTour && !isDemoUser) {
+          startTour();
+        }
+      }, 1500);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Failed to save first login profile data:', error);
@@ -213,6 +222,13 @@ const AppContent: React.FC = () => {
 
   const handleSkipFirstLogin = () => {
     setShowFirstLoginModal(false);
+    // Start tour even if user skipped profile setup (they're still a new user)
+    setTimeout(() => {
+      const hasCompletedTour = localStorage.getItem('ccplearn_user_tour_completed_main-tour_1.0');
+      if (!hasCompletedTour && !isDemoUser) {
+        startTour();
+      }
+    }, 1500);
   };
 
   const handleToggleRegistration = useCallback(async (courseId: string) => {
