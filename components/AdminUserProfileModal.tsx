@@ -7,7 +7,7 @@ import { db } from '../services/db';
 interface AdminUserProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: () => void;
+  onSave: () => Promise<void>;
   language: Language;
   user: AdminUserDetail | null;
 }
@@ -90,8 +90,8 @@ export const AdminUserProfileModal: React.FC<AdminUserProfileModalProps> = ({
         irisId: irisId.trim() || undefined
       });
 
-      onSave();
-      onClose();
+      // Wait for onSave to complete before closing
+      await onSave();
     } catch (error: any) {
       console.error('Failed to save user profile:', error);
       setError(error?.message || 'Failed to save user profile. Please try again.');

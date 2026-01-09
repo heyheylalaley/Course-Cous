@@ -194,9 +194,8 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
       t.adminExportEircode || 'Eircode',
       t.adminExportDateOfBirth || 'Date of Birth',
       t.adminExportEnglishLevel || 'English Level',
-      t.adminExportRegisteredAt || 'Registered At',
       t.adminExportPriority || 'Priority',
-      t.adminCompleted || 'Completed'
+      t.adminExportRegisteredAt || 'Registered At'
     ];
 
     const rows = filteredAndSortedStudents.map(student => [
@@ -208,9 +207,8 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
       student.eircode || '',
       student.dateOfBirth || '',
       student.englishLevel || '',
-      student.registeredAt.toLocaleString(),
       student.priority?.toString() || '',
-      student.isCompleted ? 'Yes' : 'No'
+      student.registeredAt.toLocaleString()
     ]);
 
     const csvContent = [
@@ -282,9 +280,8 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
         t.adminExportEircode || 'Eircode',
         t.adminExportDateOfBirth || 'Date of Birth',
         t.adminExportEnglishLevel || 'English Level',
-        t.adminExportRegisteredAt || 'Registered At',
         t.adminExportPriority || 'Priority',
-        t.adminCompleted || 'Completed'
+        t.adminExportRegisteredAt || 'Registered At'
       ];
 
       const data = filteredAndSortedStudents.map(student => ({
@@ -296,9 +293,8 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
         [headers[5]]: student.eircode || '',
         [headers[6]]: student.dateOfBirth || '',
         [headers[7]]: student.englishLevel || '',
-        [headers[8]]: student.registeredAt.toLocaleString(),
-        [headers[9]]: student.priority?.toString() || '',
-        [headers[10]]: student.isCompleted ? 'Yes' : 'No'
+        [headers[8]]: student.priority?.toString() || '',
+        [headers[9]]: student.registeredAt.toLocaleString()
       }));
 
       const ws = XLSX.utils.json_to_sheet(data);

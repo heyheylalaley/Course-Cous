@@ -201,9 +201,10 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
       t.adminExportEircode || 'Eircode',
       t.adminExportDateOfBirth || 'Date of Birth',
       t.adminExportEnglishLevel || 'English Level',
+      'LDC Ref',
+      'IRIS ID',
       t.adminRegisteredCourses || 'Registered Courses',
       t.adminCompletedCourses || 'Completed Courses',
-      t.adminProfileComplete || 'Profile Complete',
       t.adminCreatedAt || 'Created At'
     ];
 
@@ -216,9 +217,10 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
       user.eircode || '',
       user.dateOfBirth || '',
       user.englishLevel || '',
+      user.ldcRef || '',
+      user.irisId || '',
       user.registeredCourses.map(id => getCourseTitle(id)).join('; '),
       user.completedCourses.map(id => getCourseTitle(id)).join('; '),
-      user.isProfileComplete ? 'Yes' : 'No',
       user.createdAt?.toLocaleString() || ''
     ]);
 
@@ -291,9 +293,10 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
         t.adminExportEircode || 'Eircode',
         t.adminExportDateOfBirth || 'Date of Birth',
         t.adminExportEnglishLevel || 'English Level',
+        'LDC Ref',
+        'IRIS ID',
         t.adminRegisteredCourses || 'Registered Courses',
         t.adminCompletedCourses || 'Completed Courses',
-        t.adminProfileComplete || 'Profile Complete',
         t.adminCreatedAt || 'Created At'
       ];
 
@@ -306,10 +309,11 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
         [headers[5]]: user.eircode || '',
         [headers[6]]: user.dateOfBirth || '',
         [headers[7]]: user.englishLevel || '',
-        [headers[8]]: user.registeredCourses.map(id => getCourseTitle(id)).join('; '),
-        [headers[9]]: user.completedCourses.map(id => getCourseTitle(id)).join('; '),
-        [headers[10]]: user.isProfileComplete ? 'Yes' : 'No',
-        [headers[11]]: user.createdAt?.toLocaleString() || ''
+        [headers[8]]: user.ldcRef || '',
+        [headers[9]]: user.irisId || '',
+        [headers[10]]: user.registeredCourses.map(id => getCourseTitle(id)).join('; '),
+        [headers[11]]: user.completedCourses.map(id => getCourseTitle(id)).join('; '),
+        [headers[12]]: user.createdAt?.toLocaleString() || ''
       }));
 
       const ws = XLSX.utils.json_to_sheet(data);
@@ -745,13 +749,13 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                         <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
                           {user.irisId || '-'}
                         </td>
-                        <td className="px-4 py-3 text-sm">
+                        <td className="px-4 py-3 text-sm w-16">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               setEditingUser(user);
                             }}
-                            className="p-2 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 transition-colors"
+                            className="p-1.5 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 transition-colors flex-shrink-0"
                             title={t.adminEditProfile || 'Edit Profile'}
                           >
                             <Edit size={16} />
@@ -835,8 +839,9 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
       <AdminUserProfileModal
         isOpen={!!editingUser}
         onClose={() => setEditingUser(null)}
-        onSave={() => {
-          loadUsers();
+        onSave={async () => {
+          await loadUsers();
+          setEditingUser(null);
         }}
         language={language}
         user={editingUser ? {
