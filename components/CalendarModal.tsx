@@ -96,9 +96,15 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
   };
 
   // Check if day has events
-  const hasEvents = (day: number): { hasCourses: boolean; hasEvents: boolean } => {
+  const hasEvents = (day: number): { hasCourses: boolean; hasEvents: boolean; hasPrivateEvents: boolean } => {
     const { courses, events } = getEventsForDay(day);
-    return { hasCourses: courses.length > 0, hasEvents: events.length > 0 };
+    const publicEvents = events.filter(event => event.isPublic);
+    const privateEvents = events.filter(event => !event.isPublic);
+    return { 
+      hasCourses: courses.length > 0, 
+      hasEvents: publicEvents.length > 0,
+      hasPrivateEvents: isAdmin && privateEvents.length > 0
+    };
   };
 
   // Check if day is today
@@ -236,7 +242,7 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
                   }
 
                   const dateStr = `${calendarData.year}-${String(calendarData.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                  const { hasCourses: dayHasCourses, hasEvents: dayHasEvents } = hasEvents(day);
+                  const { hasCourses: dayHasCourses, hasEvents: dayHasEvents, hasPrivateEvents: dayHasPrivateEvents } = hasEvents(day);
                   const isSelected = selectedDate === dateStr;
                   const isTodayDate = isToday(day);
 
@@ -253,13 +259,16 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
                       }`}
                     >
                       <span className="text-sm font-medium">{day}</span>
-                      {(dayHasCourses || dayHasEvents) && (
+                      {(dayHasCourses || dayHasEvents || dayHasPrivateEvents) && (
                         <div className="flex gap-0.5 mt-0.5">
                           {dayHasCourses && (
                             <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-green-300' : 'bg-green-500'}`} />
                           )}
                           {dayHasEvents && (
                             <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-purple-300' : 'bg-purple-500'}`} />
+                          )}
+                          {dayHasPrivateEvents && (
+                            <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-gray-300' : 'bg-gray-500'}`} />
                           )}
                         </div>
                       )}
@@ -278,6 +287,12 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
                   <div className="w-2 h-2 rounded-full bg-purple-500" />
                   <span>{t.calendarEvents || 'Events'}</span>
                 </div>
+                {isAdmin && (
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-gray-500" />
+                    <span>{t.calendarPrivateEvents || 'Private Events'}</span>
+                  </div>
+                )}
               </div>
 
               {/* Selected Day Events */}
