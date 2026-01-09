@@ -29,7 +29,7 @@ const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(m =
 
 // Main App Content (uses contexts)
 const AppContent: React.FC = () => {
-  const { isAuthenticated, userProfile, isLoading: authLoading, isPasswordRecovery, login, logout, updateProfile, updateEnglishLevel, completePasswordRecovery } = useAuth();
+  const { isAuthenticated, userProfile, isLoading: authLoading, isPasswordRecovery, isDemoUser, login, logout, updateProfile, updateEnglishLevel, completePasswordRecovery } = useAuth();
   const { courses, categories, registrations, courseQueues, isLoading: coursesLoading, toggleRegistration, refreshCourses, updatePriority } = useCourses();
   const { language, theme, isSidebarOpen, activeTab, setLanguage, toggleTheme, setSidebarOpen, setActiveTab, isRtl } = useUI();
 
@@ -111,12 +111,23 @@ const AppContent: React.FC = () => {
     tourId: 'main-tour',
     steps: tourSteps,
     enabled: isAuthenticated && !authLoading,
-    autoStart: false // We'll trigger it manually after first login
+    autoStart: false, // We'll trigger it manually after first login
+    isDemoUser: isDemoUser // Pass demo user flag to skip saving completion state
   });
 
   // Auto-start tour for new users after first login modal is closed
+  // For demo users, always start tour on login
   useEffect(() => {
     if (isAuthenticated && !authLoading && !showFirstLoginModal && userProfile.id) {
+      // For demo users, always start tour
+      if (isDemoUser) {
+        const timer = setTimeout(() => {
+          startTour();
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+      
+      // For regular users, check if they're new
       const hasCompletedTour = localStorage.getItem('ccplearn_user_tour_completed_main-tour_1.0');
       const isNewUser = (!userProfile.firstName || userProfile.firstName.trim() === '') && 
                         (!userProfile.lastName || userProfile.lastName.trim() === '') &&
@@ -133,7 +144,7 @@ const AppContent: React.FC = () => {
         return () => clearTimeout(timer);
       }
     }
-  }, [isAuthenticated, authLoading, showFirstLoginModal, userProfile, startTour]);
+  }, [isAuthenticated, authLoading, showFirstLoginModal, userProfile, isDemoUser, startTour]);
 
   // Check if first login profile setup is needed
   useEffect(() => {

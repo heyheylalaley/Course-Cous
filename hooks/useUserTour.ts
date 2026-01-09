@@ -9,16 +9,26 @@ interface UseUserTourOptions {
   steps: TourStep[];
   enabled?: boolean;
   autoStart?: boolean;
+  isDemoUser?: boolean; // If true, don't save completion state
 }
 
-export const useUserTour = ({ tourId, steps, enabled = true, autoStart = false }: UseUserTourOptions) => {
+export const useUserTour = ({ tourId, steps, enabled = true, autoStart = false, isDemoUser = false }: UseUserTourOptions) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [hasCompletedTour, setHasCompletedTour] = useState(false);
 
-  // Check if tour was completed
+  // Check if tour was completed (skip for demo users)
   useEffect(() => {
     if (!enabled) return;
+    
+    // For demo users, always allow tour to start
+    if (isDemoUser) {
+      setHasCompletedTour(false);
+      if (autoStart) {
+        setIsOpen(true);
+      }
+      return;
+    }
 
     try {
       const completed = localStorage.getItem(`${TOUR_STORAGE_KEY}_${tourId}_${TOUR_VERSION}`);
@@ -31,7 +41,7 @@ export const useUserTour = ({ tourId, steps, enabled = true, autoStart = false }
     } catch (error) {
       console.error('Error checking tour status:', error);
     }
-  }, [tourId, enabled, autoStart]);
+  }, [tourId, enabled, autoStart, isDemoUser]);
 
   const startTour = useCallback(() => {
     if (!enabled) return;
@@ -45,13 +55,16 @@ export const useUserTour = ({ tourId, steps, enabled = true, autoStart = false }
 
   const completeTour = useCallback(() => {
     try {
-      localStorage.setItem(`${TOUR_STORAGE_KEY}_${tourId}_${TOUR_VERSION}`, 'true');
-      setHasCompletedTour(true);
+      // Don't save completion state for demo users (so tour can run again next time)
+      if (!isDemoUser) {
+        localStorage.setItem(`${TOUR_STORAGE_KEY}_${tourId}_${TOUR_VERSION}`, 'true');
+        setHasCompletedTour(true);
+      }
       setIsOpen(false);
     } catch (error) {
       console.error('Error saving tour completion:', error);
     }
-  }, [tourId]);
+  }, [tourId, isDemoUser]);
 
   const resetTour = useCallback(() => {
     try {
