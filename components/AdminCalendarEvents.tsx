@@ -61,7 +61,7 @@ export const AdminCalendarEvents: React.FC<AdminCalendarEventsProps> = ({ langua
     }
   };
 
-  const handleSave = async (eventData: Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>) => {
+  const handleSave = async (eventData: Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'createdByName' | 'createdByEmail'>) => {
     try {
       if (editingEvent) {
         await db.updateCalendarEvent(editingEvent.id, eventData);
@@ -174,8 +174,13 @@ export const AdminCalendarEvents: React.FC<AdminCalendarEventsProps> = ({ langua
                     {formatDate(event.eventDate)}
                   </p>
                   {event.description && (
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 line-clamp-2">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 line-clamp-2 break-words overflow-wrap-anywhere">
                       {event.description}
+                    </p>
+                  )}
+                  {!event.isPublic && (event.createdByName || event.createdByEmail) && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {t.eventAddedBy || 'Added by'} {event.createdByName || event.createdByEmail}
                     </p>
                   )}
                 </div>

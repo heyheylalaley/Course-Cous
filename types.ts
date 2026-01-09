@@ -118,6 +118,8 @@ export interface CalendarEvent {
   eventDate: string; // ISO date string (YYYY-MM-DD)
   isPublic: boolean; // false = only admins can see
   createdBy?: string;
+  createdByName?: string; // Full name of the creator (first_name + last_name)
+  createdByEmail?: string; // Email of the creator
   createdAt?: Date;
   updatedAt?: Date;
 }

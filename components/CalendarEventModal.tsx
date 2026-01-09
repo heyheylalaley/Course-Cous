@@ -7,7 +7,7 @@ import { AVAILABLE_ICONS } from './AdminCategoryManagement';
 interface CalendarEventModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (event: Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>) => Promise<void>;
+  onSave: (event: Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'createdByName' | 'createdByEmail'>) => Promise<void>;
   event: CalendarEvent | null;
   language: Language;
 }

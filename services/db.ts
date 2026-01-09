@@ -2220,6 +2220,7 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
   // --- Calendar Event Methods ---
   getCalendarEvents: async (isAdmin: boolean = false): Promise<CalendarEvent[]> => {
     if (supabase) {
+      // Get calendar events
       let query = supabase
         .from('calendar_events')
         .select('*')
@@ -2237,17 +2238,68 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
         return [];
       }
 
-      return (data || []).map((e: any) => ({
-        id: e.id,
-        title: e.title,
-        description: e.description || undefined,
-        icon: e.icon,
-        eventDate: e.event_date,
-        isPublic: e.is_public,
-        createdBy: e.created_by || undefined,
-        createdAt: e.created_at ? new Date(e.created_at) : undefined,
-        updatedAt: e.updated_at ? new Date(e.updated_at) : undefined
-      }));
+      if (!data || data.length === 0) {
+        return [];
+      }
+
+      // Get unique creator IDs
+      const creatorIds = [...new Set(data.filter((e: any) => e.created_by).map((e: any) => e.created_by))] as string[];
+
+      // Fetch creator profiles in batch
+      let creatorProfiles: Record<string, { first_name?: string; last_name?: string; email?: string }> = {};
+      
+      if (creatorIds.length > 0) {
+        try {
+          const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, email')
+            .in('id', creatorIds);
+
+          if (!profilesError && profiles) {
+            profiles.forEach((profile: any) => {
+              creatorProfiles[profile.id] = {
+                first_name: profile.first_name,
+                last_name: profile.last_name,
+                email: profile.email
+              };
+            });
+          }
+        } catch (profileError) {
+          console.warn('Failed to fetch creator profiles:', profileError);
+        }
+      }
+
+      // Map events with creator info
+      return data.map((e: any) => {
+        let createdByName: string | undefined;
+        let createdByEmail: string | undefined;
+
+        if (e.created_by && creatorProfiles[e.created_by]) {
+          const creator = creatorProfiles[e.created_by];
+          if (creator.first_name && creator.last_name) {
+            createdByName = `${creator.first_name} ${creator.last_name}`.trim();
+          } else if (creator.first_name) {
+            createdByName = creator.first_name;
+          } else if (creator.last_name) {
+            createdByName = creator.last_name;
+          }
+          createdByEmail = creator.email;
+        }
+
+        return {
+          id: e.id,
+          title: e.title,
+          description: e.description || undefined,
+          icon: e.icon,
+          eventDate: e.event_date,
+          isPublic: e.is_public,
+          createdBy: e.created_by || undefined,
+          createdByName,
+          createdByEmail,
+          createdAt: e.created_at ? new Date(e.created_at) : undefined,
+          updatedAt: e.updated_at ? new Date(e.updated_at) : undefined
+        };
+      });
     }
 
     // Mock fallback

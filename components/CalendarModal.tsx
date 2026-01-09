@@ -312,7 +312,12 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
                                 )}
                               </div>
                               {event.description && (
-                                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{event.description}</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 break-words overflow-wrap-anywhere">{event.description}</p>
+                              )}
+                              {!event.isPublic && isAdmin && (event.createdByName || event.createdByEmail) && (
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                  {t.eventAddedBy || 'Added by'} {event.createdByName || event.createdByEmail}
+                                </p>
                               )}
                             </div>
                           </div>

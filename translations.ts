@@ -285,6 +285,7 @@ export const TRANSLATIONS = {
     eventPublic: 'Visible to all users',
     eventPrivate: 'Private (admins only)',
     eventPrivateHint: 'Private events are only visible to administrators',
+    eventAddedBy: 'Added by',
     adminNoEvents: 'No events found. Add your first event!',
     eventSaveError: 'Failed to save event'
   },
@@ -572,6 +573,7 @@ export const TRANSLATIONS = {
     eventPublic: 'Видно всім користувачам',
     eventPrivate: 'Приватна (тільки адміни)',
     eventPrivateHint: 'Приватні події видимі лише адміністраторам',
+    eventAddedBy: 'Додано',
     adminNoEvents: 'Подій не знайдено. Додайте першу подію!',
     eventSaveError: 'Не вдалося зберегти подію'
   },
@@ -859,6 +861,7 @@ export const TRANSLATIONS = {
     eventPublic: 'Видно всем пользователям',
     eventPrivate: 'Приватное (только админы)',
     eventPrivateHint: 'Приватные события видны только администраторам',
+    eventAddedBy: 'Добавлено',
     adminNoEvents: 'Событий не найдено. Добавьте первое событие!',
     eventSaveError: 'Не удалось сохранить событие'
   },
@@ -1146,6 +1149,7 @@ export const TRANSLATIONS = {
     eventPublic: 'مرئي لجميع المستخدمين',
     eventPrivate: 'خاص (المسؤولون فقط)',
     eventPrivateHint: 'الأحداث الخاصة مرئية فقط للمسؤولين',
+    eventAddedBy: 'تمت الإضافة بواسطة',
     adminNoEvents: 'لم يتم العثور على أحداث. أضف حدثك الأول!',
     eventSaveError: 'فشل حفظ الحدث'
   }
