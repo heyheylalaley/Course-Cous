@@ -466,6 +466,12 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
     if (profileData.ldcRef !== undefined) updateData.ldc_ref = profileData.ldcRef.trim() || null;
     if (profileData.irisId !== undefined) updateData.iris_id = profileData.irisId.trim() || null;
 
+    // Check if updateData is not empty
+    if (Object.keys(updateData).length === 0) {
+      // No fields to update, but this is not an error
+      return;
+    }
+
     // Check if profile exists
     const { data: existingProfile, error: selectError } = await supabase
       .from('profiles')
@@ -480,13 +486,19 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
       throw new Error(selectError.message || 'Failed to check profile');
     } else {
       // Profile exists, update it
-      const { error: updateError } = await supabase
+      const { data: updatedData, error: updateError } = await supabase
         .from('profiles')
         .update(updateData)
-        .eq('id', userId);
+        .eq('id', userId)
+        .select();
 
       if (updateError) {
         throw new Error(updateError.message || 'Failed to update profile');
+      }
+
+      // Verify that update actually happened
+      if (!updatedData || updatedData.length === 0) {
+        throw new Error('Profile update failed: no rows were updated. This may be due to RLS policies or the profile not existing.');
       }
     }
   },

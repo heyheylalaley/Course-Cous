@@ -226,13 +226,15 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
   const updatePriority = useCallback(async (courseId: string, newPriority: number) => {
     try {
       await db.updateRegistrationPriority(courseId, newPriority);
-      await loadRegistrations();
+      // Refresh all registration data including priorities
+      await refreshRegistrations();
     } catch (err) {
       if (import.meta.env.DEV) {
         console.error("Failed to update priority", err);
       }
+      throw err; // Re-throw to let Dashboard handle the error
     }
-  }, [loadRegistrations]);
+  }, [refreshRegistrations]);
 
   const value: CoursesContextValue = {
     courses,

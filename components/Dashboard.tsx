@@ -182,11 +182,18 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
         // Fallback if context not available
         await db.updateRegistrationPriority(courseId, newPriority);
       }
-      // Reload registrations to get updated data
+      // Always reload registrations to get updated priorities from database
       const updated = await db.getRegistrations();
       setCourseRegistrations(updated);
     } catch (error) {
       console.error("Failed to update priority", error);
+      // Reload registrations even on error to ensure UI is in sync
+      try {
+        const updated = await db.getRegistrations();
+        setCourseRegistrations(updated);
+      } catch (reloadError) {
+        console.error("Failed to reload registrations after priority update error", reloadError);
+      }
     }
   };
 

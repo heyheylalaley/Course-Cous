@@ -90,6 +90,9 @@ export const AdminUserProfileModal: React.FC<AdminUserProfileModalProps> = ({
         irisId: irisId.trim() || undefined
       });
 
+      // Wait a bit to ensure database transaction is committed
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Wait for onSave to complete before closing
       await onSave();
     } catch (error: any) {
