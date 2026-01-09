@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, ChevronRight, ChevronLeft, Sparkles } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Sparkles } from 'lucide-react';
 import { Language } from '../types';
 import { TRANSLATIONS } from '../translations';
 
@@ -305,8 +305,7 @@ export const UserTour: React.FC<UserTourProps> = ({
       <div
         ref={overlayRef}
         className="fixed inset-0 bg-black/50 dark:bg-black/70 z-[9997] transition-opacity"
-        onClick={handleSkip}
-        style={{ pointerEvents: 'auto' }}
+        style={{ pointerEvents: 'none' }}
       />
 
       {/* Tooltip */}
@@ -331,13 +330,6 @@ export const UserTour: React.FC<UserTourProps> = ({
               </p>
             </div>
           </div>
-          <button
-            onClick={handleSkip}
-            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            aria-label={t.tourClose || 'Close'}
-          >
-            <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-          </button>
         </div>
 
         {/* Content */}
