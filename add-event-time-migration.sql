@@ -6,6 +6,9 @@ ALTER TABLE calendar_events
 ADD COLUMN IF NOT EXISTS event_time TIME;
 
 -- Update the get_calendar_events_with_creators function to include event_time
+-- Drop existing function first to allow changing return type
+DROP FUNCTION IF EXISTS get_calendar_events_with_creators(BOOLEAN);
+
 CREATE OR REPLACE FUNCTION get_calendar_events_with_creators(p_is_admin BOOLEAN DEFAULT FALSE)
 RETURNS TABLE (
   id UUID,

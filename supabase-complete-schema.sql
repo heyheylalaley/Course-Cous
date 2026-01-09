@@ -559,6 +559,9 @@ $$;
 GRANT EXECUTE ON FUNCTION get_all_users_with_details() TO authenticated;
 
 -- Function to get calendar events with creator info (includes event_time)
+-- Drop existing function first to allow changing return type
+DROP FUNCTION IF EXISTS get_calendar_events_with_creators(BOOLEAN);
+
 CREATE OR REPLACE FUNCTION get_calendar_events_with_creators(p_is_admin BOOLEAN DEFAULT FALSE)
 RETURNS TABLE (
   id UUID,
