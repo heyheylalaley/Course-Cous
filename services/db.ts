@@ -2253,6 +2253,7 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
         icon: e.icon,
         eventDate: e.event_date,
         eventTime: e.event_time || undefined,
+        externalLink: e.external_link || undefined,
         isPublic: e.is_public,
         createdBy: e.created_by || undefined,
         createdByName: e.created_by_name || undefined,
@@ -2284,6 +2285,7 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
           icon: event.icon,
           event_date: event.eventDate,
           event_time: event.eventTime || null,
+          external_link: event.externalLink || null,
           is_public: event.isPublic,
           created_by: session.id
         })
@@ -2299,6 +2301,7 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
         icon: data.icon,
         eventDate: data.event_date,
         eventTime: data.event_time || undefined,
+        externalLink: data.external_link || undefined,
         isPublic: data.is_public,
         createdBy: data.created_by || undefined,
         createdAt: data.created_at ? new Date(data.created_at) : undefined,
@@ -2325,6 +2328,7 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
       if (updates.icon !== undefined) updateData.icon = updates.icon;
       if (updates.eventDate !== undefined) updateData.event_date = updates.eventDate;
       if (updates.eventTime !== undefined) updateData.event_time = updates.eventTime || null;
+      if (updates.externalLink !== undefined) updateData.external_link = updates.externalLink || null;
       if (updates.isPublic !== undefined) updateData.is_public = updates.isPublic;
 
       const { data, error } = await supabase
@@ -2343,6 +2347,7 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
         icon: data.icon,
         eventDate: data.event_date,
         eventTime: data.event_time || undefined,
+        externalLink: data.external_link || undefined,
         isPublic: data.is_public,
         createdBy: data.created_by || undefined,
         createdAt: data.created_at ? new Date(data.created_at) : undefined,

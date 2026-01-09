@@ -215,6 +215,8 @@ RETURNS TABLE (
   description TEXT,
   icon TEXT,
   event_date DATE,
+  event_time TIME,
+  external_link TEXT,
   is_public BOOLEAN,
   created_by UUID,
   created_by_name TEXT,
@@ -234,6 +236,8 @@ BEGIN
     ce.description,
     ce.icon,
     ce.event_date,
+    ce.event_time,
+    ce.external_link,
     ce.is_public,
     ce.created_by,
     CASE
@@ -249,7 +253,7 @@ BEGIN
   FROM calendar_events ce
   LEFT JOIN profiles p ON ce.created_by = p.id
   WHERE (p_is_admin = TRUE OR ce.is_public = TRUE)
-  ORDER BY ce.event_date ASC;
+  ORDER BY ce.event_date ASC, ce.event_time ASC NULLS LAST;
 END;
 $$;
 

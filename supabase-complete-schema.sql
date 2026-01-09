@@ -570,6 +570,7 @@ RETURNS TABLE (
   icon TEXT,
   event_date DATE,
   event_time TIME,
+  external_link TEXT,
   is_public BOOLEAN,
   created_by UUID,
   created_by_name TEXT,
@@ -590,6 +591,7 @@ BEGIN
     ce.icon,
     ce.event_date,
     ce.event_time,
+    ce.external_link,
     ce.is_public,
     ce.created_by,
     COALESCE(p.first_name || ' ' || p.last_name, p.first_name, p.last_name, NULL) as created_by_name,
@@ -885,6 +887,7 @@ CREATE TABLE IF NOT EXISTS calendar_events (
   icon TEXT NOT NULL DEFAULT 'Calendar', -- lucide-react icon name
   event_date DATE NOT NULL,
   event_time TIME, -- Optional time for events (HH:MM format)
+  external_link TEXT, -- Optional external link to external resource
   is_public BOOLEAN DEFAULT FALSE, -- false = only admins can see
   created_by UUID REFERENCES auth.users(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),

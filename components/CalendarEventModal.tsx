@@ -23,6 +23,7 @@ export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
   const [description, setDescription] = useState('');
   const [eventDate, setEventDate] = useState('');
   const [eventTime, setEventTime] = useState('');
+  const [externalLink, setExternalLink] = useState('');
   const [icon, setIcon] = useState('Calendar');
   const [isPublic, setIsPublic] = useState(false);
   const [iconSearch, setIconSearch] = useState('');
@@ -40,6 +41,7 @@ export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
         setDescription(event.description || '');
         setEventDate(event.eventDate);
         setEventTime(event.eventTime || '');
+        setExternalLink(event.externalLink || '');
         setIcon(event.icon);
         setIsPublic(event.isPublic);
       } else {
@@ -47,6 +49,7 @@ export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
         setDescription('');
         setEventDate('');
         setEventTime('');
+        setExternalLink('');
         setIcon('Calendar');
         setIsPublic(false);
       }
@@ -77,6 +80,7 @@ export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
         description: description.trim() || undefined,
         eventDate,
         eventTime: eventTime.trim() || undefined,
+        externalLink: externalLink.trim() || undefined,
         icon,
         isPublic
       });
@@ -163,6 +167,23 @@ export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
               onChange={(e) => setEventTime(e.target.value)}
               className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/30 outline-none"
             />
+          </div>
+
+          {/* External Link */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {t.eventExternalLink || 'External Link'} {t.optional || '(optional)'}
+            </label>
+            <input
+              type="url"
+              value={externalLink}
+              onChange={(e) => setExternalLink(e.target.value)}
+              placeholder={t.eventExternalLinkPlaceholder || 'https://example.com'}
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/30 outline-none"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {t.eventExternalLinkHint || 'Optional link to external resource (e.g., registration page, event website)'}
+            </p>
           </div>
 
           {/* Description */}

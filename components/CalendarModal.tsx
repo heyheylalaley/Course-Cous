@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, ChevronLeft, ChevronRight, Calendar, BookOpen } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Calendar, BookOpen, ExternalLink } from 'lucide-react';
 import { Language, Course, CalendarEvent } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { db } from '../services/db';
@@ -369,6 +369,17 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
                                 <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 break-words overflow-wrap-anywhere">
                                   {renderTextWithLinks(event.description)}
                                 </p>
+                              )}
+                              {event.externalLink && (
+                                <a
+                                  href={event.externalLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:underline mt-2"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                  <span>{t.eventExternalLink || 'External Link'}</span>
+                                </a>
                               )}
                               {!event.isPublic && isAdmin && (event.createdByName || event.createdByEmail) && (
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">

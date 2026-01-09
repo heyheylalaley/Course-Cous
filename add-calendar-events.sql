@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS calendar_events (
   description TEXT,
   icon TEXT NOT NULL DEFAULT 'Calendar', -- lucide-react icon name
   event_date DATE NOT NULL,
+  event_time TIME, -- Optional time for events (HH:MM format)
+  external_link TEXT, -- Optional external link to external resource
   is_public BOOLEAN DEFAULT FALSE, -- false = only admins can see
   created_by UUID REFERENCES auth.users(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),

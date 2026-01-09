@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { CalendarEvent, Language } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { db } from '../services/db';
-import { Calendar, Plus, Edit2, Trash2, Loader2, Eye, EyeOff, ArrowUpDown } from 'lucide-react';
+import { Calendar, Plus, Edit2, Trash2, Loader2, Eye, EyeOff, ArrowUpDown, ExternalLink } from 'lucide-react';
 import { CalendarEventModal } from './CalendarEventModal';
 import { ConfirmationModal } from './ConfirmationModal';
 import { AVAILABLE_ICONS } from './AdminCategoryManagement';
@@ -281,6 +281,17 @@ export const AdminCalendarEvents: React.FC<AdminCalendarEventsProps> = ({ langua
                     <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 line-clamp-2 break-words overflow-wrap-anywhere">
                       {event.description}
                     </p>
+                  )}
+                  {event.externalLink && (
+                    <a
+                      href={event.externalLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:underline mt-2"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      <span>{t.eventExternalLink || 'External Link'}</span>
+                    </a>
                   )}
                   {(event.createdByName || event.createdByEmail) && (
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
