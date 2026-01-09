@@ -559,19 +559,21 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
 
       if (error) throw new Error(error.message);
 
-      // Recalculate priorities for remaining registrations using batch update
+      // Recalculate priorities for remaining registrations using SQL function
       const remainingRegs = await db.getRegistrations();
       if (remainingRegs.length > 0) {
-        // Update all priorities in parallel
-        await Promise.all(
-          remainingRegs.map((reg, index) =>
-            supabase
-              .from('registrations')
-              .update({ priority: index + 1 })
-              .eq('user_id', session.id)
-              .eq('course_id', reg.courseId)
-          )
-        );
+        // Prepare priorities JSON for batch update
+        const priorities = remainingRegs.map((reg, index) => ({
+          course_id: reg.courseId,
+          priority: index + 1
+        }));
+
+        const { error: updateError } = await supabase.rpc('update_registration_priorities', {
+          p_user_id: session.id,
+          p_priorities: priorities
+        });
+
+        if (updateError) throw new Error(updateError.message);
       }
       return;
     }
@@ -600,20 +602,18 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
       const [moved] = regs.splice(courseIndex, 1);
       regs.splice(newPriority - 1, 0, moved);
 
-      // Update all priorities in database using batch update
-      const updateResults = await Promise.all(
-        regs.map((reg, index) =>
-          supabase
-            .from('registrations')
-            .update({ priority: index + 1 })
-            .eq('user_id', session.id)
-            .eq('course_id', reg.courseId)
-        )
-      );
-      
-      // Check for any errors
-      const failedUpdate = updateResults.find(r => r.error);
-      if (failedUpdate?.error) throw new Error(failedUpdate.error.message);
+      // Update all priorities using SQL function
+      const priorities = regs.map((reg, index) => ({
+        course_id: reg.courseId,
+        priority: index + 1
+      }));
+
+      const { error: updateError } = await supabase.rpc('update_registration_priorities', {
+        p_user_id: session.id,
+        p_priorities: priorities
+      });
+
+      if (updateError) throw new Error(updateError.message);
       return;
     }
 
@@ -643,22 +643,10 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
 
       // Check if function exists and worked (ignore 404/PGRST202 errors - function doesn't exist)
       if (!functionError && queueData) {
-        // Function worked, use the results
-        const queueCounts = new Map<string, number>();
-        (queueData || []).forEach((q: any) => {
-          queueCounts.set(q.course_id, Number(q.queue_length) || 0);
-        });
-
-        // Get courses from database to build queue list
-        const { data: coursesData } = await supabase
-          .from('courses')
-          .select('id')
-          .eq('is_active', true);
-
-        const courseIds = coursesData ? coursesData.map((c: any) => c.id) : [];
-        const queues: CourseQueue[] = courseIds.map((courseId: string) => ({
-          courseId,
-          queueLength: queueCounts.get(courseId) || 0
+        // Function already returns only active courses with queue lengths
+        const queues: CourseQueue[] = (queueData || []).map((q: any) => ({
+          courseId: q.course_id,
+          queueLength: Number(q.queue_length) || 0
         }));
 
         return queues;
@@ -940,76 +928,31 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
     }
 
     if (supabase) {
-      // Get all profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Get all users with details using SQL function with JOIN
+      const { data, error } = await supabase.rpc('get_all_users_with_details');
 
-      if (profilesError) throw new Error(profilesError.message);
+      if (error) throw new Error(error.message);
 
-      // Get all registrations
-      const { data: registrations, error: regError } = await supabase
-        .from('registrations')
-        .select('user_id, course_id');
-
-      if (regError) throw new Error(regError.message);
-
-      // Get all completions
-      const { data: completions, error: compError } = await supabase
-        .from('course_completions')
-        .select('user_id, course_id');
-
-      // Build maps for quick lookup
-      const registrationsMap = new Map<string, string[]>();
-      (registrations || []).forEach((r: any) => {
-        if (!registrationsMap.has(r.user_id)) {
-          registrationsMap.set(r.user_id, []);
-        }
-        registrationsMap.get(r.user_id)!.push(r.course_id);
-      });
-
-      const completionsMap = new Map<string, string[]>();
-      (completions || []).forEach((c: any) => {
-        if (!completionsMap.has(c.user_id)) {
-          completionsMap.set(c.user_id, []);
-        }
-        completionsMap.get(c.user_id)!.push(c.course_id);
-      });
-
-      return (profiles || []).map((p: any) => {
-        let firstName = p.first_name;
-        let lastName = p.last_name;
-        if (!firstName && !lastName && p.name) {
-          const nameParts = p.name.trim().split(/\s+/);
-          firstName = nameParts[0] || '';
-          lastName = nameParts.slice(1).join(' ') || '';
-        }
-
-        const isProfileComplete = !!(
-          firstName && firstName.trim() &&
-          lastName && lastName.trim() &&
-          p.mobile_number && p.mobile_number.trim() &&
-          p.address && p.address.trim() &&
-          p.eircode && p.eircode.trim() &&
-          p.date_of_birth
-        );
+      return (data || []).map((row: any) => {
+        // Migrate old name format if needed
+        let firstName = row.first_name;
+        let lastName = row.last_name;
 
         return {
-          userId: p.id,
-          email: p.email,
+          userId: row.user_id,
+          email: row.email,
           firstName: firstName || undefined,
           lastName: lastName || undefined,
-          mobileNumber: p.mobile_number || undefined,
-          address: p.address || undefined,
-          eircode: p.eircode || undefined,
-          dateOfBirth: p.date_of_birth ? new Date(p.date_of_birth).toISOString().split('T')[0] : undefined,
-          englishLevel: (p.english_level as EnglishLevel) || 'None',
-          isAdmin: p.is_admin || false,
-          createdAt: p.created_at ? new Date(p.created_at) : undefined,
-          registeredCourses: registrationsMap.get(p.id) || [],
-          completedCourses: completionsMap.get(p.id) || [],
-          isProfileComplete
+          mobileNumber: row.mobile_number || undefined,
+          address: row.address || undefined,
+          eircode: row.eircode || undefined,
+          dateOfBirth: row.date_of_birth ? new Date(row.date_of_birth).toISOString().split('T')[0] : undefined,
+          englishLevel: (row.english_level as EnglishLevel) || 'None',
+          isAdmin: row.is_admin || false,
+          createdAt: row.created_at ? new Date(row.created_at) : undefined,
+          registeredCourses: row.registered_courses || [],
+          completedCourses: row.completed_courses || [],
+          isProfileComplete: row.is_profile_complete || false
         };
       });
     }
@@ -1028,68 +971,37 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
     }
 
     if (supabase) {
-      // Get all registrations for this course with user profiles
-      const { data: registrations, error: regError } = await supabase
-        .from('registrations')
-        .select('user_id, registered_at, priority')
-        .eq('course_id', courseId)
-        .order('registered_at', { ascending: true });
+      // Get all student details for this course using SQL function with JOIN
+      const { data, error } = await supabase.rpc('get_course_student_details', {
+        p_course_id: courseId
+      });
 
-      if (regError) throw new Error(regError.message);
+      if (error) throw new Error(error.message);
 
-      if (!registrations || registrations.length === 0) {
+      if (!data || data.length === 0) {
         return [];
       }
 
-      // Get user IDs
-      const userIds = registrations.map((r: any) => r.user_id);
-
-      // Get profiles for these users
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('id', userIds);
-
-      if (profileError) {
-        console.error('Error fetching profiles:', profileError);
-        throw new Error(profileError.message);
-      }
-
-      // Log only in development mode
-      if (import.meta.env.DEV) {
-        console.log(`Fetched ${profiles?.length || 0} profiles`);
-      }
-
-      // Combine registration and profile data
-      const details: AdminStudentDetail[] = (registrations || []).map((reg: any) => {
-        const profile = (profiles || []).find((p: any) => p.id === reg.user_id);
-        
-        
-        // Migrate old name format if needed
-        let firstName = profile?.first_name;
-        let lastName = profile?.last_name;
-        if (!firstName && !lastName && profile?.name) {
-          const nameParts = profile.name.trim().split(/\s+/);
-          firstName = nameParts[0] || '';
-          lastName = nameParts.slice(1).join(' ') || '';
-        }
+      // Map to AdminStudentDetail format
+      return data.map((row: any) => {
+        // Migrate old name format if needed (shouldn't be needed with new schema, but keep for safety)
+        let firstName = row.first_name;
+        let lastName = row.last_name;
 
         return {
-          userId: reg.user_id,
-          email: profile?.email || '',
+          userId: row.user_id,
+          email: row.email || '',
           firstName: firstName || undefined,
           lastName: lastName || undefined,
-          mobileNumber: profile?.mobile_number || undefined,
-          address: profile?.address || undefined,
-          eircode: profile?.eircode || undefined,
-          dateOfBirth: profile?.date_of_birth ? new Date(profile.date_of_birth).toISOString().split('T')[0] : undefined,
-          englishLevel: (profile?.english_level as EnglishLevel) || 'None',
-          registeredAt: new Date(reg.registered_at),
-          priority: reg.priority || 999
+          mobileNumber: row.mobile_number || undefined,
+          address: row.address || undefined,
+          eircode: row.eircode || undefined,
+          dateOfBirth: row.date_of_birth ? new Date(row.date_of_birth).toISOString().split('T')[0] : undefined,
+          englishLevel: (row.english_level as EnglishLevel) || 'None',
+          registeredAt: new Date(row.registered_at),
+          priority: row.priority || 999
         };
       });
-
-      return details.sort((a, b) => (a.priority || 999) - (b.priority || 999));
     }
 
     // Mock fallback:
@@ -2220,18 +2132,10 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
   // --- Calendar Event Methods ---
   getCalendarEvents: async (isAdmin: boolean = false): Promise<CalendarEvent[]> => {
     if (supabase) {
-      // Get calendar events
-      let query = supabase
-        .from('calendar_events')
-        .select('*')
-        .order('event_date', { ascending: true });
-
-      // Non-admins can only see public events (RLS handles this, but double-check)
-      if (!isAdmin) {
-        query = query.eq('is_public', true);
-      }
-
-      const { data, error } = await query;
+      // Get calendar events with creator info using SQL function with JOIN
+      const { data, error } = await supabase.rpc('get_calendar_events_with_creators', {
+        p_is_admin: isAdmin
+      });
 
       if (error) {
         console.error('Error fetching calendar events:', error);
@@ -2242,64 +2146,20 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
         return [];
       }
 
-      // Get unique creator IDs
-      const creatorIds = [...new Set(data.filter((e: any) => e.created_by).map((e: any) => e.created_by))] as string[];
-
-      // Fetch creator profiles in batch
-      let creatorProfiles: Record<string, { first_name?: string; last_name?: string; email?: string }> = {};
-      
-      if (creatorIds.length > 0) {
-        try {
-          const { data: profiles, error: profilesError } = await supabase
-            .from('profiles')
-            .select('id, first_name, last_name, email')
-            .in('id', creatorIds);
-
-          if (!profilesError && profiles) {
-            profiles.forEach((profile: any) => {
-              creatorProfiles[profile.id] = {
-                first_name: profile.first_name,
-                last_name: profile.last_name,
-                email: profile.email
-              };
-            });
-          }
-        } catch (profileError) {
-          console.warn('Failed to fetch creator profiles:', profileError);
-        }
-      }
-
-      // Map events with creator info
-      return data.map((e: any) => {
-        let createdByName: string | undefined;
-        let createdByEmail: string | undefined;
-
-        if (e.created_by && creatorProfiles[e.created_by]) {
-          const creator = creatorProfiles[e.created_by];
-          if (creator.first_name && creator.last_name) {
-            createdByName = `${creator.first_name} ${creator.last_name}`.trim();
-          } else if (creator.first_name) {
-            createdByName = creator.first_name;
-          } else if (creator.last_name) {
-            createdByName = creator.last_name;
-          }
-          createdByEmail = creator.email;
-        }
-
-        return {
-          id: e.id,
-          title: e.title,
-          description: e.description || undefined,
-          icon: e.icon,
-          eventDate: e.event_date,
-          isPublic: e.is_public,
-          createdBy: e.created_by || undefined,
-          createdByName,
-          createdByEmail,
-          createdAt: e.created_at ? new Date(e.created_at) : undefined,
-          updatedAt: e.updated_at ? new Date(e.updated_at) : undefined
-        };
-      });
+      // Map to CalendarEvent format
+      return data.map((e: any) => ({
+        id: e.id,
+        title: e.title,
+        description: e.description || undefined,
+        icon: e.icon,
+        eventDate: e.event_date,
+        isPublic: e.is_public,
+        createdBy: e.created_by || undefined,
+        createdByName: e.created_by_name || undefined,
+        createdByEmail: e.created_by_email || undefined,
+        createdAt: e.created_at ? new Date(e.created_at) : undefined,
+        updatedAt: e.updated_at ? new Date(e.updated_at) : undefined
+      }));
     }
 
     // Mock fallback
