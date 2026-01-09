@@ -37,7 +37,7 @@ const getAiClient = () => {
   return new GoogleGenAI({ apiKey });
 };
 
-// Load courses with all translations for bot (so it can use descriptions in response language)
+// Load courses with all translations (kept for potential future use, but bot now receives only English)
 const loadCoursesWithAllTranslations = async (): Promise<(Course & { _translations?: Record<string, { title: string | null; description: string }> })[]> => {
   if (!supabase) {
     // Fallback: load with default language
@@ -78,7 +78,7 @@ const loadCoursesWithAllTranslations = async (): Promise<(Course & { _translatio
       };
     });
 
-    // Return courses with English descriptions (bot will use translations from map)
+    // Return courses with English descriptions (bot receives only English, translates descriptions itself)
     return coursesData.map((c: any) => ({
       id: c.id,
       title: c.title,
@@ -181,7 +181,8 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
   // Filter out completed courses from the recommendation list
   const availableForRecommendation = availableCourses.filter(c => !completedIds.includes(c.id));
   
-  // Build course list with translations - bot should use description in response language
+  // Build course list with English names and descriptions only
+  // Bot will translate descriptions to user's language when responding
   const courseListForBot = availableForRecommendation.map(c => {
     const level = c.minEnglishLevel || 'None';
     const levelStr = level === 'None' ? '' : ` [${level}+]`;
@@ -190,21 +191,10 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
       ? ` (next: ${new Date(c.nextCourseDate).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })})`
       : '';
     
-    // Get translations if available
-    const translations = (c as any)._translations || {};
-    const enDesc = c.description;
-    const uaDesc = translations['ua']?.description || enDesc;
-    const ruDesc = translations['ru']?.description || enDesc;
-    const arDesc = translations['ar']?.description || enDesc;
-    
-    // Format: Course name with all language descriptions
-    // Bot should use the description in the language it's responding in
-    // When responding in English, use EN description; in Ukrainian, use UA; in Russian, use RU; in Arabic, use AR
+    // Format: Course name and English description only
+    // Bot must translate the description to the user's language when responding
     return `• **${c.title}**${levelStr}${dateStr}
-  [EN] ${enDesc}
-  [UA] ${uaDesc}
-  [RU] ${ruDesc}
-  [AR] ${arDesc}`;
+  ${c.description}`;
   }).join('\n\n');
 
   // Build list of completed courses to inform bot
