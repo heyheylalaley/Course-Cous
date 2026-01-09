@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Registration, UserProfile, EnglishLevel, CourseQueue, AdminCourseStats, AdminStudentDetail, Course, Message, Language, CourseCategory } from '../types';
+import { Registration, UserProfile, EnglishLevel, CourseQueue, AdminCourseStats, AdminStudentDetail, Course, Message, Language, CourseCategory, CalendarEvent } from '../types';
 import { AVAILABLE_COURSES } from '../constants';
 import { translateCourse } from './translateService';
 
@@ -2209,6 +2209,148 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
         .from('course_categories')
         .delete()
         .eq('id', categoryId);
+
+      if (error) throw new Error(error.message);
+      return;
+    }
+
+    throw new Error("Supabase not configured");
+  },
+
+  // --- Calendar Event Methods ---
+  getCalendarEvents: async (isAdmin: boolean = false): Promise<CalendarEvent[]> => {
+    if (supabase) {
+      let query = supabase
+        .from('calendar_events')
+        .select('*')
+        .order('event_date', { ascending: true });
+
+      // Non-admins can only see public events (RLS handles this, but double-check)
+      if (!isAdmin) {
+        query = query.eq('is_public', true);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching calendar events:', error);
+        return [];
+      }
+
+      return (data || []).map((e: any) => ({
+        id: e.id,
+        title: e.title,
+        description: e.description || undefined,
+        icon: e.icon,
+        eventDate: e.event_date,
+        isPublic: e.is_public,
+        createdBy: e.created_by || undefined,
+        createdAt: e.created_at ? new Date(e.created_at) : undefined,
+        updatedAt: e.updated_at ? new Date(e.updated_at) : undefined
+      }));
+    }
+
+    // Mock fallback
+    return [];
+  },
+
+  createCalendarEvent: async (event: Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>): Promise<CalendarEvent> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .insert({
+          title: event.title,
+          description: event.description || null,
+          icon: event.icon,
+          event_date: event.eventDate,
+          is_public: event.isPublic,
+          created_by: session.id
+        })
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+
+      return {
+        id: data.id,
+        title: data.title,
+        description: data.description || undefined,
+        icon: data.icon,
+        eventDate: data.event_date,
+        isPublic: data.is_public,
+        createdBy: data.created_by || undefined,
+        createdAt: data.created_at ? new Date(data.created_at) : undefined,
+        updatedAt: data.updated_at ? new Date(data.updated_at) : undefined
+      };
+    }
+
+    throw new Error("Supabase not configured");
+  },
+
+  updateCalendarEvent: async (eventId: string, updates: Partial<Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>>): Promise<CalendarEvent> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    if (supabase) {
+      const updateData: any = {};
+      if (updates.title !== undefined) updateData.title = updates.title;
+      if (updates.description !== undefined) updateData.description = updates.description || null;
+      if (updates.icon !== undefined) updateData.icon = updates.icon;
+      if (updates.eventDate !== undefined) updateData.event_date = updates.eventDate;
+      if (updates.isPublic !== undefined) updateData.is_public = updates.isPublic;
+
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .update(updateData)
+        .eq('id', eventId)
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+
+      return {
+        id: data.id,
+        title: data.title,
+        description: data.description || undefined,
+        icon: data.icon,
+        eventDate: data.event_date,
+        isPublic: data.is_public,
+        createdBy: data.created_by || undefined,
+        createdAt: data.created_at ? new Date(data.created_at) : undefined,
+        updatedAt: data.updated_at ? new Date(data.updated_at) : undefined
+      };
+    }
+
+    throw new Error("Supabase not configured");
+  },
+
+  deleteCalendarEvent: async (eventId: string): Promise<void> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    if (supabase) {
+      const { error } = await supabase
+        .from('calendar_events')
+        .delete()
+        .eq('id', eventId);
 
       if (error) throw new Error(error.message);
       return;

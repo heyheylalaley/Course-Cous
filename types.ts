@@ -109,3 +109,15 @@ export interface CourseCategory {
   sortOrder?: number;
   createdAt?: Date;
 }
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  icon: string; // lucide-react icon name
+  eventDate: string; // ISO date string (YYYY-MM-DD)
+  isPublic: boolean; // false = only admins can see
+  createdBy?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}

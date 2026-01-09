@@ -11,8 +11,9 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CoursesProvider, useCourses } from './contexts/CoursesContext';
 import { UIProvider, useUI } from './contexts/UIContext';
 import { useDebounce } from './hooks/useDebounce';
-import { Menu, X, MessageSquare, LayoutDashboard, LogOut, Shield, Info } from 'lucide-react';
+import { Menu, X, MessageSquare, LayoutDashboard, LogOut, Shield, Info, Calendar } from 'lucide-react';
 import { ContactModal } from './components/ContactModal';
+import { CalendarModal } from './components/CalendarModal';
 import { UpdatePasswordPage } from './components/UpdatePasswordPage';
 import { db } from './services/db';
 import { EnglishLevel, Course } from './types';
@@ -39,6 +40,7 @@ const AppContent: React.FC = () => {
   const [errorActionButton, setErrorActionButton] = useState<{ text: string; onClick: () => void } | undefined>(undefined);
   const [courseSearchQuery, setCourseSearchQuery] = useState<string>('');
   const [showContactModal, setShowContactModal] = useState(false);
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Debounced search query
@@ -280,6 +282,15 @@ const AppContent: React.FC = () => {
               </button>
             )}
             
+            {/* Calendar Button */}
+            <button 
+              onClick={() => setShowCalendarModal(true)}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-600 hover:text-green-600 dark:hover:text-green-400 border border-transparent"
+            >
+              <Calendar size={18} />
+              {t.calendar}
+            </button>
+            
             {/* Contact Info Button */}
             <button 
               onClick={() => setShowContactModal(true)}
@@ -427,6 +438,13 @@ const AppContent: React.FC = () => {
           isOpen={showContactModal}
           onClose={() => setShowContactModal(false)}
           language={language}
+        />
+        <CalendarModal
+          isOpen={showCalendarModal}
+          onClose={() => setShowCalendarModal(false)}
+          language={language}
+          courses={courses}
+          isAdmin={userProfile.isAdmin || false}
         />
         <ConfirmationModal
           isOpen={showLogoutConfirm}
