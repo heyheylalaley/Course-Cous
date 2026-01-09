@@ -79,30 +79,97 @@ export const UserTour: React.FC<UserTourProps> = ({
       const scrollY = window.scrollY || window.pageYOffset;
 
       const position = currentStepData.position || 'bottom';
+      const tooltipWidth = 320; // maxWidth from tooltipStyle
+      const tooltipHeight = 200; // Approximate height, will be adjusted
+      const padding = 20; // Space from viewport edges
+      const gap = 10; // Gap between element and tooltip
+
       let top = 0;
       let left = 0;
+      let finalPosition = position;
 
+      // Calculate initial position
       switch (position) {
         case 'top':
-          top = rect.top + scrollY - 10;
+          top = rect.top + scrollY - gap;
           left = rect.left + scrollX + rect.width / 2;
           break;
         case 'bottom':
-          top = rect.bottom + scrollY + 10;
+          top = rect.bottom + scrollY + gap;
           left = rect.left + scrollX + rect.width / 2;
           break;
         case 'left':
           top = rect.top + scrollY + rect.height / 2;
-          left = rect.left + scrollX - 10;
+          left = rect.left + scrollX - gap;
           break;
         case 'right':
           top = rect.top + scrollY + rect.height / 2;
-          left = rect.right + scrollX + 10;
+          left = rect.right + scrollX + gap;
           break;
         case 'center':
           top = window.innerHeight / 2 + scrollY;
           left = window.innerWidth / 2 + scrollX;
           break;
+      }
+
+      // Adjust for viewport boundaries
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const halfTooltipWidth = tooltipWidth / 2;
+
+      // Horizontal adjustments
+      if (left - halfTooltipWidth < padding) {
+        // Too far left
+        left = padding + halfTooltipWidth;
+      } else if (left + halfTooltipWidth > viewportWidth - padding) {
+        // Too far right
+        left = viewportWidth - padding - halfTooltipWidth;
+      }
+
+      // Vertical adjustments
+      if (top - tooltipHeight < padding) {
+        // Too high, move below if possible
+        if (position === 'top' && rect.bottom + scrollY + gap + tooltipHeight < viewportHeight - padding) {
+          top = rect.bottom + scrollY + gap;
+          finalPosition = 'bottom';
+        } else {
+          top = padding + tooltipHeight / 2;
+        }
+      } else if (top + tooltipHeight > viewportHeight + scrollY - padding) {
+        // Too low, move above if possible
+        if (position === 'bottom' && rect.top + scrollY - gap - tooltipHeight > padding) {
+          top = rect.top + scrollY - gap;
+          finalPosition = 'top';
+        } else {
+          top = viewportHeight + scrollY - padding - tooltipHeight / 2;
+        }
+      }
+
+      // On mobile, prefer bottom or top positioning
+      const isMobile = viewportWidth < 768;
+      if (isMobile && (finalPosition === 'left' || finalPosition === 'right')) {
+        // On mobile, use top or bottom instead
+        const rectBottom = rect.bottom + scrollY;
+        const rectTop = rect.top + scrollY;
+        
+        if (rectBottom + gap + tooltipHeight < viewportHeight + scrollY - padding) {
+          top = rectBottom + gap;
+          finalPosition = 'bottom';
+        } else if (rectTop - gap - tooltipHeight > scrollY + padding) {
+          top = rectTop - gap;
+          finalPosition = 'top';
+        } else {
+          // Center vertically if neither works
+          top = (viewportHeight / 2) + scrollY;
+        }
+        // Center horizontally on mobile
+        left = Math.max(
+          padding + halfTooltipWidth, 
+          Math.min(
+            viewportWidth - padding - halfTooltipWidth, 
+            rect.left + scrollX + rect.width / 2
+          )
+        );
       }
 
       setPosition({ top, left });
@@ -168,19 +235,56 @@ export const UserTour: React.FC<UserTourProps> = ({
   };
 
   // Calculate tooltip position (adjust to prevent overflow)
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 320;
+  const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 568;
+  const tooltipMaxWidth = isMobile ? Math.min(320, viewportWidth - 32) : 320;
+  const tooltipPadding = 16;
+  const estimatedTooltipHeight = 250; // Approximate height
+  
+  // Convert absolute position to fixed position (relative to viewport)
+  const scrollY = typeof window !== 'undefined' ? window.scrollY || window.pageYOffset : 0;
+  const scrollX = typeof window !== 'undefined' ? window.scrollX || window.pageXOffset : 0;
+  
+  // Calculate fixed position (relative to viewport, not document)
+  const fixedTop = position.top - scrollY;
+  const fixedLeft = position.left - scrollX;
+  
+  // Clamp to viewport boundaries
+  const clampedTop = Math.max(
+    tooltipPadding, 
+    Math.min(fixedTop, viewportHeight - estimatedTooltipHeight - tooltipPadding)
+  );
+  const clampedLeft = Math.max(
+    tooltipPadding + tooltipMaxWidth / 2,
+    Math.min(fixedLeft, viewportWidth - tooltipPadding - tooltipMaxWidth / 2)
+  );
+  
   const tooltipStyle: React.CSSProperties = {
-    position: 'absolute',
-    top: `${position.top}px`,
-    left: `${position.left}px`,
+    position: 'fixed', // Use fixed for viewport-relative positioning
+    top: `${clampedTop}px`,
+    left: `${clampedLeft}px`,
     transform: 'translate(-50%, 0)',
     zIndex: 10000,
-    maxWidth: '320px',
-    pointerEvents: 'auto'
+    maxWidth: `${tooltipMaxWidth}px`,
+    width: isMobile ? 'calc(100vw - 32px)' : 'auto',
+    pointerEvents: 'auto',
+    maxHeight: `${viewportHeight - clampedTop - tooltipPadding}px`,
+    overflowY: 'auto'
   };
 
   // Adjust for RTL
   if (isRtl && currentStepData.position === 'right') {
     tooltipStyle.transform = 'translate(50%, 0)';
+  }
+
+  // On mobile, center horizontally if tooltip would be too close to edge
+  if (isMobile) {
+    const halfWidth = tooltipMaxWidth / 2;
+    if (clampedLeft - halfWidth < tooltipPadding || clampedLeft + halfWidth > viewportWidth - tooltipPadding) {
+      tooltipStyle.left = '50%';
+      tooltipStyle.transform = 'translate(-50%, 0)';
+    }
   }
 
   return (
@@ -197,7 +301,7 @@ export const UserTour: React.FC<UserTourProps> = ({
       <div
         ref={tooltipRef}
         style={tooltipStyle}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-5 animate-in fade-in zoom-in duration-200"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-4 sm:p-5 animate-in fade-in zoom-in duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
