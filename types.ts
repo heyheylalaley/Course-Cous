@@ -122,6 +122,7 @@ export interface CalendarEvent {
   description?: string;
   icon: string; // lucide-react icon name
   eventDate: string; // ISO date string (YYYY-MM-DD)
+  eventTime?: string; // Time string (HH:MM format)
   isPublic: boolean; // false = only admins can see
   createdBy?: string;
   createdByName?: string; // Full name of the creator (first_name + last_name)

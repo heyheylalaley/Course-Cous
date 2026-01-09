@@ -2252,6 +2252,7 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
         description: e.description || undefined,
         icon: e.icon,
         eventDate: e.event_date,
+        eventTime: e.event_time || undefined,
         isPublic: e.is_public,
         createdBy: e.created_by || undefined,
         createdByName: e.created_by_name || undefined,
@@ -2282,6 +2283,7 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
           description: event.description || null,
           icon: event.icon,
           event_date: event.eventDate,
+          event_time: event.eventTime || null,
           is_public: event.isPublic,
           created_by: session.id
         })
@@ -2296,6 +2298,7 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
         description: data.description || undefined,
         icon: data.icon,
         eventDate: data.event_date,
+        eventTime: data.event_time || undefined,
         isPublic: data.is_public,
         createdBy: data.created_by || undefined,
         createdAt: data.created_at ? new Date(data.created_at) : undefined,
@@ -2321,6 +2324,7 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
       if (updates.description !== undefined) updateData.description = updates.description || null;
       if (updates.icon !== undefined) updateData.icon = updates.icon;
       if (updates.eventDate !== undefined) updateData.event_date = updates.eventDate;
+      if (updates.eventTime !== undefined) updateData.event_time = updates.eventTime || null;
       if (updates.isPublic !== undefined) updateData.is_public = updates.isPublic;
 
       const { data, error } = await supabase
@@ -2338,6 +2342,7 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
         description: data.description || undefined,
         icon: data.icon,
         eventDate: data.event_date,
+        eventTime: data.event_time || undefined,
         isPublic: data.is_public,
         createdBy: data.created_by || undefined,
         createdAt: data.created_at ? new Date(data.created_at) : undefined,

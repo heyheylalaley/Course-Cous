@@ -19,10 +19,10 @@ interface DayEvents {
 }
 
 const WEEKDAYS = {
-  en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-  ua: ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'],
-  ru: ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'],
-  ar: ['أحد', 'إثن', 'ثلا', 'أرب', 'خمي', 'جمع', 'سبت']
+  en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  ua: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'],
+  ru: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+  ar: ['إثن', 'ثلا', 'أرب', 'خمي', 'جمع', 'سبت', 'أحد']
 };
 
 const MONTHS = {
@@ -67,7 +67,8 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
     
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
-    const startingDay = firstDay.getDay();
+    // Convert Sunday (0) to 6, Monday (1) to 0, etc. to start week from Monday
+    const startingDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
     const totalDays = lastDay.getDate();
 
     const days: (number | null)[] = [];
@@ -90,7 +91,17 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
     const dateStr = `${calendarData.year}-${String(calendarData.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     
     const dayCourses = courses.filter(course => course.nextCourseDate === dateStr);
-    const dayEvents = calendarEvents.filter(event => event.eventDate === dateStr);
+    const dayEvents = calendarEvents
+      .filter(event => event.eventDate === dateStr)
+      .sort((a, b) => {
+        // Sort by time: events with time first, then by time value, then events without time
+        if (a.eventTime && b.eventTime) {
+          return a.eventTime.localeCompare(b.eventTime);
+        }
+        if (a.eventTime && !b.eventTime) return -1;
+        if (!a.eventTime && b.eventTime) return 1;
+        return 0;
+      });
     
     return { courses: dayCourses, events: dayEvents };
   };
@@ -341,8 +352,13 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
                               event.isPublic ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400'
                             }`} />
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <p className="font-medium text-gray-900 dark:text-white">{event.title}</p>
+                                {event.eventTime && (
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                    {event.eventTime}
+                                  </span>
+                                )}
                                 {!event.isPublic && (
                                   <span className="text-[10px] px-1.5 py-0.5 bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded">
                                     {t.eventPrivate || 'Private'}

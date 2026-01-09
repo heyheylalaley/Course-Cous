@@ -22,6 +22,7 @@ export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [eventDate, setEventDate] = useState('');
+  const [eventTime, setEventTime] = useState('');
   const [icon, setIcon] = useState('Calendar');
   const [isPublic, setIsPublic] = useState(false);
   const [iconSearch, setIconSearch] = useState('');
@@ -38,12 +39,14 @@ export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
         setTitle(event.title);
         setDescription(event.description || '');
         setEventDate(event.eventDate);
+        setEventTime(event.eventTime || '');
         setIcon(event.icon);
         setIsPublic(event.isPublic);
       } else {
         setTitle('');
         setDescription('');
         setEventDate('');
+        setEventTime('');
         setIcon('Calendar');
         setIsPublic(false);
       }
@@ -73,6 +76,7 @@ export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
         title: title.trim(),
         description: description.trim() || undefined,
         eventDate,
+        eventTime: eventTime.trim() || undefined,
         icon,
         isPublic
       });
@@ -144,6 +148,19 @@ export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
               type="date"
               value={eventDate}
               onChange={(e) => setEventDate(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/30 outline-none"
+            />
+          </div>
+
+          {/* Time */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {t.eventTime || 'Event Time'} {t.optional || '(optional)'}
+            </label>
+            <input
+              type="time"
+              value={eventTime}
+              onChange={(e) => setEventTime(e.target.value)}
               className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900/30 outline-none"
             />
           </div>

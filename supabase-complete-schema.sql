@@ -387,10 +387,10 @@ REGISTRATION: Find course in catalog â†’ click "Register". Max 3 courses. Use â†
 ON CONFLICT (section, language) DO NOTHING;
 
 -- ============================================================================
--- PART 6: Database Functions
+-- PART 6: Database Functions and Optimizations
 -- ============================================================================
 
--- Function to get course queue counts (bypasses RLS)
+-- Function to get course queue counts (optimized - only active courses)
 CREATE OR REPLACE FUNCTION get_course_queue_counts()
 RETURNS TABLE(course_id TEXT, queue_length BIGINT) 
 LANGUAGE plpgsql
@@ -403,12 +403,249 @@ BEGIN
     r.course_id::TEXT,
     COUNT(*)::BIGINT as queue_length
   FROM registrations r
-  GROUP BY r.course_id;
+  INNER JOIN courses c ON r.course_id = c.id
+  WHERE c.is_active = TRUE
+  GROUP BY r.course_id
+  ORDER BY r.course_id;
 END;
 $$;
 
 GRANT EXECUTE ON FUNCTION get_course_queue_counts() TO authenticated;
 GRANT EXECUTE ON FUNCTION get_course_queue_counts() TO anon;
+
+-- Function for batch update of registration priorities
+CREATE OR REPLACE FUNCTION update_registration_priorities(
+  p_user_id UUID,
+  p_priorities JSONB
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  item JSONB;
+BEGIN
+  FOR item IN SELECT * FROM jsonb_array_elements(p_priorities)
+  LOOP
+    UPDATE registrations
+    SET priority = (item->>'priority')::INTEGER
+    WHERE user_id = p_user_id
+      AND course_id = item->>'course_id';
+  END LOOP;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION update_registration_priorities(UUID, JSONB) TO authenticated;
+
+-- Function to get course student details with JOIN
+DROP FUNCTION IF EXISTS get_course_student_details(TEXT);
+
+CREATE OR REPLACE FUNCTION get_course_student_details(p_course_id TEXT)
+RETURNS TABLE (
+  user_id UUID,
+  email TEXT,
+  first_name TEXT,
+  last_name TEXT,
+  mobile_number TEXT,
+  address TEXT,
+  eircode TEXT,
+  date_of_birth DATE,
+  english_level TEXT,
+  registered_at TIMESTAMPTZ,
+  priority INTEGER,
+  ldc_ref TEXT,
+  iris_id TEXT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    r.user_id,
+    p.email,
+    p.first_name,
+    p.last_name,
+    p.mobile_number,
+    p.address,
+    p.eircode,
+    p.date_of_birth,
+    p.english_level,
+    r.registered_at,
+    r.priority,
+    p.ldc_ref,
+    p.iris_id
+  FROM registrations r
+  INNER JOIN profiles p ON r.user_id = p.id
+  WHERE r.course_id = p_course_id
+  ORDER BY r.priority ASC NULLS LAST, r.registered_at ASC;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION get_course_student_details(TEXT) TO authenticated;
+
+-- Function to get all users with details (JOIN)
+DROP FUNCTION IF EXISTS get_all_users_with_details();
+
+CREATE OR REPLACE FUNCTION get_all_users_with_details()
+RETURNS TABLE (
+  user_id UUID,
+  email TEXT,
+  first_name TEXT,
+  last_name TEXT,
+  mobile_number TEXT,
+  address TEXT,
+  eircode TEXT,
+  date_of_birth DATE,
+  english_level TEXT,
+  is_admin BOOLEAN,
+  created_at TIMESTAMPTZ,
+  registered_courses TEXT[],
+  completed_courses TEXT[],
+  is_profile_complete BOOLEAN,
+  ldc_ref TEXT,
+  iris_id TEXT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    p.id AS user_id,
+    p.email,
+    p.first_name,
+    p.last_name,
+    p.mobile_number,
+    p.address,
+    p.eircode,
+    p.date_of_birth,
+    p.english_level,
+    p.is_admin,
+    p.created_at,
+    COALESCE(
+      array_agg(DISTINCT r.course_id) FILTER (WHERE r.course_id IS NOT NULL),
+      ARRAY[]::TEXT[]
+    ) AS registered_courses,
+    COALESCE(
+      array_agg(DISTINCT c.course_id) FILTER (WHERE c.course_id IS NOT NULL),
+      ARRAY[]::TEXT[]
+    ) AS completed_courses,
+    CASE
+      WHEN p.first_name IS NOT NULL AND p.first_name != ''
+        AND p.last_name IS NOT NULL AND p.last_name != ''
+        AND p.mobile_number IS NOT NULL AND p.mobile_number != ''
+        AND p.address IS NOT NULL AND p.address != ''
+        AND p.eircode IS NOT NULL AND p.eircode != ''
+        AND p.date_of_birth IS NOT NULL
+      THEN TRUE
+      ELSE FALSE
+    END AS is_profile_complete,
+    p.ldc_ref,
+    p.iris_id
+  FROM profiles p
+  LEFT JOIN registrations r ON p.id = r.user_id
+  LEFT JOIN course_completions c ON p.id = c.user_id
+  GROUP BY p.id, p.email, p.first_name, p.last_name, p.mobile_number, 
+           p.address, p.eircode, p.date_of_birth, p.english_level, 
+           p.is_admin, p.created_at, p.ldc_ref, p.iris_id
+  ORDER BY p.created_at DESC;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION get_all_users_with_details() TO authenticated;
+
+-- Function to get calendar events with creator info (includes event_time)
+CREATE OR REPLACE FUNCTION get_calendar_events_with_creators(p_is_admin BOOLEAN DEFAULT FALSE)
+RETURNS TABLE (
+  id UUID,
+  title TEXT,
+  description TEXT,
+  icon TEXT,
+  event_date DATE,
+  event_time TIME,
+  is_public BOOLEAN,
+  created_by UUID,
+  created_by_name TEXT,
+  created_by_email TEXT,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    ce.id,
+    ce.title,
+    ce.description,
+    ce.icon,
+    ce.event_date,
+    ce.event_time,
+    ce.is_public,
+    ce.created_by,
+    COALESCE(p.first_name || ' ' || p.last_name, p.first_name, p.last_name, NULL) as created_by_name,
+    p.email as created_by_email,
+    ce.created_at,
+    ce.updated_at
+  FROM calendar_events ce
+  LEFT JOIN profiles p ON ce.created_by = p.id
+  WHERE (p_is_admin = TRUE OR ce.is_public = TRUE)
+  ORDER BY ce.event_date ASC, ce.event_time ASC NULLS LAST;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION get_calendar_events_with_creators(BOOLEAN) TO authenticated;
+GRANT EXECUTE ON FUNCTION get_calendar_events_with_creators(BOOLEAN) TO anon;
+
+-- Function to get courses with translations
+CREATE OR REPLACE FUNCTION get_courses_with_translations(
+  p_language TEXT DEFAULT 'en',
+  p_include_inactive BOOLEAN DEFAULT FALSE
+)
+RETURNS TABLE (
+  id TEXT,
+  title TEXT,
+  category TEXT,
+  description TEXT,
+  difficulty TEXT,
+  next_course_date DATE,
+  min_english_level TEXT,
+  is_active BOOLEAN,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    c.id,
+    c.title, -- Always original title
+    c.category,
+    COALESCE(ct.description, c.description) AS description,
+    c.difficulty,
+    c.next_course_date,
+    c.min_english_level,
+    c.is_active,
+    c.created_at,
+    c.updated_at
+  FROM courses c
+  LEFT JOIN course_translations ct ON c.id = ct.course_id AND ct.language = p_language
+  WHERE (p_include_inactive = TRUE OR c.is_active = TRUE)
+  ORDER BY c.title ASC;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION get_courses_with_translations(TEXT, BOOLEAN) TO authenticated;
+GRANT EXECUTE ON FUNCTION get_courses_with_translations(TEXT, BOOLEAN) TO anon;
 
 -- ============================================================================
 -- PART 8: Course Completions (Admin marks users as completed)
@@ -644,6 +881,7 @@ CREATE TABLE IF NOT EXISTS calendar_events (
   description TEXT,
   icon TEXT NOT NULL DEFAULT 'Calendar', -- lucide-react icon name
   event_date DATE NOT NULL,
+  event_time TIME, -- Optional time for events (HH:MM format)
   is_public BOOLEAN DEFAULT FALSE, -- false = only admins can see
   created_by UUID REFERENCES auth.users(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -685,6 +923,30 @@ CREATE TRIGGER update_calendar_events_updated_at BEFORE UPDATE ON calendar_event
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================================
+-- PART 13: Additional Indexes for Optimization
+-- ============================================================================
+
+-- Index for email search
+CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles(email);
+
+-- Composite index for registrations (course_id, user_id)
+CREATE INDEX IF NOT EXISTS idx_registrations_course_user ON registrations(course_id, user_id);
+
+-- Composite index for course_completions (user_id, course_id)
+CREATE INDEX IF NOT EXISTS idx_completions_user_course ON course_completions(user_id, course_id);
+
+-- Index for chat_messages by timestamp (for sorting)
+CREATE INDEX IF NOT EXISTS idx_chat_messages_user_timestamp ON chat_messages(user_id, timestamp DESC);
+
+-- ============================================================================
+-- PART 14: Admin Profile Fields (LDC Ref, IRIS ID)
+-- ============================================================================
+
+-- Add admin-only fields to profiles if they don't exist
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ldc_ref TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS iris_id TEXT;
+
+-- ============================================================================
 -- COMPLETE!
 -- ============================================================================
 
@@ -695,3 +957,33 @@ SELECT
 FROM information_schema.tables 
 WHERE table_schema = 'public' 
   AND table_type = 'BASE TABLE';
+
+-- Verify all functions were created
+SELECT 
+  'Functions verification' as status,
+  routine_name,
+  routine_type
+FROM information_schema.routines
+WHERE routine_schema = 'public'
+  AND routine_name IN (
+    'update_registration_priorities',
+    'get_course_student_details',
+    'get_all_users_with_details',
+    'get_course_queue_counts',
+    'get_calendar_events_with_creators',
+    'get_courses_with_translations',
+    'is_admin_user',
+    'handle_new_user',
+    'setup_demo_user'
+  )
+ORDER BY routine_name;
+
+-- Verify calendar_events has event_time column
+SELECT 
+  'Calendar events verification' as status,
+  column_name,
+  data_type
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'calendar_events'
+  AND column_name = 'event_time';
