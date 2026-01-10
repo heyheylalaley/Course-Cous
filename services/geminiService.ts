@@ -1,5 +1,5 @@
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
-import { UserProfile, Language, Course, EnglishLevel } from '../types';
+import { UserProfile, Language, Course, EnglishLevel, CalendarEvent } from '../types';
 import { db, supabase } from './db';
 
 // Cache for chat session and courses hash
@@ -22,6 +22,64 @@ const compareEnglishLevels = (userLevel: EnglishLevel, requiredLevel: EnglishLev
   const userIndex = levels.indexOf(userLevel);
   const requiredIndex = levels.indexOf(requiredLevel);
   return userIndex >= requiredIndex;
+};
+
+// Helper function to format calendar events for bot prompt
+const formatUpcomingEvents = (events: CalendarEvent[]): string => {
+  if (!events || events.length === 0) {
+    return '';
+  }
+
+  // Filter: only future public events
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Set to start of day for comparison
+
+  const upcomingEvents = events
+    .filter(event => {
+      // Only public events
+      if (!event.isPublic) return false;
+      
+      // Only future events (including today)
+      const eventDate = new Date(event.eventDate);
+      eventDate.setHours(0, 0, 0, 0);
+      return eventDate >= today;
+    })
+    // Sort by date (nearest first)
+    .sort((a, b) => {
+      const dateA = new Date(a.eventDate).getTime();
+      const dateB = new Date(b.eventDate).getTime();
+      return dateA - dateB;
+    });
+
+  if (upcomingEvents.length === 0) {
+    return '';
+  }
+
+  // Format each event
+  return upcomingEvents.map(event => {
+    const eventDate = new Date(event.eventDate);
+    const dateStr = eventDate.toLocaleDateString('en-IE', { 
+      day: 'numeric', 
+      month: 'short', 
+      year: 'numeric' 
+    });
+    
+    const timeStr = event.eventTime 
+      ? `, ${event.eventTime}` 
+      : '';
+    
+    let eventText = `• **${event.title}** (${dateStr}${timeStr})`;
+    
+    if (event.description) {
+      eventText += `\n  ${event.description}`;
+    }
+    
+    if (event.externalLink) {
+      eventText += `\n  [External Link](${event.externalLink})`;
+    }
+    
+    return eventText;
+  }).join('\n\n');
 };
 
 const getAiClient = () => {
@@ -261,6 +319,36 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
     } else {
       instructions += `\n\n🔗 External Resources:\n${externalLinksInstructions}`;
     }
+  }
+
+  // Load and format upcoming public calendar events
+  let upcomingEventsText = '';
+  try {
+    const allEvents = await db.getCalendarEvents(false); // false = only public events
+    upcomingEventsText = formatUpcomingEvents(allEvents);
+    
+    if (import.meta.env.DEV) {
+      console.log('[Gemini] Loaded calendar events:', {
+        total: allEvents.length,
+        upcoming: upcomingEventsText ? upcomingEventsText.split('\n\n').length : 0
+      });
+    }
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('[Gemini] Failed to load calendar events:', error);
+    }
+  }
+
+  // Append upcoming events if provided (uses {{UPCOMING_EVENTS}} placeholder or appends)
+  if (upcomingEventsText && upcomingEventsText.trim()) {
+    if (instructions.includes('{{UPCOMING_EVENTS}}')) {
+      instructions = instructions.replace(/\{\{UPCOMING_EVENTS\}\}/g, upcomingEventsText);
+    } else {
+      instructions += `\n\n📅 Upcoming Public Events:\n${upcomingEventsText}`;
+    }
+  } else if (instructions.includes('{{UPCOMING_EVENTS}}')) {
+    // If placeholder exists but no events, replace with empty string
+    instructions = instructions.replace(/\{\{UPCOMING_EVENTS\}\}/g, 'No upcoming public events at this time.');
   }
 
   if (import.meta.env.DEV) {
