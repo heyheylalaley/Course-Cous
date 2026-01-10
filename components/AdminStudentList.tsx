@@ -15,7 +15,7 @@ interface AdminStudentListProps {
   onBack: () => void;
 }
 
-type SortField = 'priority' | 'firstName' | 'lastName' | 'email' | 'englishLevel' | 'registeredAt' | 'isCompleted';
+type SortField = 'priority' | 'firstName' | 'lastName' | 'email' | 'englishLevel' | 'registeredAt' | 'isCompleted' | 'isInvited' | 'assignedDate' | 'selectedDate';
 type SortDirection = 'asc' | 'desc';
 
 const ENGLISH_LEVELS: EnglishLevel[] = ['None', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
@@ -48,6 +48,9 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [englishLevelFilter, setEnglishLevelFilter] = useState<string>('all');
   const [completedFilter, setCompletedFilter] = useState<string>('all');
+  const [inviteFilter, setInviteFilter] = useState<string>('all');
+  const [assignedDateFilter, setAssignedDateFilter] = useState<string>('all');
+  const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
 
   // Sorting
@@ -203,6 +206,36 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
       result = result.filter(s => s.isCompleted === isCompleted);
     }
 
+    // Apply invite filter
+    if (inviteFilter !== 'all') {
+      const isInvited = inviteFilter === 'yes';
+      result = result.filter(s => (s.isInvited || false) === isInvited);
+    }
+
+    // Apply assigned date filter
+    if (assignedDateFilter !== 'all') {
+      const isAssigned = assignedDateFilter === 'yes';
+      result = result.filter(s => {
+        if (isAssigned) {
+          return !!s.assignedSessionId;
+        } else {
+          return !s.assignedSessionId;
+        }
+      });
+    }
+
+    // Apply selected filter
+    if (selectedFilter !== 'all') {
+      const hasSelected = selectedFilter === 'yes';
+      result = result.filter(s => {
+        if (hasSelected) {
+          return !!s.userSelectedSessionDate;
+        } else {
+          return !s.userSelectedSessionDate;
+        }
+      });
+    }
+
     // Apply sorting
     result.sort((a, b) => {
       let comparison = 0;
@@ -229,13 +262,38 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
         case 'isCompleted':
           comparison = (a.isCompleted ? 1 : 0) - (b.isCompleted ? 1 : 0);
           break;
+        case 'isInvited':
+          comparison = ((a.isInvited || false) ? 1 : 0) - ((b.isInvited || false) ? 1 : 0);
+          break;
+        case 'assignedDate':
+          if (a.assignedSessionDate && b.assignedSessionDate) {
+            comparison = new Date(a.assignedSessionDate).getTime() - new Date(b.assignedSessionDate).getTime();
+          } else if (a.assignedSessionDate) {
+            comparison = 1;
+          } else if (b.assignedSessionDate) {
+            comparison = -1;
+          } else {
+            comparison = 0;
+          }
+          break;
+        case 'selectedDate':
+          if (a.userSelectedSessionDate && b.userSelectedSessionDate) {
+            comparison = new Date(a.userSelectedSessionDate).getTime() - new Date(b.userSelectedSessionDate).getTime();
+          } else if (a.userSelectedSessionDate) {
+            comparison = 1;
+          } else if (b.userSelectedSessionDate) {
+            comparison = -1;
+          } else {
+            comparison = 0;
+          }
+          break;
       }
 
       return sortDirection === 'asc' ? comparison : -comparison;
     });
 
     return result;
-  }, [students, searchQuery, priorityFilter, englishLevelFilter, completedFilter, sortField, sortDirection]);
+  }, [students, searchQuery, priorityFilter, englishLevelFilter, completedFilter, inviteFilter, assignedDateFilter, selectedFilter, sortField, sortDirection]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -270,13 +328,16 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
       'LDC Ref',
       'IRIS ID',
       t.adminExportPriority || 'Priority',
-      t.adminExportRegisteredAt || 'Registered At'
+      t.adminExportRegisteredAt || 'Registered At',
+      t.adminInvite || 'Invite',
+      t.adminAssignedDate || 'Assigned Date',
+      t.adminSelectedDate || 'Selected Date'
     ];
 
     const rows = filteredAndSortedStudents.map(student => [
       student.firstName || '',
       student.lastName || '',
-      student.email || '',
+      student.email || '', // Keep email in export for CSV/Excel even though it's removed from table
       student.mobileNumber || '',
       student.address || '',
       student.eircode || '',
@@ -285,7 +346,10 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
       student.ldcRef || '',
       student.irisId || '',
       student.priority?.toString() || '',
-      student.registeredAt.toLocaleString()
+      student.registeredAt.toLocaleString(),
+      student.isInvited ? 'Yes' : 'No',
+      student.assignedSessionDate || 'Not assigned',
+      student.userSelectedSessionDate || 'Not selected'
     ]);
 
     const csvContent = [
@@ -360,13 +424,16 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
         'LDC Ref',
         'IRIS ID',
         t.adminExportPriority || 'Priority',
-        t.adminExportRegisteredAt || 'Registered At'
+        t.adminExportRegisteredAt || 'Registered At',
+        t.adminInvite || 'Invite',
+        t.adminAssignedDate || 'Assigned Date',
+        t.adminSelectedDate || 'Selected Date'
       ];
 
       const data = filteredAndSortedStudents.map(student => ({
         [headers[0]]: student.firstName || '',
         [headers[1]]: student.lastName || '',
-        [headers[2]]: student.email || '',
+        [headers[2]]: student.email || '', // Keep email in export for CSV/Excel even though it's removed from table
         [headers[3]]: student.mobileNumber || '',
         [headers[4]]: student.address || '',
         [headers[5]]: student.eircode || '',
@@ -375,7 +442,10 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
         [headers[8]]: student.ldcRef || '',
         [headers[9]]: student.irisId || '',
         [headers[10]]: student.priority?.toString() || '',
-        [headers[11]]: student.registeredAt.toLocaleString()
+        [headers[11]]: student.registeredAt.toLocaleString(),
+        [headers[12]]: student.isInvited ? 'Yes' : 'No',
+        [headers[13]]: student.assignedSessionDate || 'Not assigned',
+        [headers[14]]: student.userSelectedSessionDate || 'Not selected'
       }));
 
       const ws = XLSX.utils.json_to_sheet(data);
@@ -405,9 +475,12 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
     setPriorityFilter('all');
     setEnglishLevelFilter('all');
     setCompletedFilter('all');
+    setInviteFilter('all');
+    setAssignedDateFilter('all');
+    setSelectedFilter('all');
   };
 
-  const hasActiveFilters = searchQuery || priorityFilter !== 'all' || englishLevelFilter !== 'all' || completedFilter !== 'all';
+  const hasActiveFilters = searchQuery || priorityFilter !== 'all' || englishLevelFilter !== 'all' || completedFilter !== 'all' || inviteFilter !== 'all' || assignedDateFilter !== 'all' || selectedFilter !== 'all';
 
   // Get invited students
   const invitedStudents = useMemo(() => {
@@ -612,7 +685,7 @@ We look forward to having you join us for this course. If you have any questions
         {/* Filters Panel */}
         {showFilters && (
           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               {/* Search */}
               <div className="lg:col-span-2">
                 <div className="relative">
@@ -660,6 +733,39 @@ We look forward to having you join us for this course. If you have any questions
                 <option value="all">{t.adminAllStatus || 'All Status'}</option>
                 <option value="yes">{t.adminCompletedOnly || 'Completed'}</option>
                 <option value="no">{t.adminActiveOnly || 'Active'}</option>
+              </select>
+
+              {/* Invite Filter */}
+              <select
+                value={inviteFilter}
+                onChange={(e) => setInviteFilter(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-600 outline-none"
+              >
+                <option value="all">{t.adminAllInviteStatus || 'All Invite Status'}</option>
+                <option value="yes">{t.adminInvitedOnly || 'Invited'}</option>
+                <option value="no">{t.adminNotInvitedOnly || 'Not Invited'}</option>
+              </select>
+
+              {/* Assigned Date Filter */}
+              <select
+                value={assignedDateFilter}
+                onChange={(e) => setAssignedDateFilter(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-600 outline-none"
+              >
+                <option value="all">{t.adminAllAssignedStatus || 'All Assigned Status'}</option>
+                <option value="yes">{t.adminAssignedOnly || 'Assigned'}</option>
+                <option value="no">{t.adminNotAssignedOnly || 'Not Assigned'}</option>
+              </select>
+
+              {/* Selected Filter */}
+              <select
+                value={selectedFilter}
+                onChange={(e) => setSelectedFilter(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-600 outline-none"
+              >
+                <option value="all">{t.adminAllSelectedStatus || 'All Selected Status'}</option>
+                <option value="yes">{t.adminSelectedOnly || 'Selected'}</option>
+                <option value="no">{t.adminNotSelectedOnly || 'Not Selected'}</option>
               </select>
             </div>
 
@@ -721,28 +827,40 @@ We look forward to having you join us for this course. If you have any questions
                     <SortIcon field="lastName" />
                   </th>
                   <th 
-                    onClick={() => handleSort('email')}
-                    className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    {t.adminExportEmail || 'Email'}
-                    <SortIcon field="email" />
-                  </th>
-                  <th 
                     onClick={() => handleSort('englishLevel')}
                     className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                   >
                     {t.adminExportEnglishLevel || 'English'}
                     <SortIcon field="englishLevel" />
                   </th>
+                  <th 
+                    onClick={() => handleSort('registeredAt')}
+                    className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    {t.adminRegistrationDate || 'Registration Date'}
+                    <SortIcon field="registeredAt" />
+                  </th>
                   {/* Enrollment Management Columns */}
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  <th 
+                    onClick={() => handleSort('isInvited')}
+                    className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                  >
                     {t.adminInvite || 'Invite'}
+                    <SortIcon field="isInvited" />
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  <th 
+                    onClick={() => handleSort('assignedDate')}
+                    className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                  >
                     {t.adminAssignedDate || 'Assigned Date'}
+                    <SortIcon field="assignedDate" />
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  <th 
+                    onClick={() => handleSort('selectedDate')}
+                    className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                  >
                     {t.adminSelectedDate || 'Selected'}
+                    <SortIcon field="selectedDate" />
                   </th>
                 </tr>
               </thead>
@@ -791,19 +909,14 @@ We look forward to having you join us for this course. If you have any questions
                     <td className={`px-4 py-3 text-sm ${student.isCompleted ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-white'}`}>
                       {student.lastName || '-'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                      <div className="flex items-center gap-1">
-                        <Mail size={14} className="text-gray-400" />
-                        <span className="truncate max-w-[150px]" title={student.email}>
-                          {student.email}
-                        </span>
-                      </div>
-                    </td>
                     <td className="px-4 py-3 text-sm">
                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
                         <GraduationCap size={14} />
                         {student.englishLevel}
                       </span>
+                    </td>
+                    <td className={`px-4 py-3 text-sm whitespace-nowrap ${student.isCompleted ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-white'}`}>
+                      {formatDate(student.registeredAt)}
                     </td>
                     {/* Invite Column */}
                     <td className="px-4 py-3 whitespace-nowrap">
