@@ -556,14 +556,14 @@ const AppContent: React.FC = () => {
           </div>
           
           {/* Sidebar Footer */}
-          <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-            <div className="flex justify-between items-center mb-3">
-              <div className="flex gap-1 sm:gap-2">
+          <div className="p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0">
+            <div className="flex items-center justify-between gap-2 mb-3 min-w-0">
+              <div className="flex gap-1 sm:gap-1.5 flex-shrink-0">
                 {(['en', 'ua', 'ru', 'ar'] as const).map((lang) => (
                   <button
                     key={lang}
                     onClick={() => setLanguage(lang)}
-                    className={`min-h-[44px] min-w-[44px] sm:w-7 sm:h-7 flex items-center justify-center text-[10px] font-bold rounded-full transition-colors border active:scale-95 ${
+                    className={`h-8 w-8 sm:h-7 sm:w-7 flex items-center justify-center text-[10px] font-bold rounded-full transition-colors border active:scale-95 flex-shrink-0 ${
                       language === lang 
                         ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700' 
                         : 'bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-100 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
@@ -574,29 +574,29 @@ const AppContent: React.FC = () => {
                   </button>
                 ))}
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-1.5 sm:gap-2 flex-shrink-0">
                 <button 
                   onClick={startTour}
-                  className="min-h-[44px] min-w-[44px] sm:p-1.5 p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors active:scale-95"
+                  className="h-8 w-8 sm:h-7 sm:w-7 flex items-center justify-center p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors active:scale-95 flex-shrink-0"
                   title={t.tourStartTour || 'Start Tour'}
                   aria-label={t.tourStartTour || 'Start Tour'}
                 >
-                  <Sparkles size={18} />
+                  <Sparkles size={16} className="sm:w-[18px] sm:h-[18px]" />
                 </button>
                 <button 
                   onClick={toggleTheme}
-                  className="min-h-[44px] min-w-[44px] sm:p-1.5 p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors active:scale-95"
+                  className="h-8 w-8 sm:h-7 sm:w-7 flex items-center justify-center p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors active:scale-95 flex-shrink-0"
                   title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
                   aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
                 >
-                  {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+                  {theme === 'light' ? <Moon size={16} className="sm:w-[18px] sm:h-[18px]" /> : <Sun size={16} className="sm:w-[18px] sm:h-[18px]" />}
                 </button>
                 <button 
                   onClick={() => setShowLogoutConfirm(true)} 
-                  className="min-h-[44px] min-w-[44px] sm:p-1.5 p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors active:scale-95"
+                  className="h-8 w-8 sm:h-7 sm:w-7 flex items-center justify-center p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors active:scale-95 flex-shrink-0"
                   aria-label={t.logoutBtn || 'Log out'}
                 >
-                  <LogOut size={18} />
+                  <LogOut size={16} className="sm:w-[18px] sm:h-[18px]" />
                 </button>
               </div>
             </div>
