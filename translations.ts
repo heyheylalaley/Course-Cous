@@ -2,7 +2,7 @@ import { Language } from './types';
 
 export const TRANSLATIONS = {
   en: {
-    loginTitle: 'Welcome Back',
+    loginTitle: 'Welcome',
     loginSubtitle: 'Sign in to access your course counselor',
     emailLabel: 'Email Address',
     passwordLabel: 'Password',
@@ -12,7 +12,7 @@ export const TRANSLATIONS = {
     switchToSignIn: "Already have an account? Sign In",
     signInWithGoogle: 'Sign in with Google',
     orContinueWith: 'Or continue with',
-    appTitle: 'Training Center',
+    appTitle: 'Community Learning',
     chatTab: 'Assistant Chat',
     dashboardTab: 'My Profile',
     quickCatalog: 'Quick Catalog',
@@ -327,7 +327,7 @@ export const TRANSLATIONS = {
     tourAdminContent: 'As an admin, you can manage courses, view student registrations, configure the AI assistant, and export data. Explore the different sections in the sidebar.'
   },
   ua: {
-    loginTitle: 'З поверненням',
+    loginTitle: 'Ласкаво просимо',
     loginSubtitle: 'Увійдіть, щоб отримати доступ до консультанта',
     emailLabel: 'Електронна пошта',
     passwordLabel: 'Пароль',
@@ -337,7 +337,7 @@ export const TRANSLATIONS = {
     switchToSignIn: "Вже є акаунт? Увійти",
     signInWithGoogle: 'Увійти через Google',
     orContinueWith: 'Або продовжити через',
-    appTitle: 'Навчальний Центр',
+    appTitle: 'Спільнотне навчання',
     chatTab: 'Чат з асистентом',
     dashboardTab: 'Мій профіль',
     quickCatalog: 'Каталог курсів',
@@ -662,7 +662,7 @@ export const TRANSLATIONS = {
     switchToSignIn: "Есть аккаунт? Войти",
     signInWithGoogle: 'Войти через Google',
     orContinueWith: 'Или продолжить через',
-    appTitle: 'Учебный Центр',
+    appTitle: 'Сообщественное обучение',
     chatTab: 'Чат с ассистентом',
     dashboardTab: 'Мой профиль',
     quickCatalog: 'Каталог курсов',
@@ -977,7 +977,7 @@ export const TRANSLATIONS = {
     tourAdminContent: 'Как администратор, вы можете управлять курсами, просматривать регистрации студентов, настраивать AI-ассистента и экспортировать данные. Изучите различные разделы в боковой панели.'
   },
   ar: {
-    loginTitle: 'مرحبًا بعودتك',
+    loginTitle: 'مرحبًا',
     loginSubtitle: 'سجل الدخول للوصول إلى مستشار الدورة التدريبية',
     emailLabel: 'البريد الإلكتروني',
     passwordLabel: 'كلمة المرور',
@@ -987,7 +987,7 @@ export const TRANSLATIONS = {
     switchToSignIn: "هل لديك حساب؟ تسجيل الدخول",
     signInWithGoogle: 'تسجيل الدخول باستخدام Google',
     orContinueWith: 'أو المتابعة باستخدام',
-    appTitle: 'مركز التدريب',
+    appTitle: 'التعلم المجتمعي',
     chatTab: 'محادثة المساعد',
     dashboardTab: 'الملف الشخصي',
     quickCatalog: 'الكتالوج السريع',
