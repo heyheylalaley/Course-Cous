@@ -45,9 +45,13 @@ CCPLearn is a full-stack web application designed for Cork City Partnership to h
 ### Key Highlights
 
 - **Intelligent Recommendations**: AI suggests courses based on user's English level (None → C2)
-- **Multi-language Support**: Full UI and AI responses in 4 languages with RTL support for Arabic
+- **Multi-language Support**: Full UI and AI responses in 4 languages (EN, UA, RU, AR) with RTL support for Arabic
 - **Real-time Updates**: Course availability and registrations update instantly via Supabase Realtime
-- **Accessible Design**: Responsive UI optimized for mobile, tablet, and desktop
+- **Accessible Design**: Responsive UI optimized for mobile, tablet, and desktop with swipe gestures
+- **Interactive User Tour**: Guided onboarding experience for first-time users
+- **Priority Management**: Users can reorder course registrations by priority
+- **Calendar Events**: Public and private calendar events with external links support
+- **Data Privacy**: Sensitive user data (email, phone, address) is automatically masked in UI
 
 ---
 
@@ -68,29 +72,40 @@ CCPLearn is a full-stack web application designed for Cork City Partnership to h
 | **Session Management** | Intelligent session caching with automatic reinitialization on course/profile changes |
 | **Markdown Support** | Rich text formatting with React Markdown for better readability |
 | **Error Handling** | Graceful error recovery with retry logic and user-friendly messages |
+| **Calendar Events Integration** | Bot can mention upcoming public calendar events when relevant |
+| **Upcoming Events** | Shows future public events with dates, times, and external links in chat context |
 
 ### 📚 Course Management
 
 - **Course Catalog**: Browse all available courses with search and filtering
 - **Course Details**: View description, schedule, requirements, and availability
 - **Real-time Availability**: See how many spots are left in each course
-- **Priority Queue**: Position tracking when courses are full (automatic numbering)
-- **Course Completion**: Track completed courses separately from active registrations
-- **Category Organization**: Courses organized by categories with visual indicators
-- **Calendar Integration**: View all course dates and events in calendar format
+- **Priority Queue**: Position tracking when courses are full (automatic numbering: 1, 2, 3...)
+- **Priority Management**: Users can manually reorder their course registrations by priority (move up/down)
+- **Course Completion**: Track completed courses separately from active registrations with completion dates
+- **Category Organization**: Courses organized by categories with custom icons and colors
+- **Category Filtering**: Filter courses by category in sidebar
+- **Calendar Integration**: View all course dates and events in interactive calendar format
+- **External Links in Events**: Calendar events can include external links (e.g., registration pages)
 
 ### 👤 User Features
 
-- **Profile Management**: Set name, phone number, address, eircode, date of birth, and English level
-- **Registration Limit**: Maximum 3 active course registrations
+- **Profile Management**: Set first name, last name, phone number, address, eircode, date of birth, and English level
+- **Data Masking**: Sensitive profile data (email, phone, address) is automatically masked for privacy
+- **Profile Completion Status**: Visual indicator shows if profile is complete or incomplete
+- **Registration Limit**: Maximum 3 active course registrations at a time
 - **Registration Priority**: Automatic position assignment (1, 2, 3...) when courses are full
-- **Course History**: View completed courses separately from active registrations
-- **Language Preference**: Switch UI language anytime (EN, UA, RU, AR)
-- **Dark Mode**: Toggle with localStorage persistence
-- **Calendar View**: View all course dates and events in a calendar interface
-- **Contact Information**: Quick access to organization contact details
-- **Chat History**: Persistent conversation history saved to database
-- **Password Recovery**: Email-based password reset functionality
+- **Manual Priority Reordering**: Users can change priority order using up/down arrows
+- **Course History**: View completed courses separately from active registrations with expandable section
+- **Language Preference**: Switch UI language anytime (EN, UA, RU, AR) with persistence
+- **Dark Mode**: Toggle with localStorage persistence and smooth theme transitions
+- **Calendar View**: Interactive calendar showing all course dates and public events with month navigation
+- **Contact Information**: Quick access to organization contact details via modal
+- **Chat History**: Persistent conversation history saved to database and restored on login
+- **Password Recovery**: Email-based password reset flow with secure token validation
+- **User Tour**: Interactive guided tour for new users showing key features (auto-starts on first login)
+- **Swipe Gestures**: Mobile-friendly swipe gestures to open/close sidebar (LTR and RTL support)
+- **Search & Filter**: Real-time course search with debounced input (300ms delay)
 
 ### 🔐 Authentication
 
@@ -103,12 +118,19 @@ CCPLearn is a full-stack web application designed for Cork City Partnership to h
 
 ### 👨‍💼 Admin Panel
 
-- **Dashboard Analytics**: Overview of users, registrations, and courses
-- **Course Management**: Create, edit, delete, translate courses
-- **Student Management**: View registrations, mark completions, remove students
-- **Bot Instructions**: Configure AI personality and behavior
-- **External Links**: Manage resource links the bot shares
-- **User Management**: View all registered users and their profiles
+- **Dashboard Analytics**: Overview of users, registrations, courses, and trends
+- **Course Management**: Create, edit, delete, translate courses with full CRUD operations
+- **Course Categories**: Manage categories with custom icons (100+ icons available) and colors
+- **Student Management**: View registrations per course with priority queue, mark completions, remove students
+- **Export to Excel**: Export student lists and user data to XLSX format with all fields
+- **Bot Instructions**: Configure AI personality, contacts, and external links in 3 separate sections
+- **External Links Management**: Manage resource links the bot shares (ETB, FET, job sites, etc.)
+- **User Management**: View all registered users with complete profiles and edit capabilities
+- **User Profile Editing**: Admins can edit any user's profile including admin-only fields (LDC Ref, IRIS ID)
+- **Calendar Events Management**: Create, edit, delete public/private calendar events with dates, times, and external links
+- **Event Sorting**: Sort calendar events by date, title, visibility, or creation date
+- **App Settings**: Toggle demo mode and manage application-wide settings
+- **Analytics Dashboard**: View detailed statistics and trends for users and course registrations
 
 ---
 
@@ -148,33 +170,39 @@ CCPLearn is a full-stack web application designed for Cork City Partnership to h
 
 ```
 ├── components/                 # React components
-│   ├── AdminAllUsers.tsx      # Admin: user list with profiles
-│   ├── AdminAnalytics.tsx     # Admin: dashboard statistics
-│   ├── AdminBotInstructions.tsx # Admin: AI configuration
+│   ├── AdminAllUsers.tsx      # Admin: user list with profiles, editing, export
+│   ├── AdminAnalytics.tsx     # Admin: dashboard statistics and trends
+│   ├── AdminAppSettings.tsx   # Admin: application settings (demo mode, etc.)
+│   ├── AdminBotInstructions.tsx # Admin: AI configuration (3 sections)
+│   ├── AdminCalendarEvents.tsx # Admin: calendar events CRUD with sorting
+│   ├── AdminCategoryManagement.tsx # Admin: course category management
 │   ├── AdminCourseList.tsx    # Admin: course CRUD operations
-│   ├── AdminCourseManagement.tsx # Admin: course translations
-│   ├── AdminDashboard.tsx     # Admin: main dashboard layout
-│   ├── AdminStudentList.tsx   # Admin: student management per course
+│   ├── AdminCourseManagement.tsx # Admin: course translations management
+│   ├── AdminDashboard.tsx     # Admin: main dashboard layout with tabs
+│   ├── AdminStudentList.tsx   # Admin: student management per course with export
+│   ├── AdminUserProfileModal.tsx # Admin: edit user profiles (including LDC/IRIS)
 │   ├── AlertModal.tsx         # Reusable alert/notification modal
-│   ├── AuthScreen.tsx         # Login/signup forms
-│   ├── ChatInterface.tsx      # AI chat with message history
+│   ├── AuthScreen.tsx         # Login/signup forms with Google OAuth
+│   ├── CalendarEventModal.tsx # Calendar event create/edit modal
+│   ├── CalendarModal.tsx      # Calendar view for course dates and events
+│   ├── ChatInterface.tsx      # AI chat with message history and streaming
 │   ├── ConfirmationModal.tsx  # Reusable confirmation dialog
-│   ├── CalendarModal.tsx       # Calendar view for course dates and events
 │   ├── ContactModal.tsx       # Contact information popup
 │   ├── CourseCard.tsx         # Course display card component
 │   ├── CourseDetailsModal.tsx # Course information modal
-│   ├── CourseEditModal.tsx    # Admin: course editor
+│   ├── CourseEditModal.tsx    # Admin: course editor with translations
 │   ├── CourseRegistrationConfirmModal.tsx # Course registration confirmation
-│   ├── Dashboard.tsx          # User dashboard with sidebar
+│   ├── Dashboard.tsx          # User dashboard with priority management
 │   ├── EmailConfirmationModal.tsx # Email confirmation dialog
 │   ├── FirstLoginProfileModal.tsx # First-time user profile setup
 │   ├── LanguageLevelModal.tsx # English level selection
-│   ├── MessageBubble.tsx      # Chat message with markdown support
+│   ├── MessageBubble.tsx      # Chat message with markdown and external links
 │   ├── NameModal.tsx          # Name input modal
 │   ├── OnboardingModal.tsx    # First-time user setup
 │   ├── ProfileInfoModal.tsx   # User profile editor
 │   ├── Skeletons.tsx          # Loading skeleton components
-│   └── UpdatePasswordPage.tsx # Password recovery page
+│   ├── UpdatePasswordPage.tsx # Password recovery page
+│   └── UserTour.tsx           # Interactive user onboarding tour
 │
 ├── contexts/                   # React Context providers
 │   ├── AuthContext.tsx        # Authentication state management
@@ -184,7 +212,8 @@ CCPLearn is a full-stack web application designed for Cork City Partnership to h
 │
 ├── hooks/                      # Custom React hooks
 │   ├── useCourses.ts          # Course data fetching hook
-│   └── useDebounce.ts         # Input debouncing hook
+│   ├── useDebounce.ts         # Input debouncing hook
+│   └── useUserTour.ts         # User tour state management hook
 │
 ├── services/                   # API and external services
 │   ├── db.ts                  # Supabase database operations
@@ -339,15 +368,27 @@ VITE_GOOGLE_TRANSLATE_API_KEY=your-translate-api-key
 
 | Table | Purpose |
 |-------|---------|
-| `profiles` | User profiles (name, phone, address, eircode, date of birth, English level, admin flag) |
-| `courses` | Course catalog (title, description, schedule, requirements, difficulty, category, active status) |
+| `profiles` | User profiles (first_name, last_name, phone, address, eircode, date_of_birth, english_level, is_admin, ldc_ref, iris_id) |
+| `courses` | Course catalog (title, description, difficulty, category, next_course_date, min_english_level, is_active) |
 | `course_translations` | Translated course content (UA, RU, AR) for multilingual support |
-| `course_categories` | Course categories with icons and colors for organization |
-| `registrations` | User course registrations with priority queue system |
-| `course_completions` | Completed course records with admin tracking |
-| `bot_instructions` | AI configuration (main instructions, contacts, external links) |
-| `chat_messages` | Persistent chat history for all users |
-| `calendar_events` | Public and private calendar events for course dates and announcements |
+| `course_categories` | Course categories with icons (lucide-react), colors (Tailwind classes), and sort_order |
+| `registrations` | User course registrations with priority queue system (priority: 1, 2, 3...) |
+| `course_completions` | Completed course records with admin tracking (completed_at, marked_by) |
+| `bot_instructions` | AI configuration (main instructions, contacts, external links) stored as key-value pairs |
+| `chat_messages` | Persistent chat history for all users (role, content, timestamp) |
+| `calendar_events` | Public and private calendar events (title, description, event_date, event_time, external_link, is_public, created_by) |
+| `app_settings` | Application-wide settings (demo_enabled, etc.) |
+
+### Key Database Features
+
+- **Priority Queue System**: Automatic priority assignment (1, 2, 3...) when courses are full
+- **Course Translations**: Multi-language support stored in separate `course_translations` table
+- **Chat History**: Full conversation history with role-based messages (user/model)
+- **Calendar Events**: Support for external links, times, and public/private visibility
+- **Category System**: Flexible category management with icons and colors
+- **Admin Fields**: LDC Ref and IRIS ID fields for administrative tracking
+- **Profile Completion**: Database functions to check profile completeness
+- **Completion Tracking**: Timestamp and admin tracking for course completions
 
 ### Row Level Security (RLS)
 
@@ -395,10 +436,11 @@ Use these in your bot instructions:
 
 | Placeholder | Description |
 |-------------|-------------|
-| `{{COURSES_LIST}}` | Auto-generated list of active courses with details |
-| `{{USER_ENGLISH_LEVEL}}` | Current user's English level (None, A1-C2) |
-| `{{CONTACTS}}` | Contact information from admin settings |
-| `{{EXTERNAL_LINKS}}` | External resources from admin settings |
+| `{{COURSES_LIST}}` | Auto-generated list of active courses with details (title, description, category, difficulty, dates, English level requirements) |
+| `{{USER_ENGLISH_LEVEL}}` | Current user's English level (None, A1, A2, B1, B2, C1, C2) |
+| `{{CONTACTS}}` | Contact information from admin settings (phone, email, office hours) |
+| `{{EXTERNAL_LINKS}}` | External resources from admin settings (job sites, housing, English courses, government services) |
+| Upcoming Events | Automatically included in bot context when available (future public calendar events) |
 
 ### Example Bot Instruction
 
@@ -440,21 +482,37 @@ KNOWLEDGE BASE
 - Registration trends
 
 #### 📚 Course Management
-- **Create Course**: Add new courses with all details (title, description, category, difficulty, dates, English level requirements)
+- **Create Course**: Add new courses with all details (title, description, category, difficulty, dates, English level requirements, translations)
 - **Edit Course**: Modify existing course information with real-time updates
 - **Delete Course**: Remove courses (with confirmation and safety checks)
 - **Translate**: Auto-translate course descriptions to UA/RU/AR using Google Translate API
 - **Toggle Active**: Show/hide courses from catalog without deletion
-- **Category Management**: Organize courses by categories with custom icons and colors
-- **Calendar Events**: Create and manage calendar events for course dates and announcements
+- **Bulk Operations**: Manage multiple courses at once
+
+#### 📁 Category Management
+- **Create Categories**: Add new course categories with custom names
+- **Icon Selection**: Choose from 100+ Lucide React icons for each category
+- **Color Customization**: Set custom Tailwind CSS colors for visual distinction
+- **Sort Order**: Organize categories by custom sort order
+- **Edit/Delete**: Modify or remove categories (with course reassignment options)
+
+#### 📅 Calendar Events Management
+- **Create Events**: Add calendar events with title, description, date, time, and optional external link
+- **Public/Private Events**: Control visibility (public events visible to all, private only to admins)
+- **External Links**: Add external links to events (e.g., registration pages, event websites)
+- **Event Sorting**: Sort events by date (ascending/descending), title, visibility, or creation date
+- **Edit/Delete**: Modify or remove existing events
+- **Future Events Filtering**: Bot automatically includes upcoming public events in chat context
 
 #### 👥 Student Management
-- View registrations per course with priority queue
-- See complete student profiles (name, phone, address, English level, etc.)
-- Mark courses as completed with timestamp tracking
-- Remove students from courses with confirmation
-- Export student data to Excel (XLSX format)
-- Filter and search students by various criteria
+- **Course Selection**: View all courses with registration counts
+- **Student List**: View registrations per course with priority queue positions
+- **Complete Profiles**: See full student profiles (name, phone, address, eircode, date of birth, English level, LDC Ref, IRIS ID)
+- **Mark Complete**: Mark courses as completed with automatic timestamp and admin tracking
+- **Remove Students**: Remove students from courses with confirmation dialog
+- **Export to Excel**: Export student lists to XLSX format with all profile fields including LDC Ref and IRIS ID
+- **Search & Filter**: Filter and search students by various criteria
+- **Priority Display**: See each student's priority position (1, 2, 3...) in the queue
 
 #### 🤖 Bot Instructions
 - Edit main AI instructions
@@ -463,17 +521,26 @@ KNOWLEDGE BASE
 - Preview changes before saving
 
 #### 👤 All Users
-- View all registered users with complete profiles
-- See profile completion status at a glance
-- Filter by English level, registration status, and more
-- Export user data to Excel for reporting
-- View user's registered and completed courses
+- **User List**: View all registered users with complete profiles in sortable table
+- **Profile Details**: See full profile information including LDC Ref and IRIS ID (admin-only fields)
+- **Profile Editing**: Edit any user's profile directly from the list (including admin-only fields)
+- **Profile Completion**: See profile completion status at a glance with visual indicators
+- **Registration Status**: View each user's registered and completed courses
+- **Export to Excel**: Export complete user data to XLSX format with all fields
+- **Filtering**: Filter by English level, registration status, profile completion, and more
+- **User Search**: Search users by name, email, or other criteria
 
-#### 📅 Calendar Management
-- Create public and private calendar events
-- View all course dates in calendar format
-- Manage course schedules and announcements
-- Filter events by visibility (public/admin-only)
+#### ⚙️ App Settings
+- **Demo Mode**: Toggle demo mode for testing and demonstration purposes
+- **Application Configuration**: Manage application-wide settings
+- **Settings Persistence**: All settings saved to database
+
+#### 📊 Analytics Dashboard
+- **User Statistics**: Total registered users, active users, new registrations
+- **Course Statistics**: Total courses, active courses, registration trends
+- **Registration Analytics**: Course popularity, registration patterns
+- **Completion Rates**: Track course completion statistics
+- **Trends**: Visual representation of data trends over time
 
 ---
 
@@ -490,8 +557,15 @@ KNOWLEDGE BASE
    - Enter address and eircode (optional)
    - Enter date of birth (optional)
    - Select English level
-4. Dashboard with AI chat ready
-5. Welcome message from AI assistant
+4. Profile saved → Dashboard appears
+5. User Tour automatically starts (interactive guide):
+   - Welcome screen
+   - Chat tab highlight
+   - Course catalog explanation
+   - Dashboard tab highlight
+   - Calendar button highlight
+   - Admin tab (if admin user)
+6. After tour → Chat interface with welcome message from AI assistant
 ```
 
 ### Returning User
@@ -505,13 +579,20 @@ KNOWLEDGE BASE
 ### Course Registration
 
 ```
-1. Browse courses in sidebar or ask AI for recommendations
-2. Click course name (in chat or sidebar)
-3. View course details modal with full information
+1. Browse courses in sidebar (with search) or ask AI for recommendations
+2. Click course name (bold names in chat open modal directly) or course card in sidebar
+3. View course details modal with full information:
+   - Title and description (in user's language)
+   - Category with icon and color
+   - Difficulty level
+   - Next course date
+   - Minimum English level required
+   - Current availability and queue length
 4. Click "Register" button
-5. Confirmation modal appears
-6. Course appears in "My Courses" section with priority number
-7. If course is full, user is added to priority queue
+5. Confirmation modal appears with course details
+6. Course appears in "My Courses" section with priority number (1, 2, or 3)
+7. If course is full, user is added to priority queue with position number
+8. User can reorder priorities using up/down arrows in Dashboard
 ```
 
 ### Course Completion (Admin)
@@ -608,9 +689,49 @@ npm run preview
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start development server with HMR |
-| `npm run build` | Build for production |
-| `npm run preview` | Preview production build locally |
+| `npm run dev` | Start development server with HMR (Hot Module Replacement) |
+| `npm run build` | Build for production with optimizations (minification, tree-shaking) |
+| `npm run preview` | Preview production build locally before deployment |
+
+## 🎯 Advanced Features
+
+### Demo Mode
+- **Toggle Demo Mode**: Admins can enable/disable demo mode from App Settings
+- **Auto Tour**: Demo mode automatically triggers user tour on every login
+- **Testing**: Useful for demonstrations and testing without affecting production data
+
+### Priority Queue System
+- **Automatic Assignment**: When a course is full, new registrations get priority numbers (1, 2, 3...)
+- **Manual Reordering**: Users can manually change priority order using up/down arrows
+- **Visual Indicators**: Priority levels shown with color-coded badges (green=1st, blue=2nd, gray=3rd)
+- **Queue Position**: Displayed for all registrations showing user's position in waitlist
+
+### Multi-language Support
+- **4 Languages**: Full UI translation in English (EN), Ukrainian (UA), Russian (RU), Arabic (AR)
+- **RTL Support**: Complete right-to-left layout support for Arabic
+- **Course Translations**: Course descriptions translated and stored separately
+- **AI Language Detection**: Bot automatically detects and responds in user's language
+- **Language Persistence**: User's language preference saved in localStorage
+
+### Calendar Events System
+- **Public Events**: Visible to all users in calendar modal and mentioned by bot when relevant
+- **Private Events**: Admin-only events for internal planning and scheduling
+- **External Links**: Events can include external links (e.g., registration pages, event websites)
+- **Time Support**: Events can have specific times in addition to dates
+- **Event Icons**: Visual icons for different event types (100+ icons available)
+- **Sorting Options**: Sort by date, title, visibility, or creation date
+
+### Category Management
+- **100+ Icons**: Choose from extensive Lucide React icon library
+- **Custom Colors**: Set Tailwind CSS colors for visual distinction
+- **Sort Order**: Customizable category order for organized display
+- **Icon Preview**: See icon preview before saving category
+
+### Data Export
+- **Excel Format**: Export student lists and user data to XLSX format
+- **Complete Data**: All fields included in export (including admin-only fields like LDC Ref and IRIS ID)
+- **Multiple Exports**: Export from different views (Student List, All Users)
+- **Excel Compatibility**: Generated files compatible with Microsoft Excel, Google Sheets, and LibreOffice
 
 ---
 
@@ -649,6 +770,22 @@ npm run preview
 - Check browser console for database errors
 - Ensure user is properly authenticated
 
+#### User Tour not appearing
+- Tour only starts automatically for new users or when demo mode is enabled
+- Check browser localStorage for tour completion status
+- Manually start tour using the sparkle icon in sidebar footer
+
+#### Priority changes not saving
+- Ensure you're clicking the up/down arrows in Dashboard "My Courses" section
+- Check browser console for errors
+- Verify you have less than 3 registrations (max limit)
+- Refresh page and try again
+
+#### Calendar events not showing
+- Verify events are marked as "public" (private events only visible to admins)
+- Check event dates are in the future (past events filtered out in bot context)
+- Ensure calendar modal is opened from sidebar calendar button
+
 ### Getting Help
 
 1. Check existing [Issues](https://github.com/heyheylalaley/Course-Cous/issues)
@@ -684,23 +821,50 @@ Contributions are welcome! Please follow these steps:
 - [SUPABASE-SETUP.md](SUPABASE-SETUP.md) - Detailed database setup guide with RLS policies
 - [GOOGLE-TRANSLATE-SETUP.md](GOOGLE-TRANSLATE-SETUP.md) - Translation API configuration and usage
 - [SUPABASE-EMAIL-TEMPLATES.md](SUPABASE-EMAIL-TEMPLATES.md) - Email template configuration for password recovery
+- [ADMIN-PROFILE-EDITING-SETUP.md](ADMIN-PROFILE-EDITING-SETUP.md) - Admin profile editing setup with LDC Ref and IRIS ID fields
+- [MOBILE_OPTIMIZATION_RECOMMENDATIONS.md](MOBILE_OPTIMIZATION_RECOMMENDATIONS.md) - Mobile optimization guidelines
+- [DATABASE_OPTIMIZATION_ANALYSIS.md](DATABASE_OPTIMIZATION_ANALYSIS.md) - Database optimization recommendations
+
+## 🔒 Security & Privacy Features
+
+### Data Protection
+- **Data Masking**: Automatic masking of sensitive user data (email, phone, address) in UI
+- **Row Level Security (RLS)**: Database-level security policies ensuring users only access their own data
+- **Admin Access Control**: Admin privileges restricted to specific email domains via RLS policies
+- **Secure Authentication**: JWT-based authentication via Supabase Auth with secure token storage
+- **Password Recovery**: Secure token-based password reset flow with email validation
+- **Session Management**: Secure session persistence with automatic expiration
+
+### Admin-Only Fields
+- **LDC Ref**: Local Development Center Reference (admin-only field, editable by admins only)
+- **IRIS ID**: IRIS system identifier (admin-only field, editable by admins only)
+- **Profile Editing**: Admins can edit any user profile including admin-only fields
+- **User Data Export**: Admins can export user data to Excel for reporting (includes LDC Ref and IRIS ID)
 
 ## 🎨 UI/UX Features
 
 ### Design Principles
-- **Responsive Design**: Mobile-first approach with breakpoints for all screen sizes
-- **Accessibility**: Semantic HTML, ARIA labels, keyboard navigation support
-- **RTL Support**: Full right-to-left layout support for Arabic language
-- **Dark Mode**: Complete dark theme with smooth transitions
-- **Loading States**: Skeleton loaders and spinners for better perceived performance
-- **Error Handling**: User-friendly error messages with actionable suggestions
+- **Responsive Design**: Mobile-first approach with breakpoints for all screen sizes (mobile, tablet, desktop)
+- **Accessibility**: Semantic HTML, ARIA labels, keyboard navigation support, focus management
+- **RTL Support**: Full right-to-left layout support for Arabic language (sidebars, modals, forms)
+- **Dark Mode**: Complete dark theme with smooth transitions and localStorage persistence
+- **Loading States**: Skeleton loaders and spinners for all async operations
+- **Error Handling**: User-friendly error messages with actionable suggestions and retry options
+- **Swipe Gestures**: Mobile-friendly swipe gestures for sidebar navigation (LTR and RTL aware)
 
 ### User Experience
-- **Onboarding Flow**: Smooth first-time user experience with guided setup
-- **Real-time Feedback**: Instant UI updates for all user actions
-- **Search & Filter**: Fast course search with debounced input
-- **Modal System**: Consistent modal patterns for confirmations and information
-- **Toast Notifications**: Non-intrusive success/error messages
+- **Onboarding Flow**: Smooth first-time user experience with guided setup modal
+- **Interactive Tour**: Step-by-step interactive tour highlighting key features (auto-starts for new users)
+- **Real-time Feedback**: Instant UI updates for all user actions with optimistic updates
+- **Search & Filter**: Fast course search with debounced input (300ms) and category filtering
+- **Modal System**: Consistent modal patterns for confirmations, information, and editing
+- **Toast Notifications**: Non-intrusive success/error messages with auto-dismiss
+- **Swipe Gestures**: Mobile-friendly swipe gestures for sidebar navigation (LTR and RTL aware)
+- **Loading States**: Skeleton loaders and spinners for all async operations
+- **Error Recovery**: Graceful error handling with retry options and helpful error messages
+- **Data Masking**: Automatic masking of sensitive data (email, phone, address) in UI for privacy
+- **Priority Management**: Intuitive up/down arrows for reordering course priorities
+- **Calendar Navigation**: Easy month navigation in calendar with event highlighting
 
 ---
 
