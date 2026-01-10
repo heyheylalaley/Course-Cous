@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, User, Save, Shield } from 'lucide-react';
+import { X, User, Save, Shield, Trash2 } from 'lucide-react';
 import { Language, EnglishLevel, AdminUserDetail } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { db } from '../services/db';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface AdminUserProfileModalProps {
   isOpen: boolean;
@@ -32,6 +33,8 @@ export const AdminUserProfileModal: React.FC<AdminUserProfileModalProps> = ({
   const [irisId, setIrisId] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const t = TRANSLATIONS[language];
   const isRtl = language === 'ar';
 
@@ -106,6 +109,34 @@ export const AdminUserProfileModal: React.FC<AdminUserProfileModalProps> = ({
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
       onClose();
+    }
+  };
+
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!user) return;
+    
+    setIsDeleting(true);
+    setError(null);
+    
+    try {
+      await db.deleteUser(user.userId);
+      
+      // Wait a bit to ensure database transaction is committed
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Close confirmation modal and main modal
+      setShowDeleteConfirm(false);
+      
+      // Wait for onSave to complete before closing
+      await onSave();
+    } catch (error: any) {
+      console.error('Failed to delete user:', error);
+      setError(error?.message || 'Failed to delete user profile. Please try again.');
+      setIsDeleting(false);
     }
   };
 
@@ -282,27 +313,62 @@ export const AdminUserProfileModal: React.FC<AdminUserProfileModalProps> = ({
           </div>
         </div>
 
-        <div className="flex gap-3 mt-6">
+        <div className="flex flex-col gap-3 mt-6">
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              disabled={isSaving || isDeleting}
+              className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {t.cancel || 'Cancel'}
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={isSaving || isDeleting}
+              className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
+                !isSaving && !isDeleting
+                  ? 'bg-indigo-600 dark:bg-indigo-700 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600 shadow-md'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              <Save size={18} />
+              {isSaving ? (t.saving || 'Saving...') : (t.save || 'Save')}
+            </button>
+          </div>
+          
           <button
-            onClick={onClose}
-            className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            onClick={handleDeleteClick}
+            disabled={isSaving || isDeleting}
+            className="w-full px-4 py-2.5 rounded-lg font-medium transition-all flex items-center justify-center gap-2 bg-red-600 dark:bg-red-700 text-white hover:bg-red-700 dark:hover:bg-red-600 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {t.cancel || 'Cancel'}
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
-              !isSaving
-                ? 'bg-indigo-600 dark:bg-indigo-700 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600 shadow-md'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            <Save size={18} />
-            {isSaving ? (t.saving || 'Saving...') : (t.save || 'Save')}
+            <Trash2 size={18} />
+            {t.adminDeleteProfile || 'Delete Profile'}
           </button>
         </div>
       </div>
+
+      {/* Confirmation Modal for delete */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          if (!isDeleting) {
+            setShowDeleteConfirm(false);
+          }
+        }}
+        onConfirm={handleConfirmDelete}
+        title={t.adminDeleteProfileTitle || 'Delete User Profile'}
+        message={
+          user
+            ? (t.adminDeleteProfileMessage || 'Are you sure you want to delete the profile for {email}? This will permanently delete the profile and all course registrations. This action cannot be undone.')
+                .replace('{email}', user.email || 'this user')
+            : ''
+        }
+        confirmText={t.adminDeleteConfirm || 'Delete'}
+        cancelText={t.cancel || 'Cancel'}
+        language={language}
+        type="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

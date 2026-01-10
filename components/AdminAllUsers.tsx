@@ -33,7 +33,7 @@ interface UserWithDetails {
   irisId?: string;
 }
 
-type SortField = 'firstName' | 'lastName' | 'email' | 'englishLevel' | 'createdAt' | 'registeredCourses' | 'completedCourses' | 'isProfileComplete';
+type SortField = 'firstName' | 'lastName' | 'email' | 'englishLevel' | 'createdAt' | 'registeredCourses' | 'completedCourses' | 'isProfileComplete' | 'ldcRef';
 type SortDirection = 'asc' | 'desc';
 
 const ENGLISH_LEVELS: EnglishLevel[] = ['None', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
@@ -51,6 +51,7 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
   const [profileCompleteFilter, setProfileCompleteFilter] = useState<string>('all');
   const [courseFilter, setCourseFilter] = useState<string>('all');
   const [hasRegistrationsFilter, setHasRegistrationsFilter] = useState<string>('all');
+  const [ldcRefFilter, setLdcRefFilter] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
 
   // Sorting
@@ -134,6 +135,14 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
       }
     }
 
+    // Apply LDC Ref filter
+    if (ldcRefFilter.trim()) {
+      const ldcQuery = ldcRefFilter.toLowerCase();
+      result = result.filter(u => 
+        (u.ldcRef || '').toLowerCase().includes(ldcQuery)
+      );
+    }
+
     // Apply sorting
     result.sort((a, b) => {
       let comparison = 0;
@@ -163,13 +172,16 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
         case 'isProfileComplete':
           comparison = (a.isProfileComplete ? 1 : 0) - (b.isProfileComplete ? 1 : 0);
           break;
+        case 'ldcRef':
+          comparison = (a.ldcRef || '').localeCompare(b.ldcRef || '');
+          break;
       }
 
       return sortDirection === 'asc' ? comparison : -comparison;
     });
 
     return result;
-  }, [users, searchQuery, englishLevelFilter, profileCompleteFilter, courseFilter, hasRegistrationsFilter, sortField, sortDirection]);
+  }, [users, searchQuery, englishLevelFilter, profileCompleteFilter, courseFilter, hasRegistrationsFilter, ldcRefFilter, sortField, sortDirection]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -342,9 +354,10 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
     setProfileCompleteFilter('all');
     setCourseFilter('all');
     setHasRegistrationsFilter('all');
+    setLdcRefFilter('');
   };
 
-  const hasActiveFilters = searchQuery || englishLevelFilter !== 'all' || profileCompleteFilter !== 'all' || courseFilter !== 'all' || hasRegistrationsFilter !== 'all';
+  const hasActiveFilters = searchQuery || englishLevelFilter !== 'all' || profileCompleteFilter !== 'all' || courseFilter !== 'all' || hasRegistrationsFilter !== 'all' || ldcRefFilter.trim() !== '';
 
   // Toggle expanded row
   const toggleExpanded = (userId: string) => {
@@ -548,8 +561,8 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
               </select>
             </div>
 
-            {/* Course filter on second row */}
-            <div className="mt-3">
+            {/* Course filter and LDC Ref filter on second row */}
+            <div className="mt-3 flex flex-col sm:flex-row gap-3">
               <select
                 value={courseFilter}
                 onChange={(e) => setCourseFilter(e.target.value)}
@@ -560,6 +573,18 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                   <option key={course.id} value={course.id}>{course.title}</option>
                 ))}
               </select>
+              
+              {/* LDC Ref Filter */}
+              <div className="relative flex-1 sm:max-w-xs">
+                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={ldcRefFilter}
+                  onChange={(e) => setLdcRefFilter(e.target.value)}
+                  placeholder={t.adminLdcRefFilterPlaceholder || 'Filter by LDC Ref...'}
+                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-600 outline-none"
+                />
+              </div>
             </div>
 
             {hasActiveFilters && (
@@ -588,68 +613,72 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
       ) : (
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[1200px]">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
                   <th 
                     onClick={() => handleSort('firstName')}
-                    className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    className="px-3 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors whitespace-nowrap"
                   >
                     {t.adminExportFirstName || 'First Name'}
                     <SortIcon field="firstName" />
                   </th>
                   <th 
                     onClick={() => handleSort('lastName')}
-                    className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    className="px-3 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors whitespace-nowrap"
                   >
                     {t.adminExportLastName || 'Last Name'}
                     <SortIcon field="lastName" />
                   </th>
                   <th 
                     onClick={() => handleSort('email')}
-                    className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    className="px-3 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors whitespace-nowrap"
                   >
                     {t.adminExportEmail || 'Email'}
                     <SortIcon field="email" />
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                     {t.adminExportMobile || 'Mobile'}
                   </th>
                   <th 
                     onClick={() => handleSort('englishLevel')}
-                    className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    className="px-3 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors whitespace-nowrap"
                   >
                     {t.adminExportEnglishLevel || 'English'}
                     <SortIcon field="englishLevel" />
                   </th>
                   <th 
                     onClick={() => handleSort('registeredCourses')}
-                    className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    className="px-3 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors whitespace-nowrap"
                   >
                     {t.adminCourses || 'Courses'}
                     <SortIcon field="registeredCourses" />
                   </th>
                   <th 
                     onClick={() => handleSort('isProfileComplete')}
-                    className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    className="px-3 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors whitespace-nowrap"
                   >
                     {t.adminProfile || 'Profile'}
                     <SortIcon field="isProfileComplete" />
                   </th>
                   <th 
                     onClick={() => handleSort('createdAt')}
-                    className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    className="px-3 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors whitespace-nowrap"
                   >
                     {t.adminCreatedAt || 'Joined'}
                     <SortIcon field="createdAt" />
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  <th 
+                    onClick={() => handleSort('ldcRef')}
+                    className="px-3 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors whitespace-nowrap"
+                  >
                     LDC Ref
+                    <SortIcon field="ldcRef" />
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                     IRIS ID
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap min-w-[80px]">
                     {t.adminActions || 'Actions'}
                   </th>
                 </tr>
@@ -666,7 +695,7 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                         className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${hasCompletedCourses ? 'cursor-pointer' : ''}`}
                         onClick={() => hasCompletedCourses && toggleExpanded(user.userId)}
                       >
-                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                        <td className="px-3 py-3 text-sm text-gray-900 dark:text-white whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             {hasCompletedCourses && (
                               <span className="text-gray-400">
@@ -681,16 +710,16 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                        <td className="px-3 py-3 text-sm text-gray-900 dark:text-white whitespace-nowrap">
                           {user.lastName || '-'}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                          <div className="flex items-center gap-1">
-                            <Mail size={14} className="text-gray-400" />
+                        <td className="px-3 py-3 text-sm text-gray-600 dark:text-gray-300">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <Mail size={14} className="text-gray-400 flex-shrink-0" />
                             <span className="truncate max-w-[200px]">{user.email}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                        <td className="px-3 py-3 text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
                           {user.mobileNumber ? (
                             <div className="flex items-center gap-1">
                               <Phone size={14} className="text-gray-400" />
@@ -698,13 +727,13 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                             </div>
                           ) : '-'}
                         </td>
-                        <td className="px-4 py-3 text-sm">
+                        <td className="px-3 py-3 text-sm whitespace-nowrap">
                           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
                             <GraduationCap size={14} />
                             {user.englishLevel}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm">
+                        <td className="px-3 py-3 text-sm whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             {user.registeredCourses.length > 0 && (
                               <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs">
@@ -723,7 +752,7 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm">
+                        <td className="px-3 py-3 text-sm whitespace-nowrap">
                           {user.isProfileComplete ? (
                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
                               <CheckCircle size={14} />
@@ -735,7 +764,7 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                        <td className="px-3 py-3 text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
                           {user.createdAt ? (
                             <div className="flex items-center gap-1">
                               <Calendar size={14} className="text-gray-400" />
@@ -743,13 +772,13 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                             </div>
                           ) : '-'}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                        <td className="px-3 py-3 text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
                           {user.ldcRef || '-'}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                        <td className="px-3 py-3 text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
                           {user.irisId || '-'}
                         </td>
-                        <td className="px-4 py-3 text-sm w-16">
+                        <td className="px-3 py-3 text-sm whitespace-nowrap">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -766,7 +795,7 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                       {/* Expanded row showing completed courses */}
                       {isExpanded && hasCompletedCourses && (
                         <tr className="bg-green-50 dark:bg-green-900/10">
-                          <td colSpan={11} className="px-4 py-3">
+                          <td colSpan={11} className="px-3 py-3">
                             <div className="ml-6">
                               <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                                 <Award size={16} className="text-green-600 dark:text-green-400" />

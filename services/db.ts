@@ -2378,5 +2378,92 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
     }
 
     throw new Error("Supabase not configured");
+  },
+
+  // --- User Deletion Methods (Admin only) ---
+  deleteUser: async (userId: string): Promise<void> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    // Check if user is admin
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    // Prevent self-deletion
+    if (userId === session.id) {
+      throw new Error("Cannot delete your own account");
+    }
+
+    if (supabase) {
+      // Delete all chat messages for this user
+      const { error: messagesError } = await supabase
+        .from('chat_messages')
+        .delete()
+        .eq('user_id', userId);
+
+      if (messagesError && messagesError.code !== 'PGRST301') {
+        throw new Error(`Failed to delete chat messages: ${messagesError.message}`);
+      }
+
+      // Delete all course completions for this user
+      const { error: completionsError } = await supabase
+        .from('course_completions')
+        .delete()
+        .eq('user_id', userId);
+
+      if (completionsError && completionsError.code !== 'PGRST301') {
+        throw new Error(`Failed to delete course completions: ${completionsError.message}`);
+      }
+
+      // Delete all registrations for this user
+      const { error: registrationsError } = await supabase
+        .from('registrations')
+        .delete()
+        .eq('user_id', userId);
+
+      if (registrationsError && registrationsError.code !== 'PGRST301') {
+        throw new Error(`Failed to delete registrations: ${registrationsError.message}`);
+      }
+
+      // Delete user profile (this should cascade to auth.users if ON DELETE CASCADE is set)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+
+      if (profileError && profileError.code !== 'PGRST301') {
+        throw new Error(`Failed to delete profile: ${profileError.message}`);
+      }
+
+      // Note: To delete from auth.users, you need to use Supabase Admin API
+      // This should be done via an Edge Function or backend service
+      // If ON DELETE CASCADE is set on profiles table, this may be handled automatically
+      // Otherwise, the user will remain in auth.users but without a profile
+      
+      return;
+    }
+
+    // Mock fallback: Remove all localStorage data for this user
+    try {
+      // Remove profile
+      localStorage.removeItem(STORAGE_KEYS.PROFILE(userId));
+      
+      // Remove registrations
+      localStorage.removeItem(STORAGE_KEYS.REGISTRATIONS(userId));
+      
+      // Remove chat messages
+      localStorage.removeItem(`chat_messages_${userId}`);
+      
+      // Remove course completions
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith(`course_completion_${userId}_`)) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch (error: any) {
+      throw new Error(`Failed to delete user data: ${error.message}`);
+    }
   }
 };
