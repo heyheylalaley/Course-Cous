@@ -6,7 +6,7 @@ import { TRANSLATIONS } from '../translations';
 import { 
   Users, FileSpreadsheet, FileText, Mail, Phone, Calendar, GraduationCap, 
   ArrowUp, ArrowDown, Filter, Search, CheckCircle, Circle, X, ArrowLeft,
-  Send, CalendarCheck, Loader2
+  Send, CalendarCheck, Loader2, Copy, Check
 } from 'lucide-react';
 
 interface AdminStudentListProps {
@@ -37,6 +37,10 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
   const [courseSessions, setCourseSessions] = useState<CourseSession[]>([]);
   const [updatingInviteUserId, setUpdatingInviteUserId] = useState<string | null>(null);
   const [updatingAssignUserId, setUpdatingAssignUserId] = useState<string | null>(null);
+  
+  // Email generation modal
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailCopied, setEmailCopied] = useState(false);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,6 +59,18 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
     loadStudentDetails();
     loadCourseSessions();
   }, [courseId]);
+
+  // Prevent body scroll when email modal is open
+  useEffect(() => {
+    if (showEmailModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showEmailModal]);
 
   const loadCourseSessions = async () => {
     try {
@@ -392,6 +408,97 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
 
   const hasActiveFilters = searchQuery || priorityFilter !== 'all' || englishLevelFilter !== 'all' || completedFilter !== 'all';
 
+  // Get invited students
+  const invitedStudents = useMemo(() => {
+    return students.filter(s => s.isInvited);
+  }, [students]);
+
+  // Generate invitation email
+  const generateInvitationEmail = (): string => {
+    if (!course) return '';
+    
+    // Filter active sessions that are in the future (or today)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const activeSessions = courseSessions.filter(s => {
+      if (s.status !== 'active') return false;
+      const sessionDate = new Date(s.sessionDate + 'T00:00:00');
+      sessionDate.setHours(0, 0, 0, 0);
+      return sessionDate >= today;
+    });
+    
+    activeSessions.sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime());
+    
+    const formatDateForEmail = (dateString: string) => {
+      const date = new Date(dateString + 'T00:00:00');
+      return date.toLocaleDateString('en-GB', { 
+        weekday: 'long',
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric' 
+      });
+    };
+
+    const datesList = activeSessions.length > 0
+      ? activeSessions.map(session => {
+          const spotsLeft = (session.maxCapacity || 0) - (session.currentEnrollment || 0);
+          return `• ${formatDateForEmail(session.sessionDate)}${spotsLeft > 0 ? ` (${spotsLeft} spot${spotsLeft !== 1 ? 's' : ''} available)` : ' (Full)'}`;
+        }).join('\n')
+      : '• Dates will be announced soon';
+
+    const email = `Subject: Invitation to Join ${course.title}
+
+Hello!
+
+I hope this email finds you well. I'm delighted to invite you to participate in our upcoming course: ${course.title}.
+
+We would be thrilled to have you join us! To confirm your participation and select your preferred date, you have two options:
+
+1. Visit our website at https://ccplearn.pages.dev/ and confirm your participation in the course, where you can also choose your preferred date.
+
+2. Simply reply to this email with your chosen date.
+
+Please note that spaces for this course are limited, so we encourage you to confirm your participation as soon as possible.
+
+Available dates for this course:
+${datesList}
+
+We look forward to having you join us for this course. If you have any questions, please don't hesitate to reach out.
+
+Best regards,
+Cork City Partnership
+CCPLearn Team`;
+
+    return email;
+  };
+
+  // Copy email to clipboard
+  const handleCopyEmail = async () => {
+    const emailText = generateInvitationEmail();
+    try {
+      await navigator.clipboard.writeText(emailText);
+      setEmailCopied(true);
+      setTimeout(() => setEmailCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy email:', err);
+      alert('Failed to copy email to clipboard');
+    }
+  };
+
+  // Show email modal
+  const handleGenerateEmail = () => {
+    if (invitedStudents.length === 0) {
+      alert(t.adminNoInvitedStudents || 'No invited students found. Please invite students first before generating the email.');
+      return;
+    }
+    if (!course) {
+      alert(t.adminError || 'Course information not available.');
+      return;
+    }
+    setShowEmailModal(true);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full min-h-[400px]">
@@ -444,6 +551,27 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
               <Filter size={18} />
               {t.adminFilters || 'Filters'}
               {hasActiveFilters && <span className="w-2 h-2 rounded-full bg-indigo-500"></span>}
+            </button>
+            <button
+              onClick={handleGenerateEmail}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                invitedStudents.length > 0
+                  ? 'bg-purple-600 dark:bg-purple-700 text-white hover:bg-purple-700 dark:hover:bg-purple-600'
+                  : 'bg-purple-400 dark:bg-purple-800 text-white opacity-75 cursor-pointer hover:opacity-100'
+              }`}
+              title={
+                invitedStudents.length > 0
+                  ? `Generate invitation email for ${invitedStudents.length} invited ${invitedStudents.length === 1 ? 'student' : 'students'}`
+                  : t.adminNoInvitedStudents || 'No invited students. Please invite students first.'
+              }
+            >
+              <Mail size={18} />
+              {t.adminGenerateInviteEmail || 'Generate Invite Email'}
+              {invitedStudents.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-purple-500 dark:bg-purple-600 text-xs font-semibold">
+                  {invitedStudents.length}
+                </span>
+              )}
             </button>
             {filteredAndSortedStudents.length > 0 && (
               <>
@@ -736,6 +864,90 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
             <p className="text-xs text-gray-500 dark:text-gray-400">
               {t.adminExportNote || 'Click Export buttons above to download full student details including address, eircode, and date of birth'}
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Email Generation Modal */}
+      {showEmailModal && (
+        <div
+          className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowEmailModal(false);
+            }
+          }}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-gray-200 dark:border-gray-700"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  {t.adminInvitationEmail || 'Invitation Email'}
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  For {invitedStudents.length} invited {invitedStudents.length === 1 ? 'student' : 'students'}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowEmailModal(false)}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Email Content */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
+                <pre className="whitespace-pre-wrap font-mono text-sm text-gray-900 dark:text-gray-100 leading-relaxed">
+                  {generateInvitationEmail()}
+                </pre>
+              </div>
+              
+              {/* Invited Students List */}
+              <div className="mt-4">
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Invited Students ({invitedStudents.length}):
+                </p>
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 border border-gray-200 dark:border-gray-700 max-h-40 overflow-y-auto">
+                  <div className="space-y-1">
+                    {invitedStudents.map(student => (
+                      <div key={student.userId} className="text-sm text-gray-600 dark:text-gray-400">
+                        • {student.firstName} {student.lastName} ({student.email})
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {t.adminEmailCopyHint || 'Copy the email above and send it to invited students'}
+              </p>
+              <button
+                onClick={handleCopyEmail}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600 dark:bg-purple-700 text-white hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors"
+              >
+                {emailCopied ? (
+                  <>
+                    <Check size={18} />
+                    {t.adminCopied || 'Copied!'}
+                  </>
+                ) : (
+                  <>
+                    <Copy size={18} />
+                    {t.adminCopyEmail || 'Copy Email'}
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
