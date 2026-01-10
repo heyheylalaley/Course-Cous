@@ -514,7 +514,8 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
     }
 
     if (supabase) {
-      const { data, error } = await supabase
+      // First, get all registrations
+      const { data: registrationsData, error } = await supabase
         .from('registrations')
         .select('*')
         .eq('user_id', session.id)
@@ -522,14 +523,42 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
 
       if (error) throw new Error(error.message);
       
-      return (data || []).map((r: any) => ({
+      // Get all unique session IDs that we need dates for
+      const assignedSessionIds = (registrationsData || [])
+        .map((r: any) => r.assigned_session_id)
+        .filter((id: string | null) => id !== null);
+      
+      const userSelectedSessionIds = (registrationsData || [])
+        .map((r: any) => r.user_selected_session_id)
+        .filter((id: string | null) => id !== null);
+      
+      const allSessionIds = [...new Set([...assignedSessionIds, ...userSelectedSessionIds])];
+      
+      // Fetch session dates in batch
+      let sessionDatesMap = new Map<string, string>();
+      if (allSessionIds.length > 0) {
+        const { data: sessionsData } = await supabase
+          .from('course_sessions')
+          .select('id, session_date')
+          .in('id', allSessionIds);
+        
+        if (sessionsData) {
+          sessionsData.forEach((s: any) => {
+            sessionDatesMap.set(s.id, s.session_date);
+          });
+        }
+      }
+      
+      return (registrationsData || []).map((r: any) => ({
         courseId: r.course_id,
         registeredAt: new Date(r.registered_at),
         priority: r.priority,
         isInvited: r.is_invited || false,
         invitedAt: r.invited_at ? new Date(r.invited_at) : undefined,
         assignedSessionId: r.assigned_session_id || undefined,
-        userSelectedSessionId: r.user_selected_session_id || undefined
+        assignedSessionDate: r.assigned_session_id ? sessionDatesMap.get(r.assigned_session_id) : undefined,
+        userSelectedSessionId: r.user_selected_session_id || undefined,
+        userSelectedSessionDate: r.user_selected_session_id ? sessionDatesMap.get(r.user_selected_session_id) : undefined
       }));
     }
 

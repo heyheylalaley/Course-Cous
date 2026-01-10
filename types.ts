@@ -85,7 +85,9 @@ export interface Registration {
   isInvited?: boolean; // Whether admin has invited user to select a date
   invitedAt?: Date; // When the user was invited
   assignedSessionId?: string; // Session ID assigned by admin (takes priority)
+  assignedSessionDate?: string; // Date of admin-assigned session (YYYY-MM-DD)
   userSelectedSessionId?: string; // Session ID selected by user
+  userSelectedSessionDate?: string; // Date of user-selected session (YYYY-MM-DD)
 }
 
 export interface CourseQueue {

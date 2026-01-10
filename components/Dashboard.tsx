@@ -416,6 +416,18 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
                 const hasSelectedSession = !!registration.userSelectedSessionId;
                 const isInvited = registration.isInvited;
                 
+                // Format date for display
+                const formatSessionDate = (dateString?: string): string => {
+                  if (!dateString) return '';
+                  const date = new Date(dateString + 'T00:00:00');
+                  return date.toLocaleDateString(
+                    language === 'en' ? 'en-GB' : 
+                    language === 'ua' ? 'uk-UA' : 
+                    language === 'ru' ? 'ru-RU' : 'ar-SA',
+                    { day: '2-digit', month: 'short', year: 'numeric' }
+                  );
+                };
+                
                 return (
                   <div key={course.id} className={`bg-white dark:bg-gray-800 rounded-xl border-2 ${priority === 1 ? 'border-green-300 dark:border-green-700' : 'border-gray-200 dark:border-gray-700'} p-3 sm:p-4 shadow-sm transition-all`}>
                     {/* Priority Badge */}
@@ -464,12 +476,26 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
                         {hasAssignedSession ? (
                           <>
                             <CalendarCheck size={16} />
-                            <span>{t.confirmedFor || 'Confirmed for session'}</span>
+                            <span className="flex-1">
+                              {t.confirmedFor || 'Confirmed for course'}
+                              {registration.assignedSessionDate && (
+                                <span className="ml-2 font-semibold">
+                                  - {formatSessionDate(registration.assignedSessionDate)}
+                                </span>
+                              )}
+                            </span>
                           </>
                         ) : hasSelectedSession ? (
                           <>
                             <Calendar size={16} />
-                            <span>{t.dateSelected || 'You have selected a date'}</span>
+                            <span>
+                              {t.dateSelected || 'You have selected a date'}
+                              {registration.userSelectedSessionDate && (
+                                <span className="ml-2 font-semibold">
+                                  - {formatSessionDate(registration.userSelectedSessionDate)}
+                                </span>
+                              )}
+                            </span>
                           </>
                         ) : (
                           <>
