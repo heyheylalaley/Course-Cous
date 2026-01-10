@@ -41,6 +41,7 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
   // Email generation modal
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailCopied, setEmailCopied] = useState(false);
+  const [emailsCopied, setEmailsCopied] = useState(false);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -464,13 +465,14 @@ Please note that spaces for this course are limited, so we encourage you to conf
 Available dates for this course:
 ${datesList}
 
-We look forward to having you join us for this course. If you have any questions, please don't hesitate to reach out.
-
-Best regards,
-Cork City Partnership
-CCPLearn Team`;
+We look forward to having you join us for this course. If you have any questions, please don't hesitate to reach out.`;
 
     return email;
+  };
+
+  // Get invited students emails as comma-separated string
+  const getInvitedStudentsEmails = (): string => {
+    return invitedStudents.map(s => s.email).join('; ');
   };
 
   // Copy email to clipboard
@@ -483,6 +485,19 @@ CCPLearn Team`;
     } catch (err) {
       console.error('Failed to copy email:', err);
       alert('Failed to copy email to clipboard');
+    }
+  };
+
+  // Copy email addresses to clipboard
+  const handleCopyEmails = async () => {
+    const emails = getInvitedStudentsEmails();
+    try {
+      await navigator.clipboard.writeText(emails);
+      setEmailsCopied(true);
+      setTimeout(() => setEmailsCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy emails:', err);
+      alert('Failed to copy emails to clipboard');
     }
   };
 
@@ -909,44 +924,67 @@ CCPLearn Team`;
                 </pre>
               </div>
               
-              {/* Invited Students List */}
-              <div className="mt-4">
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Invited Students ({invitedStudents.length}):
-                </p>
-                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 border border-gray-200 dark:border-gray-700 max-h-40 overflow-y-auto">
-                  <div className="space-y-1">
-                    {invitedStudents.map(student => (
-                      <div key={student.userId} className="text-sm text-gray-600 dark:text-gray-400">
-                        • {student.firstName} {student.lastName} ({student.email})
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700">
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {t.adminEmailCopyHint || 'Copy the email above and send it to invited students'}
-              </p>
-              <button
-                onClick={handleCopyEmail}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600 dark:bg-purple-700 text-white hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors"
-              >
-                {emailCopied ? (
-                  <>
-                    <Check size={18} />
-                    {t.adminCopied || 'Copied!'}
-                  </>
-                ) : (
-                  <>
-                    <Copy size={18} />
-                    {t.adminCopyEmail || 'Copy Email'}
-                  </>
-                )}
-              </button>
+            <div className="border-t border-gray-200 dark:border-gray-700">
+              {/* Email Addresses Section */}
+              <div className="p-4 sm:p-6 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                      {t.adminInvitedStudentsEmails || 'Invited Students Emails'} ({invitedStudents.length}):
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {t.adminEmailsCopyHint || 'Copy emails to paste into Outlook (separated by semicolon)'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleCopyEmails}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors text-sm flex-shrink-0"
+                  >
+                    {emailsCopied ? (
+                      <>
+                        <Check size={16} />
+                        {t.adminCopied || 'Copied!'}
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={16} />
+                        {t.adminCopyEmails || 'Copy Emails'}
+                      </>
+                    )}
+                  </button>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-900 dark:text-gray-100 font-mono break-all">
+                    {getInvitedStudentsEmails() || t.adminNoInvitedStudents || 'No invited students'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Copy Email Button Section */}
+              <div className="flex items-center justify-between p-4 sm:p-6">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {t.adminEmailCopyHint || 'Copy the email above and send it to invited students'}
+                </p>
+                <button
+                  onClick={handleCopyEmail}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600 dark:bg-purple-700 text-white hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors"
+                >
+                  {emailCopied ? (
+                    <>
+                      <Check size={18} />
+                      {t.adminCopied || 'Copied!'}
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={18} />
+                      {t.adminCopyEmail || 'Copy Email'}
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
