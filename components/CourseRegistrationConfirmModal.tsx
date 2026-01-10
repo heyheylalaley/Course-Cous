@@ -190,7 +190,9 @@ export const CourseRegistrationConfirmModal: React.FC<CourseRegistrationConfirmM
         {/* Description */}
         <div className="mb-4 sm:mb-6">
           <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.description}</h4>
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 leading-relaxed">{course.description}</p>
+          <div className="max-h-48 sm:max-h-64 overflow-y-auto pr-2">
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 leading-relaxed">{course.description}</p>
+          </div>
         </div>
 
         {/* Action Buttons */}

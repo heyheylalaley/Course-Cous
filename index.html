@@ -4,6 +4,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
     <title>CCPLearn - Cork City Partnership</title>
+    <!-- Preload critical CSS to prevent FOUC -->
+    <style>
+      /* Critical CSS to prevent FOUC */
+      html, body, #root {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+      }
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      /* Hide content until styles are loaded */
+      #root:not(:has(*)) {
+        visibility: hidden;
+      }
+    </style>
     
     <!-- SEO Meta Tags -->
     <meta name="description" content="CCPLearn - AI-powered course advisor by Cork City Partnership. Find and register for educational courses in safety, healthcare, hospitality, and more." />
