@@ -3,7 +3,8 @@ import { Course, Language, EnglishLevel } from '../types';
 import { db } from '../services/db';
 import { TRANSLATIONS } from '../translations';
 import { CourseEditModal } from './CourseEditModal';
-import { BookOpen, Plus, Edit2, Trash2, Eye, EyeOff, Shield } from 'lucide-react';
+import { AdminCourseSessionsModal } from './AdminCourseSessionsModal';
+import { BookOpen, Plus, Edit2, Trash2, Eye, EyeOff, Shield, Calendar } from 'lucide-react';
 
 interface AdminCourseManagementProps {
   language: Language;
@@ -17,6 +18,9 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
   const [showInactive, setShowInactive] = useState(false);
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  
+  // Sessions modal state
+  const [sessionsModalCourse, setSessionsModalCourse] = useState<Course | null>(null);
   
   // Store editing course data separately to prevent modal from closing when courses list is temporarily empty
   const [editingCourseData, setEditingCourseData] = useState<Course | null>(null);
@@ -332,6 +336,13 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
                 </div>
                 <div className="flex flex-col gap-2">
                   <button
+                    onClick={() => setSessionsModalCourse(course)}
+                    className="p-2 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors"
+                    title={t.adminManageDates || 'Manage dates'}
+                  >
+                    <Calendar size={18} />
+                  </button>
+                  <button
                     onClick={() => handleEditCourse(course)}
                     className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
                     title={t.adminEditCourse || 'Edit course'}
@@ -381,6 +392,16 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
         language={language}
         course={editingCourse}
       />
+
+      {/* Sessions Modal */}
+      {sessionsModalCourse && (
+        <AdminCourseSessionsModal
+          isOpen={!!sessionsModalCourse}
+          onClose={() => setSessionsModalCourse(null)}
+          course={sessionsModalCourse}
+          language={language}
+        />
+      )}
     </div>
   );
 };

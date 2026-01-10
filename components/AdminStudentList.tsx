@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { AdminStudentDetail, Language, EnglishLevel } from '../types';
+import { AdminStudentDetail, Language, EnglishLevel, CourseSession } from '../types';
 import { db } from '../services/db';
 import { useCourses } from '../hooks/useCourses';
 import { TRANSLATIONS } from '../translations';
 import { 
   Users, FileSpreadsheet, FileText, Mail, Phone, Calendar, GraduationCap, 
-  ArrowUp, ArrowDown, Filter, Search, CheckCircle, Circle, X, ArrowLeft
+  ArrowUp, ArrowDown, Filter, Search, CheckCircle, Circle, X, ArrowLeft,
+  Send, CalendarCheck, Loader2
 } from 'lucide-react';
 
 interface AdminStudentListProps {
@@ -32,6 +33,11 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
   const t = TRANSLATIONS[language] as any;
   const isRtl = language === 'ar';
 
+  // Course sessions for enrollment management
+  const [courseSessions, setCourseSessions] = useState<CourseSession[]>([]);
+  const [updatingInviteUserId, setUpdatingInviteUserId] = useState<string | null>(null);
+  const [updatingAssignUserId, setUpdatingAssignUserId] = useState<string | null>(null);
+
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -47,7 +53,17 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
 
   useEffect(() => {
     loadStudentDetails();
+    loadCourseSessions();
   }, [courseId]);
+
+  const loadCourseSessions = async () => {
+    try {
+      const sessions = await db.getCourseSessions(courseId, false);
+      setCourseSessions(sessions);
+    } catch (err: any) {
+      console.error('Failed to load course sessions:', err);
+    }
+  };
 
   const loadStudentDetails = async () => {
     setIsLoading(true);
@@ -78,6 +94,46 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Handle invite toggle
+  const handleToggleInvite = async (student: AdminStudentDetail) => {
+    setUpdatingInviteUserId(student.userId);
+    try {
+      await db.setUserInvite(student.userId, courseId, !student.isInvited);
+      await loadStudentDetails();
+    } catch (err: any) {
+      console.error('Failed to update invite:', err);
+      alert(err.message || 'Failed to update invite status');
+    } finally {
+      setUpdatingInviteUserId(null);
+    }
+  };
+
+  // Handle session assignment
+  const handleAssignSession = async (student: AdminStudentDetail, sessionId: string | null) => {
+    setUpdatingAssignUserId(student.userId);
+    try {
+      await db.assignUserSession(student.userId, courseId, sessionId);
+      await loadStudentDetails();
+      await loadCourseSessions(); // Refresh session counts
+    } catch (err: any) {
+      console.error('Failed to assign session:', err);
+      alert(err.message || 'Failed to assign session');
+    } finally {
+      setUpdatingAssignUserId(null);
+    }
+  };
+
+  // Format session date for display
+  const formatSessionDate = (dateString: string) => {
+    const date = new Date(dateString + 'T00:00:00');
+    return date.toLocaleDateString(
+      language === 'en' ? 'en-GB' : 
+      language === 'ua' ? 'uk-UA' : 
+      language === 'ru' ? 'ru-RU' : 'ar-SA',
+      { day: '2-digit', month: 'short', year: 'numeric' }
+    );
   };
 
   // Handle toggling completion status
@@ -528,9 +584,6 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
                     {t.adminExportEmail || 'Email'}
                     <SortIcon field="email" />
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                    {t.adminExportMobile || 'Mobile'}
-                  </th>
                   <th 
                     onClick={() => handleSort('englishLevel')}
                     className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
@@ -538,12 +591,15 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
                     {t.adminExportEnglishLevel || 'English'}
                     <SortIcon field="englishLevel" />
                   </th>
-                  <th 
-                    onClick={() => handleSort('registeredAt')}
-                    className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    {t.adminExportRegisteredAt || 'Registered'}
-                    <SortIcon field="registeredAt" />
+                  {/* Enrollment Management Columns */}
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    {t.adminInvite || 'Invite'}
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    {t.adminAssignedDate || 'Assigned Date'}
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    {t.adminSelectedDate || 'Selected'}
                   </th>
                 </tr>
               </thead>
@@ -595,16 +651,10 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
                     <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
                       <div className="flex items-center gap-1">
                         <Mail size={14} className="text-gray-400" />
-                        {student.email}
+                        <span className="truncate max-w-[150px]" title={student.email}>
+                          {student.email}
+                        </span>
                       </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                      {student.mobileNumber ? (
-                        <div className="flex items-center gap-1">
-                          <Phone size={14} className="text-gray-400" />
-                          {student.mobileNumber}
-                        </div>
-                      ) : '-'}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
@@ -612,11 +662,68 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
                         {student.englishLevel}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                      <div className="flex items-center gap-1">
-                        <Calendar size={14} className="text-gray-400" />
-                        {formatDate(student.registeredAt)}
+                    {/* Invite Column */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <button
+                        onClick={() => handleToggleInvite(student)}
+                        disabled={updatingInviteUserId === student.userId}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          student.isInvited 
+                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50' 
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        } ${updatingInviteUserId === student.userId ? 'opacity-50' : ''}`}
+                        title={student.isInvited 
+                          ? (t.adminRevokeInvite || 'Revoke invite') 
+                          : (t.adminSendInvite || 'Send invite to select date')}
+                      >
+                        {updatingInviteUserId === student.userId ? (
+                          <Loader2 size={18} className="animate-spin" />
+                        ) : (
+                          <Send size={18} className={student.isInvited ? 'fill-current' : ''} />
+                        )}
+                      </button>
+                    </td>
+                    {/* Assigned Date Column */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="relative">
+                        <select
+                          value={student.assignedSessionId || ''}
+                          onChange={(e) => handleAssignSession(student, e.target.value || null)}
+                          disabled={updatingAssignUserId === student.userId || courseSessions.length === 0}
+                          className={`w-full min-w-[140px] px-2 py-1.5 text-sm rounded-lg border transition-colors appearance-none pr-8 ${
+                            student.assignedSessionId 
+                              ? 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300'
+                              : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300'
+                          } ${updatingAssignUserId === student.userId ? 'opacity-50' : ''} disabled:opacity-50 disabled:cursor-not-allowed focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none`}
+                        >
+                          <option value="">{t.adminNotAssigned || '— Not assigned —'}</option>
+                          {courseSessions.map(session => (
+                            <option key={session.id} value={session.id}>
+                              {formatSessionDate(session.sessionDate)} ({session.currentEnrollment || 0}/{session.maxCapacity})
+                            </option>
+                          ))}
+                        </select>
+                        {updatingAssignUserId === student.userId && (
+                          <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                            <Loader2 size={14} className="animate-spin text-indigo-500" />
+                          </div>
+                        )}
                       </div>
+                    </td>
+                    {/* User Selected Date Column */}
+                    <td className="px-4 py-3 text-sm">
+                      {student.userSelectedSessionDate ? (
+                        <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                          <CalendarCheck size={16} />
+                          <span className="font-medium">{formatSessionDate(student.userSelectedSessionDate)}</span>
+                        </div>
+                      ) : student.isInvited ? (
+                        <span className="text-gray-400 dark:text-gray-500 text-xs italic">
+                          {t.adminAwaitingSelection || 'Awaiting...'}
+                        </span>
+                      ) : (
+                        <span className="text-gray-300 dark:text-gray-600">—</span>
+                      )}
                     </td>
                   </tr>
                 ))}

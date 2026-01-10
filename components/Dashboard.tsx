@@ -3,7 +3,8 @@ import { UserProfile, EnglishLevel, Language, Registration, Course } from '../ty
 import { useCourses } from '../hooks/useCourses';
 import { useCourses as useCoursesContext } from '../contexts/CoursesContext';
 import { CourseCard } from './CourseCard';
-import { Save, User, BookCheck, ArrowUp, ArrowDown, Edit2, Menu, Mail, CheckCircle, Award, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
+import { CourseSessionSelector } from './CourseSessionSelector';
+import { Save, User, BookCheck, ArrowUp, ArrowDown, Edit2, Menu, Mail, CheckCircle, Award, ChevronDown, ChevronUp, Calendar, CalendarCheck, Clock } from 'lucide-react';
 import { db } from '../services/db';
 import { TRANSLATIONS } from '../translations';
 import { ProfileInfoModal } from './ProfileInfoModal';
@@ -161,9 +162,15 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
     .sort((a, b) => (a.priority || 999) - (b.priority || 999))
     .map(reg => {
       const course = availableCourses.find(c => c.id === reg.courseId);
-      return course ? { course, priority: reg.priority || 999 } : null;
+      return course ? { course, priority: reg.priority || 999, registration: reg } : null;
     })
-    .filter((item): item is { course: Course, priority: number } => item !== null);
+    .filter((item): item is { course: Course, priority: number, registration: Registration } => item !== null);
+
+  // Helper function to reload registrations (for session selector callback)
+  const reloadRegistrations = async () => {
+    const regs = await db.getRegistrations();
+    setCourseRegistrations(regs);
+  };
 
   const handlePriorityChange = async (courseId: string, direction: 'up' | 'down') => {
     const currentReg = courseRegistrations.find(r => r.courseId === courseId);
@@ -391,7 +398,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
             </div>
           ) : (
             <div className="space-y-3">
-              {registeredCourses.map(({ course, priority }) => {
+              {registeredCourses.map(({ course, priority, registration }) => {
                 const canMoveUp = priority > 1;
                 const canMoveDown = priority < registeredCourses.length;
                 const priorityLabel = t[`priority${priority}`] || 
@@ -403,6 +410,12 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
                   : priority === 2 
                     ? 'bg-blue-500 dark:bg-blue-600' 
                     : 'bg-gray-500 dark:bg-gray-600';
+                
+                // Determine enrollment status for status line
+                const hasAssignedSession = !!registration.assignedSessionId;
+                const hasSelectedSession = !!registration.userSelectedSessionId;
+                const isInvited = registration.isInvited;
+                
                 return (
                   <div key={course.id} className={`bg-white dark:bg-gray-800 rounded-xl border-2 ${priority === 1 ? 'border-green-300 dark:border-green-700' : 'border-gray-200 dark:border-gray-700'} p-3 sm:p-4 shadow-sm transition-all`}>
                     {/* Priority Badge */}
@@ -438,6 +451,34 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
                         </button>
                       </div>
                     </div>
+
+                    {/* Enrollment Status Line */}
+                    {(hasAssignedSession || hasSelectedSession || isInvited) && (
+                      <div className={`mb-3 px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${
+                        hasAssignedSession 
+                          ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                          : hasSelectedSession
+                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                            : 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400'
+                      }`}>
+                        {hasAssignedSession ? (
+                          <>
+                            <CalendarCheck size={16} />
+                            <span>{t.confirmedFor || 'Confirmed for session'}</span>
+                          </>
+                        ) : hasSelectedSession ? (
+                          <>
+                            <Calendar size={16} />
+                            <span>{t.dateSelected || 'You have selected a date'}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Clock size={16} />
+                            <span>{t.pleaseSelectDate || 'Please select your preferred date'}</span>
+                          </>
+                        )}
+                      </div>
+                    )}
                     
                     {/* Course card content */}
                     <CourseCard 
@@ -449,6 +490,16 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
                       queueLength={courseQueues.get(course.id) || 0}
                       categories={categories}
                     />
+
+                    {/* Course Session Selector (only shown when invited) */}
+                    {isInvited && (
+                      <CourseSessionSelector
+                        courseId={course.id}
+                        registration={registration}
+                        language={language}
+                        onSessionSelected={reloadRegistrations}
+                      />
+                    )}
                   </div>
                 );
               })}

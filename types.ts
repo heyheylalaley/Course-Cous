@@ -68,12 +68,24 @@ export interface AdminStudentDetail {
   completedAt?: Date;
   ldcRef?: string; // LDC Reference (admin only)
   irisId?: string; // IRIS ID (admin only)
+  // Enrollment management fields
+  isInvited?: boolean; // Whether admin has invited user to select a date
+  invitedAt?: Date; // When the user was invited
+  assignedSessionId?: string; // Session ID assigned by admin (takes priority)
+  assignedSessionDate?: string; // Date of admin-assigned session
+  userSelectedSessionId?: string; // Session ID selected by user
+  userSelectedSessionDate?: string; // Date of user-selected session
 }
 
 export interface Registration {
   courseId: string;
   registeredAt: Date;
   priority?: number; // 1 = highest priority, 2, 3
+  // Enrollment management fields
+  isInvited?: boolean; // Whether admin has invited user to select a date
+  invitedAt?: Date; // When the user was invited
+  assignedSessionId?: string; // Session ID assigned by admin (takes priority)
+  userSelectedSessionId?: string; // Session ID selected by user
 }
 
 export interface CourseQueue {
@@ -130,4 +142,24 @@ export interface CalendarEvent {
   createdByEmail?: string; // Email of the creator
   createdAt?: Date;
   updatedAt?: Date;
+}
+
+// Enrollment Management Types
+export interface CourseSession {
+  id: string;
+  courseId: string;
+  sessionDate: string; // ISO date string (YYYY-MM-DD)
+  maxCapacity: number;
+  status: 'active' | 'archived';
+  currentEnrollment?: number; // Number of users assigned/selected for this session
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface SessionWithAvailability {
+  id: string;
+  sessionDate: string; // ISO date string (YYYY-MM-DD)
+  maxCapacity: number;
+  currentEnrollment: number;
+  isAvailable: boolean; // true if currentEnrollment < maxCapacity
 }

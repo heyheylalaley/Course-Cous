@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Registration, UserProfile, EnglishLevel, CourseQueue, AdminCourseStats, AdminStudentDetail, Course, Message, Language, CourseCategory, CalendarEvent } from '../types';
+import { Registration, UserProfile, EnglishLevel, CourseQueue, AdminCourseStats, AdminStudentDetail, Course, Message, Language, CourseCategory, CalendarEvent, CourseSession, SessionWithAvailability } from '../types';
 import { AVAILABLE_COURSES } from '../constants';
 import { translateCourse } from './translateService';
 
@@ -525,7 +525,11 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
       return (data || []).map((r: any) => ({
         courseId: r.course_id,
         registeredAt: new Date(r.registered_at),
-        priority: r.priority
+        priority: r.priority,
+        isInvited: r.is_invited || false,
+        invitedAt: r.invited_at ? new Date(r.invited_at) : undefined,
+        assignedSessionId: r.assigned_session_id || undefined,
+        userSelectedSessionId: r.user_selected_session_id || undefined
       }));
     }
 
@@ -1079,7 +1083,14 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
           registeredAt: new Date(row.registered_at),
           priority: row.priority || 999,
           ldcRef: row.ldc_ref || undefined,
-          irisId: row.iris_id || undefined
+          irisId: row.iris_id || undefined,
+          // Enrollment management fields
+          isInvited: row.is_invited || false,
+          invitedAt: row.invited_at ? new Date(row.invited_at) : undefined,
+          assignedSessionId: row.assigned_session_id || undefined,
+          assignedSessionDate: row.assigned_session_date || undefined,
+          userSelectedSessionId: row.user_selected_session_id || undefined,
+          userSelectedSessionDate: row.user_selected_session_date || undefined
         };
       });
     }
@@ -2378,6 +2389,289 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
     }
 
     throw new Error("Supabase not configured");
+  },
+
+  // --- Course Session Methods (Enrollment Management) ---
+  
+  getCourseSessions: async (courseId: string, includeArchived: boolean = false): Promise<CourseSession[]> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    if (supabase) {
+      // Use the function that includes enrollment counts
+      const { data, error } = await supabase.rpc('get_course_sessions_with_enrollment', {
+        p_course_id: courseId
+      });
+
+      if (error) throw new Error(error.message);
+
+      let sessions = (data || []).map((s: any) => ({
+        id: s.id,
+        courseId: s.course_id,
+        sessionDate: s.session_date,
+        maxCapacity: s.max_capacity,
+        status: s.status as 'active' | 'archived',
+        currentEnrollment: s.current_enrollment || 0,
+        createdAt: s.created_at ? new Date(s.created_at) : undefined,
+        updatedAt: s.updated_at ? new Date(s.updated_at) : undefined
+      }));
+
+      if (!includeArchived) {
+        sessions = sessions.filter((s: CourseSession) => s.status === 'active');
+      }
+
+      return sessions;
+    }
+
+    throw new Error("Supabase not configured");
+  },
+
+  createCourseSession: async (courseId: string, sessionDate: string, maxCapacity: number): Promise<CourseSession> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('course_sessions')
+        .insert({
+          course_id: courseId,
+          session_date: sessionDate,
+          max_capacity: maxCapacity,
+          status: 'active'
+        })
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+
+      return {
+        id: data.id,
+        courseId: data.course_id,
+        sessionDate: data.session_date,
+        maxCapacity: data.max_capacity,
+        status: data.status as 'active' | 'archived',
+        currentEnrollment: 0,
+        createdAt: data.created_at ? new Date(data.created_at) : undefined,
+        updatedAt: data.updated_at ? new Date(data.updated_at) : undefined
+      };
+    }
+
+    throw new Error("Supabase not configured");
+  },
+
+  updateCourseSession: async (sessionId: string, updates: Partial<Pick<CourseSession, 'sessionDate' | 'maxCapacity' | 'status'>>): Promise<CourseSession> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    if (supabase) {
+      const updateData: any = {};
+      if (updates.sessionDate !== undefined) updateData.session_date = updates.sessionDate;
+      if (updates.maxCapacity !== undefined) updateData.max_capacity = updates.maxCapacity;
+      if (updates.status !== undefined) updateData.status = updates.status;
+
+      const { data, error } = await supabase
+        .from('course_sessions')
+        .update(updateData)
+        .eq('id', sessionId)
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+
+      // Get enrollment count
+      const { data: countData } = await supabase.rpc('get_session_enrollment_count', {
+        p_session_id: sessionId
+      });
+
+      return {
+        id: data.id,
+        courseId: data.course_id,
+        sessionDate: data.session_date,
+        maxCapacity: data.max_capacity,
+        status: data.status as 'active' | 'archived',
+        currentEnrollment: countData || 0,
+        createdAt: data.created_at ? new Date(data.created_at) : undefined,
+        updatedAt: data.updated_at ? new Date(data.updated_at) : undefined
+      };
+    }
+
+    throw new Error("Supabase not configured");
+  },
+
+  deleteCourseSession: async (sessionId: string): Promise<void> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    if (supabase) {
+      // Check if any users are assigned to this session
+      const { data: countData } = await supabase.rpc('get_session_enrollment_count', {
+        p_session_id: sessionId
+      });
+
+      if (countData && countData > 0) {
+        // Archive instead of delete if users are enrolled
+        await db.updateCourseSession(sessionId, { status: 'archived' });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('course_sessions')
+        .delete()
+        .eq('id', sessionId);
+
+      if (error) throw new Error(error.message);
+      return;
+    }
+
+    throw new Error("Supabase not configured");
+  },
+
+  getSessionEnrollmentCount: async (sessionId: string): Promise<number> => {
+    if (supabase) {
+      const { data, error } = await supabase.rpc('get_session_enrollment_count', {
+        p_session_id: sessionId
+      });
+
+      if (error) throw new Error(error.message);
+      return data || 0;
+    }
+
+    return 0;
+  },
+
+  // --- Enrollment/Invite Methods ---
+
+  setUserInvite: async (userId: string, courseId: string, isInvited: boolean): Promise<void> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    if (supabase) {
+      const { error } = await supabase.rpc('set_user_invite', {
+        p_user_id: userId,
+        p_course_id: courseId,
+        p_is_invited: isInvited
+      });
+
+      if (error) throw new Error(error.message);
+      return;
+    }
+
+    throw new Error("Supabase not configured");
+  },
+
+  assignUserSession: async (userId: string, courseId: string, sessionId: string | null): Promise<void> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    if (supabase) {
+      const { error } = await supabase.rpc('assign_user_session', {
+        p_user_id: userId,
+        p_course_id: courseId,
+        p_session_id: sessionId
+      });
+
+      if (error) throw new Error(error.message);
+      return;
+    }
+
+    throw new Error("Supabase not configured");
+  },
+
+  selectUserSession: async (courseId: string, sessionId: string | null): Promise<void> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    if (supabase) {
+      const { error } = await supabase.rpc('select_user_session', {
+        p_course_id: courseId,
+        p_session_id: sessionId
+      });
+
+      if (error) throw new Error(error.message);
+      return;
+    }
+
+    throw new Error("Supabase not configured");
+  },
+
+  getAvailableSessions: async (courseId: string): Promise<SessionWithAvailability[]> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    if (supabase) {
+      const { data, error } = await supabase.rpc('get_available_sessions_for_user', {
+        p_course_id: courseId
+      });
+
+      if (error) throw new Error(error.message);
+
+      return (data || []).map((s: any) => ({
+        id: s.id,
+        sessionDate: s.session_date,
+        maxCapacity: s.max_capacity,
+        currentEnrollment: s.current_enrollment || 0,
+        isAvailable: s.is_available
+      }));
+    }
+
+    return [];
+  },
+
+  // Get user's registration with enrollment info for a specific course
+  getRegistrationWithEnrollment: async (courseId: string): Promise<Registration | null> => {
+    const session = db.getCurrentSession();
+    if (!session) return null;
+
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('registrations')
+        .select('*')
+        .eq('user_id', session.id)
+        .eq('course_id', courseId)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') return null; // Not found
+        throw new Error(error.message);
+      }
+
+      return {
+        courseId: data.course_id,
+        registeredAt: new Date(data.registered_at),
+        priority: data.priority,
+        isInvited: data.is_invited || false,
+        invitedAt: data.invited_at ? new Date(data.invited_at) : undefined,
+        assignedSessionId: data.assigned_session_id || undefined,
+        userSelectedSessionId: data.user_selected_session_id || undefined
+      };
+    }
+
+    return null;
   },
 
   // --- User Deletion Methods (Admin only) ---
