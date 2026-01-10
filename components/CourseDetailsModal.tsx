@@ -109,12 +109,20 @@ export const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({ course, 
   const isRtl = language === 'ar';
 
   return (
-    <div className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-center justify-center p-4" dir={isRtl ? 'rtl' : 'ltr'}>
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-4 sm:p-6 relative max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-start justify-center p-4 overflow-y-auto" 
+      dir={isRtl ? 'rtl' : 'ltr'}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-4 sm:p-6 relative my-4 sm:my-8 max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)] overflow-y-auto custom-scrollbar">
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          className="absolute top-4 right-4 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors z-10"
         >
           <X className="w-5 h-5" />
         </button>
@@ -171,8 +179,8 @@ export const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({ course, 
         {/* Description */}
         <div className="mb-4 sm:mb-6">
           <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.description}</h3>
-          <div className="max-h-48 sm:max-h-64 overflow-y-auto pr-2">
-            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 leading-relaxed">{course.description}</p>
+          <div className="pr-2">
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap break-words">{course.description}</p>
           </div>
         </div>
 
