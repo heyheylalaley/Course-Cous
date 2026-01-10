@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 import { Language } from '../types';
 import { TRANSLATIONS } from '../translations';
@@ -30,6 +30,18 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 }) => {
   const t = TRANSLATIONS[language];
   const isRtl = language === 'ar';
+
+  // Предотвратить скролл body при открытой модалке
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   if (!isOpen) {
     return null;
@@ -68,13 +80,14 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       onClick={handleBackdropClick}
     >
       <div
-        className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-4 sm:p-6 relative border-2 ${styles.borderColor}`}
+        className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 relative border-2 ${styles.borderColor}`}
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
           disabled={isLoading}
-          className="absolute top-4 right-4 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors disabled:opacity-50"
+          className="absolute top-4 right-4 min-h-[44px] min-w-[44px] sm:p-1 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors disabled:opacity-50 active:scale-95 flex items-center justify-center"
+          aria-label={t.close || 'Close'}
         >
           <X className="w-5 h-5" />
         </button>
@@ -95,14 +108,14 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="px-6 py-2.5 rounded-lg font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all disabled:opacity-50"
+            className="min-h-[44px] px-6 py-2.5 rounded-lg font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all disabled:opacity-50 active:scale-95"
           >
             {cancelText || t.cancel}
           </button>
           <button
             onClick={onConfirm}
             disabled={isLoading}
-            className={`px-6 py-2.5 rounded-lg font-medium text-white transition-all shadow-md disabled:opacity-50 ${styles.confirmBg}`}
+            className={`min-h-[44px] px-6 py-2.5 rounded-lg font-medium text-white transition-all shadow-md disabled:opacity-50 active:scale-95 ${styles.confirmBg}`}
           >
             {isLoading ? t.saving : (confirmText || t.confirm)}
           </button>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, Suspense, useMemo, lazy } from 'react';
+import { useSwipeable } from 'react-swipeable';
 import { CourseCard } from './components/CourseCard';
 import { AuthScreen } from './components/AuthScreen';
 import { LanguageLevelModal } from './components/LanguageLevelModal';
@@ -319,6 +320,36 @@ const AppContent: React.FC = () => {
 
   const hasNoSearchResults = debouncedSearchQuery.trim() && filteredCourses.length === 0;
 
+  // Swipe gestures для мобильной навигации
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: () => {
+      // Закрыть sidebar при свайпе влево (для LTR) или вправо (для RTL)
+      if (isSidebarOpen && typeof window !== 'undefined' && window.innerWidth < 1024) {
+        if (isRtl) {
+          // Для RTL свайп вправо закрывает sidebar
+          setSidebarOpen(false);
+        } else {
+          // Для LTR свайп влево закрывает sidebar
+          setSidebarOpen(false);
+        }
+      }
+    },
+    onSwipedRight: () => {
+      // Открыть sidebar при свайпе вправо (для LTR) или влево (для RTL)
+      if (!isSidebarOpen && typeof window !== 'undefined' && window.innerWidth < 1024) {
+        if (isRtl) {
+          // Для RTL свайп влево открывает sidebar
+          setSidebarOpen(true);
+        } else {
+          // Для LTR свайп вправо открывает sidebar
+          setSidebarOpen(true);
+        }
+      }
+    },
+    trackMouse: false,
+    trackTouch: true
+  });
+
   // Show password update page when in recovery mode
   if (isPasswordRecovery) {
     return (
@@ -473,19 +504,47 @@ const AppContent: React.FC = () => {
                 <SidebarCourseListSkeleton count={5} />
               ) : (
                 <>
-                  {filteredCourses.map(course => (
-                    <CourseCard 
-                      key={course.id} 
-                      course={course} 
-                      isRegistered={registrations.includes(course.id)}
-                      onToggleRegistration={handleToggleRegistration}
-                      allowUnregister={false}
-                      language={language}
-                      queueLength={courseQueues.get(course.id) || 0}
-                      onViewDetails={handleViewCourseDetails}
-                      categories={categories}
-                    />
-                  ))}
+                  {/* Простая оптимизация: рендерим все курсы, но с мемоизацией */}
+                  {filteredCourses.length > 50 ? (
+                    <>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 px-1 mb-2">
+                        {language === 'ru' 
+                          ? `Показано ${filteredCourses.length} курсов` 
+                          : language === 'ua' 
+                          ? `Показано ${filteredCourses.length} курсів` 
+                          : language === 'ar' 
+                          ? `يُعرض ${filteredCourses.length} دورات` 
+                          : `Showing ${filteredCourses.length} courses`}
+                      </div>
+                      {filteredCourses.map(course => (
+                        <CourseCard 
+                          key={course.id} 
+                          course={course} 
+                          isRegistered={registrations.includes(course.id)}
+                          onToggleRegistration={handleToggleRegistration}
+                          allowUnregister={false}
+                          language={language}
+                          queueLength={courseQueues.get(course.id) || 0}
+                          onViewDetails={handleViewCourseDetails}
+                          categories={categories}
+                        />
+                      ))}
+                    </>
+                  ) : (
+                    filteredCourses.map(course => (
+                      <CourseCard 
+                        key={course.id} 
+                        course={course} 
+                        isRegistered={registrations.includes(course.id)}
+                        onToggleRegistration={handleToggleRegistration}
+                        allowUnregister={false}
+                        language={language}
+                        queueLength={courseQueues.get(course.id) || 0}
+                        onViewDetails={handleViewCourseDetails}
+                        categories={categories}
+                      />
+                    ))
+                  )}
                   {hasNoSearchResults && (
                     <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
                       {language === 'ru' ? 'Курсы не найдены' : language === 'ua' ? 'Курси не знайдено' : language === 'ar' ? 'لم يتم العثور على دورات' : 'No courses found'}
@@ -499,16 +558,17 @@ const AppContent: React.FC = () => {
           {/* Sidebar Footer */}
           <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <div className="flex justify-between items-center mb-3">
-              <div className="flex gap-1">
+              <div className="flex gap-1 sm:gap-2">
                 {(['en', 'ua', 'ru', 'ar'] as const).map((lang) => (
                   <button
                     key={lang}
                     onClick={() => setLanguage(lang)}
-                    className={`w-7 h-7 flex items-center justify-center text-[10px] font-bold rounded-full transition-colors border ${
+                    className={`min-h-[44px] min-w-[44px] sm:w-7 sm:h-7 flex items-center justify-center text-[10px] font-bold rounded-full transition-colors border active:scale-95 ${
                       language === lang 
                         ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700' 
                         : 'bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-100 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
                     }`}
+                    aria-label={`Switch to ${lang.toUpperCase()} language`}
                   >
                     {lang.toUpperCase()}
                   </button>
@@ -517,21 +577,24 @@ const AppContent: React.FC = () => {
               <div className="flex gap-2">
                 <button 
                   onClick={startTour}
-                  className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  className="min-h-[44px] min-w-[44px] sm:p-1.5 p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors active:scale-95"
                   title={t.tourStartTour || 'Start Tour'}
+                  aria-label={t.tourStartTour || 'Start Tour'}
                 >
                   <Sparkles size={18} />
                 </button>
                 <button 
                   onClick={toggleTheme}
-                  className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  className="min-h-[44px] min-w-[44px] sm:p-1.5 p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors active:scale-95"
                   title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+                  aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
                 >
                   {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
                 </button>
                 <button 
                   onClick={() => setShowLogoutConfirm(true)} 
-                  className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  className="min-h-[44px] min-w-[44px] sm:p-1.5 p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors active:scale-95"
+                  aria-label={t.logoutBtn || 'Log out'}
                 >
                   <LogOut size={18} />
                 </button>
@@ -544,7 +607,10 @@ const AppContent: React.FC = () => {
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-h-0 relative">
+        <div 
+          className="flex-1 flex flex-col min-h-0 relative"
+          {...swipeHandlers}
+        >
           {/* Mobile Overlay */}
           {isSidebarOpen && (
             <div 

@@ -101,9 +101,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
         // Load saved chat history from database
         const savedMessages = await loadChatHistory();
         
-        if (savedMessages.length > 0) {
+        // Ограничение количества сообщений для оптимизации памяти
+        // Показываем последние 100 сообщений (или все, если меньше 100)
+        const MAX_DISPLAYED_MESSAGES = 100;
+        const messagesToDisplay = savedMessages.length > MAX_DISPLAYED_MESSAGES 
+          ? savedMessages.slice(-MAX_DISPLAYED_MESSAGES)
+          : savedMessages;
+        
+        if (messagesToDisplay.length > 0) {
           // Restore all saved messages, ensuring proper format
-          const restoredMessages = savedMessages.map((msg: any, index: number) => {
+          const restoredMessages = messagesToDisplay.map((msg: any, index: number) => {
             // If it's the first message and it's a welcome message, replace with current language version
             if (index === 0 && msg.role === 'model' && isWelcomeMessage(msg.content)) {
               return {
@@ -447,14 +454,31 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
         {/* Messages Area */}
         <div className="flex-1 p-3 sm:p-4 md:p-6 bg-gray-50/50 dark:bg-gray-800/50">
           <div className="max-w-3xl mx-auto">
-            {messages.map((msg) => (
-              <MessageBubble 
-                key={msg.id} 
-                message={msg} 
-                courses={courses}
-                onCourseClick={handleCourseClick}
-              />
-            ))}
+            {/* Ограничение отображаемых сообщений для оптимизации памяти на мобильных */}
+            {messages.length > 100 ? (
+              <>
+                <div className="text-center text-xs text-gray-500 dark:text-gray-400 mb-2 py-2">
+                  {t.showingRecentMessages || 'Showing recent messages'} ({messages.length - 100} {t.hidden || 'hidden'})
+                </div>
+                {messages.slice(-100).map((msg) => (
+                  <MessageBubble 
+                    key={msg.id} 
+                    message={msg} 
+                    courses={courses}
+                    onCourseClick={handleCourseClick}
+                  />
+                ))}
+              </>
+            ) : (
+              messages.map((msg) => (
+                <MessageBubble 
+                  key={msg.id} 
+                  message={msg} 
+                  courses={courses}
+                  onCourseClick={handleCourseClick}
+                />
+              ))
+            )}
             <div ref={messagesEndRef} />
           </div>
         </div>
@@ -474,15 +498,23 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
               placeholder={t.chatPlaceholder}
               className="flex-1 bg-transparent px-3 sm:px-4 py-2 outline-none text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 text-sm sm:text-base"
               disabled={isLoading}
+              onFocus={(e) => {
+                // Автоматическая прокрутка к input при фокусе на мобильных устройствах
+                // Задержка для появления клавиатуры
+                setTimeout(() => {
+                  e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+              }}
             />
             <button
               type="submit"
               disabled={!inputText.trim() || isLoading}
-              className={`p-2 sm:p-3 rounded-xl transition-all duration-200 flex items-center justify-center flex-shrink-0
+              className={`min-h-[44px] min-w-[44px] sm:p-2 p-3 rounded-xl transition-all duration-200 flex items-center justify-center flex-shrink-0
                 ${!inputText.trim() || isLoading 
                   ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed' 
                   : 'bg-green-600 dark:bg-green-700 text-white hover:bg-green-700 dark:hover:bg-green-600 shadow-md hover:shadow-lg active:scale-95'
                 }`}
+              aria-label={t.sendMessage || 'Send message'}
             >
               {isLoading ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <Send className="w-4 h-4 sm:w-5 sm:h-5" />}
             </button>

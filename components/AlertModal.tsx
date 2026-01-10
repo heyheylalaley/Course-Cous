@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, AlertCircle, CheckCircle } from 'lucide-react';
 import { Language } from '../types';
 import { TRANSLATIONS } from '../translations';
@@ -25,6 +25,18 @@ export const AlertModal: React.FC<AlertModalProps> = ({
 }) => {
   const t = TRANSLATIONS[language];
   const isRtl = language === 'ar';
+
+  // Предотвратить скролл body при открытой модалке
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   if (!isOpen) {
     return null;
@@ -78,12 +90,13 @@ export const AlertModal: React.FC<AlertModalProps> = ({
       onClick={handleBackdropClick}
     >
       <div
-        className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-4 sm:p-6 relative border-2 ${styles.borderColor}`}
+        className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 relative border-2 ${styles.borderColor}`}
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          className="absolute top-4 right-4 min-h-[44px] min-w-[44px] sm:p-1 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors active:scale-95 flex items-center justify-center"
+          aria-label={t.close || 'Close'}
         >
           <X className="w-5 h-5" />
         </button>
@@ -110,14 +123,14 @@ export const AlertModal: React.FC<AlertModalProps> = ({
                 actionButton.onClick();
                 onClose();
               }}
-              className={`px-6 py-2.5 rounded-lg font-medium text-white transition-all shadow-md ${styles.buttonBg}`}
+              className={`min-h-[44px] px-6 py-2.5 rounded-lg font-medium text-white transition-all shadow-md active:scale-95 ${styles.buttonBg}`}
             >
               {actionButton.text}
             </button>
           ) : (
             <button
               onClick={onClose}
-              className={`px-6 py-2.5 rounded-lg font-medium text-white transition-all shadow-md ${styles.buttonBg}`}
+              className={`min-h-[44px] px-6 py-2.5 rounded-lg font-medium text-white transition-all shadow-md active:scale-95 ${styles.buttonBg}`}
             >
               {t.understand || 'Understand'}
             </button>

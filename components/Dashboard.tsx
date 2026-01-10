@@ -418,9 +418,10 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
                           onClick={() => handlePriorityChange(course.id, 'up')}
                           disabled={!canMoveUp}
                           title={t.moveUp || 'Move up'}
-                          className={`p-2 rounded-lg transition-colors ${canMoveUp 
+                          className={`min-h-[44px] min-w-[44px] sm:p-2 p-3 rounded-lg transition-colors active:scale-95 ${canMoveUp 
                             ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-900 hover:text-green-600 dark:hover:text-green-400' 
                             : 'bg-gray-50 dark:bg-gray-800 text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
+                          aria-label={t.moveUp || 'Move up'}
                         >
                           <ArrowUp className="w-5 h-5" />
                         </button>
@@ -428,9 +429,10 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
                           onClick={() => handlePriorityChange(course.id, 'down')}
                           disabled={!canMoveDown}
                           title={t.moveDown || 'Move down'}
-                          className={`p-2 rounded-lg transition-colors ${canMoveDown 
+                          className={`min-h-[44px] min-w-[44px] sm:p-2 p-3 rounded-lg transition-colors active:scale-95 ${canMoveDown 
                             ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-900 hover:text-green-600 dark:hover:text-green-400' 
                             : 'bg-gray-50 dark:bg-gray-800 text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
+                          aria-label={t.moveDown || 'Move down'}
                         >
                           <ArrowDown className="w-5 h-5" />
                         </button>
