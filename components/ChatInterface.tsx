@@ -3,7 +3,7 @@ import { Message, Language, Course } from '../types';
 import { sendMessageToGemini, initializeChat } from '../services/geminiService';
 import { MessageBubble } from './MessageBubble';
 import { AlertModal } from './AlertModal';
-import { CourseRegistrationConfirmModal } from './CourseRegistrationConfirmModal';
+import { CourseDetailsModal } from './CourseDetailsModal';
 import { Send, Sparkles, Loader2, Menu, Trash2 } from 'lucide-react';
 import { db } from '../services/db';
 import { TRANSLATIONS } from '../translations';
@@ -27,17 +27,36 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
     actionButton?: { text: string; onClick: () => void };
   }>({ isOpen: false, message: '', type: 'info' });
   const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [confirmModal, setConfirmModal] = useState<{
-    isOpen: boolean;
-    course: Course | null;
-  }>({ isOpen: false, course: null });
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [courseQueues, setCourseQueues] = useState<Map<string, number>>(new Map());
+  const [registrations, setRegistrations] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
   const t = TRANSLATIONS[language] as any;
   
   // Load courses for clickable course names and get refresh function
-  const { courses, refreshRegistrations } = useCourses();
+  const { courses, refreshRegistrations, registrations: contextRegistrations } = useCourses();
+
+  // Load course queues and registrations
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const queues = await db.getCourseQueues();
+        const queueMap = new Map<string, number>();
+        queues.forEach(q => {
+          queueMap.set(q.courseId, q.queueLength);
+        });
+        setCourseQueues(queueMap);
+        
+        const regs = await db.getRegistrations();
+        setRegistrations(regs.map(r => r.courseId));
+      } catch (error) {
+        console.error('Error loading course data:', error);
+      }
+    };
+    loadData();
+  }, [contextRegistrations]);
   
   // Get UI context for navigation
   const { setActiveTab } = useUI();
@@ -226,11 +245,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
         return;
       }
       
-      // Show confirmation modal
-      setConfirmModal({
-        isOpen: true,
-        course: course
-      });
+      // Show course details modal with registration option
+      setSelectedCourse(course);
     } catch (error: any) {
       console.error('Course click error:', error);
       setAlertModal({
@@ -241,28 +257,31 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
     }
   }, [t, isDemoUser, courses]);
 
-  // Handle confirmed registration
-  const handleConfirmRegistration = useCallback(async () => {
-    if (!confirmModal.course) return;
+  // Handle course registration
+  const handleRegisterCourse = useCallback(async (courseId: string) => {
+    const course = selectedCourse;
+    if (!course || course.id !== courseId) return;
     
     setIsRegistering(true);
     
     try {
-      await db.addRegistration(confirmModal.course.id);
+      await db.addRegistration(courseId);
       
-      setConfirmModal({ isOpen: false, course: null });
+      // Refresh registrations
+      const regs = await db.getRegistrations();
+      setRegistrations(regs.map(r => r.courseId));
+      await refreshRegistrations();
+      
+      setSelectedCourse(null);
       setAlertModal({
         isOpen: true,
-        message: `${t.courseRegistrationSuccess}: "${confirmModal.course.title}"`,
+        message: `${t.courseRegistrationSuccess}: "${course.title}"`,
         type: 'success'
       });
     } catch (error: any) {
       console.error('Course registration error:', error);
       
       const errorMessage = error?.message || t.courseRegistrationError;
-      
-      // Close confirmation modal first
-      setConfirmModal({ isOpen: false, course: null });
       
       if (errorMessage === 'DEMO_USER_CANNOT_REGISTER') {
         setAlertModal({
@@ -302,7 +321,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
     } finally {
       setIsRegistering(false);
     }
-  }, [confirmModal.course, t, setActiveTab]);
+  }, [selectedCourse, t, setActiveTab, refreshRegistrations]);
 
   // Handle chat clear
   const handleClearChat = useCallback(async () => {
@@ -574,13 +593,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
         actionButton={alertModal.actionButton}
       />
 
-      {/* Course Registration Confirmation Modal */}
-      <CourseRegistrationConfirmModal
-        isOpen={confirmModal.isOpen}
-        course={confirmModal.course}
-        onClose={() => setConfirmModal({ isOpen: false, course: null })}
-        onConfirm={handleConfirmRegistration}
+      {/* Course Details Modal with Registration */}
+      <CourseDetailsModal
+        course={selectedCourse}
+        isOpen={!!selectedCourse}
+        onClose={() => setSelectedCourse(null)}
         language={language}
+        queueLength={selectedCourse ? (courseQueues.get(selectedCourse.id) || 0) : 0}
+        isRegistered={selectedCourse ? registrations.includes(selectedCourse.id) : false}
+        onRegister={handleRegisterCourse}
         isLoading={isRegistering}
       />
     </div>

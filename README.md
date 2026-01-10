@@ -191,7 +191,7 @@ CCPLearn is a full-stack web application designed for Cork City Partnership to h
 │   ├── CourseCard.tsx         # Course display card component
 │   ├── CourseDetailsModal.tsx # Course information modal
 │   ├── CourseEditModal.tsx    # Admin: course editor with translations
-│   ├── CourseRegistrationConfirmModal.tsx # Course registration confirmation
+│   ├── CourseDetailsModal.tsx # Course details and registration modal
 │   ├── Dashboard.tsx          # User dashboard with priority management
 │   ├── EmailConfirmationModal.tsx # Email confirmation dialog
 │   ├── FirstLoginProfileModal.tsx # First-time user profile setup
