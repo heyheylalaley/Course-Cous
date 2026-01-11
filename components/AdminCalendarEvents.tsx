@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { CalendarEvent, Language } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { db } from '../services/db';
@@ -6,6 +6,7 @@ import { Calendar, Plus, Edit2, Trash2, Loader2, Eye, EyeOff, ArrowUpDown, Exter
 import { CalendarEventModal } from './CalendarEventModal';
 import { ConfirmationModal } from './ConfirmationModal';
 import { AVAILABLE_ICONS } from './AdminCategoryManagement';
+import { useCalendarRealtimeUpdates } from '../hooks/useRealtimeSubscription';
 
 interface AdminCalendarEventsProps {
   language: Language;
@@ -25,22 +26,29 @@ export const AdminCalendarEvents: React.FC<AdminCalendarEventsProps> = ({ langua
   const t = TRANSLATIONS[language] as any;
   const isRtl = language === 'ar';
 
-  useEffect(() => {
-    loadEvents();
-  }, []);
-
-  const loadEvents = async () => {
-    setIsLoading(true);
-    setError(null);
+  // Callback to load events
+  const loadEvents = useCallback(async () => {
     try {
       const data = await db.getCalendarEvents(true); // Admin sees all events
       setEvents(data);
     } catch (err: any) {
       setError(err.message || 'Failed to load events');
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    const init = async () => {
+      setIsLoading(true);
+      setError(null);
+      await loadEvents();
+      setIsLoading(false);
+    };
+    init();
+  }, [loadEvents]);
+
+  // Setup realtime subscription for calendar events
+  useCalendarRealtimeUpdates(loadEvents, true);
 
   const handleCreate = () => {
     setEditingEvent(null);

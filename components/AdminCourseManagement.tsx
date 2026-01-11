@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Course, Language, EnglishLevel } from '../types';
 import { db } from '../services/db';
 import { TRANSLATIONS } from '../translations';
 import { CourseEditModal } from './CourseEditModal';
 import { AdminCourseSessionsModal } from './AdminCourseSessionsModal';
 import { BookOpen, Plus, Edit2, Trash2, Eye, EyeOff, Shield, Calendar } from 'lucide-react';
+import { useRealtimeSubscription } from '../hooks/useRealtimeSubscription';
 
 interface AdminCourseManagementProps {
   language: Language;
@@ -140,23 +141,41 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
   const t = TRANSLATIONS[language];
   const isRtl = language === 'ar';
 
-  useEffect(() => {
-    loadCourses();
-  }, [showInactive]);
-
-  const loadCourses = async () => {
-    setIsLoading(true);
-    setError(null);
+  // Callback to load courses - memoized to avoid recreating on every render
+  const loadCourses = useCallback(async () => {
     try {
       const allCourses = await db.getAllCourses(showInactive);
       setCourses(allCourses);
     } catch (err: any) {
-      console.error('Failed to load courses:', err);
+      if (import.meta.env.DEV) {
+        console.error('Failed to load courses:', err);
+      }
       setError(err.message || 'Failed to load courses');
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [showInactive]);
+
+  // Initial load
+  useEffect(() => {
+    const init = async () => {
+      setIsLoading(true);
+      setError(null);
+      await loadCourses();
+      setIsLoading(false);
+    };
+    init();
+  }, [loadCourses]);
+
+  // Setup realtime subscription for courses
+  useRealtimeSubscription({
+    channelName: 'admin-course-management',
+    subscriptions: [
+      { table: 'courses', event: '*' },
+      { table: 'course_sessions', event: '*' }
+    ],
+    onDataChange: loadCourses,
+    enabled: true,
+    debounceMs: 200
+  });
 
   const handleCreateCourse = () => {
     console.log('[AdminCourseManagement] handleCreateCourse called');

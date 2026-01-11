@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Language, EnglishLevel, Course } from '../types';
 import { db } from '../services/db';
 import { useCourses } from '../hooks/useCourses';
 import { TRANSLATIONS } from '../translations';
 import { ConfirmationModal } from './ConfirmationModal';
 import { AdminUserProfileModal } from './AdminUserProfileModal';
+import { useAdminRealtimeUpdates } from '../hooks/useRealtimeSubscription';
 import { 
   Users, FileSpreadsheet, FileText, Mail, Phone, Calendar, GraduationCap, 
   ArrowUp, ArrowDown, Filter, Search, CheckCircle, X, BookOpen, Award, ChevronDown, ChevronUp, Trash2, Edit
@@ -68,23 +69,32 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
   // Edit profile modal
   const [editingUser, setEditingUser] = useState<UserWithDetails | null>(null);
 
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  const loadUsers = async () => {
-    setIsLoading(true);
-    setError(null);
+  // Callback to load users
+  const loadUsers = useCallback(async () => {
     try {
       const usersData = await db.getAllUsersWithDetails();
       setUsers(usersData);
     } catch (err: any) {
-      console.error('Failed to load users:', err);
+      if (import.meta.env.DEV) {
+        console.error('Failed to load users:', err);
+      }
       setError(err.message || 'Failed to load users');
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    const init = async () => {
+      setIsLoading(true);
+      setError(null);
+      await loadUsers();
+      setIsLoading(false);
+    };
+    init();
+  }, [loadUsers]);
+
+  // Setup realtime subscription for admin updates
+  useAdminRealtimeUpdates(loadUsers, true);
 
   // Get course title by ID
   const getCourseTitle = (courseId: string): string => {

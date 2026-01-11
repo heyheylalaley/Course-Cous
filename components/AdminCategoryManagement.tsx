@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { CourseCategory, Language } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { db } from '../services/db';
+import { useCategoriesRealtimeUpdates } from '../hooks/useRealtimeSubscription';
 import { 
   X, Save, Plus, Trash2, Edit2, FolderOpen, Loader2,
   // All available icons for selection - verified to exist in lucide-react
@@ -112,22 +113,29 @@ export const AdminCategoryManagement: React.FC<AdminCategoryManagementProps> = (
   const t = TRANSLATIONS[language];
   const isRtl = language === 'ar';
 
-  useEffect(() => {
-    loadCategories();
-  }, []);
-
-  const loadCategories = async () => {
-    setIsLoading(true);
-    setError(null);
+  // Callback to load categories
+  const loadCategories = useCallback(async () => {
     try {
       const data = await db.getCategories();
       setCategories(data);
     } catch (err: any) {
       setError(err.message || 'Failed to load categories');
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    const init = async () => {
+      setIsLoading(true);
+      setError(null);
+      await loadCategories();
+      setIsLoading(false);
+    };
+    init();
+  }, [loadCategories]);
+
+  // Setup realtime subscription for categories
+  useCategoriesRealtimeUpdates(loadCategories, true);
 
   const openCreateModal = () => {
     setEditingCategory(null);

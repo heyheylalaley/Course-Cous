@@ -153,6 +153,7 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
           { event: '*', schema: 'public', table: 'courses' },
           () => {
             loadCourses();
+            loadQueues(); // Course changes might affect queue display
           }
         )
         .on('postgres_changes',
@@ -183,6 +184,14 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
           () => {
             // Reload queues when session capacity changes (affects queue length)
             loadQueues();
+            loadCourses(); // Sessions affect course display too
+          }
+        )
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'course_categories' },
+          () => {
+            // Reload categories when they change
+            loadCategories();
           }
         )
         .subscribe();

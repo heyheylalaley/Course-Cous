@@ -61,6 +61,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [loadUserProfile]);
 
   useEffect(() => {
+    let profileChannel: any = null;
+
     const initAuth = async () => {
       setIsLoading(true);
       
@@ -103,6 +105,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               // Normal login flow
               setIsAuthenticated(true);
               await loadUserProfile();
+              
+              // Setup realtime subscription for profile updates
+              setupProfileSubscription(session.user.id);
             }
           }
         }
@@ -113,6 +118,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           if (session?.user) {
             setIsAuthenticated(true);
             await loadUserProfile();
+            
+            // Setup realtime subscription for profile updates
+            setupProfileSubscription(session.user.id);
           }
         }
 
@@ -137,12 +145,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               }
               setIsAuthenticated(true);
               loadUserProfile();
+              
+              // Setup realtime subscription for profile updates
+              setupProfileSubscription(session.user.id);
             }
           } else if (event === 'SIGNED_OUT') {
             setIsAuthenticated(false);
             setIsPasswordRecovery(false);
             setIsDemoUser(false);
             setUserProfile(defaultProfile);
+            
+            // Clean up profile subscription
+            if (profileChannel && supabase) {
+              supabase.removeChannel(profileChannel);
+              profileChannel = null;
+            }
           } else if (event === 'TOKEN_REFRESHED' && session) {
             setIsAuthenticated(true);
           } else if (event === 'USER_UPDATED' && session) {
@@ -155,7 +172,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
 
         setIsLoading(false);
-        return () => subscription.unsubscribe();
+        return () => {
+          subscription.unsubscribe();
+          if (profileChannel && supabase) {
+            supabase.removeChannel(profileChannel);
+          }
+        };
       } else {
         // Mock mode
         const session = db.getCurrentSession();
@@ -165,6 +187,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
         setIsLoading(false);
       }
+    };
+
+    // Setup realtime subscription for profile changes
+    const setupProfileSubscription = (userId: string) => {
+      if (!supabase || profileChannel) return;
+      
+      profileChannel = supabase
+        .channel(`profile-changes-${userId}`)
+        .on('postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'profiles',
+            filter: `id=eq.${userId}`
+          },
+          () => {
+            // Reload profile when it changes (e.g., admin updated it)
+            loadUserProfile();
+          }
+        )
+        .subscribe();
     };
 
     initAuth();

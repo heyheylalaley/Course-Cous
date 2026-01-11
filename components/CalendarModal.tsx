@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { X, ChevronLeft, ChevronRight, Calendar, BookOpen, ExternalLink } from 'lucide-react';
 import { Language, Course, CalendarEvent } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { db } from '../services/db';
 import { AVAILABLE_ICONS } from './AdminCategoryManagement';
+import { useCalendarRealtimeUpdates } from '../hooks/useRealtimeSubscription';
 
 interface CalendarModalProps {
   isOpen: boolean;
@@ -42,25 +43,20 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
   const t = TRANSLATIONS[language] as any;
   const isRtl = language === 'ar';
 
-  // Load calendar events and course sessions
-  useEffect(() => {
-    if (isOpen) {
-      loadEvents();
-      loadCourseSessions();
-    }
-  }, [isOpen, isAdmin, courses]);
-
-  const loadEvents = async () => {
+  // Load events callback
+  const loadEvents = useCallback(async () => {
     try {
       const events = await db.getCalendarEvents(isAdmin);
       setCalendarEvents(events);
     } catch (error) {
-      console.error('Failed to load calendar events:', error);
+      if (import.meta.env.DEV) {
+        console.error('Failed to load calendar events:', error);
+      }
     }
-  };
+  }, [isAdmin]);
 
-  const loadCourseSessions = async () => {
-    setIsLoading(true);
+  // Load course sessions callback
+  const loadCourseSessions = useCallback(async () => {
     try {
       const sessionsMap = new Map<string, string[]>();
       
@@ -74,18 +70,39 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
               sessionsMap.set(course.id, sessionDates);
             }
           } catch (error) {
-            console.error(`Failed to load sessions for course ${course.id}:`, error);
+            if (import.meta.env.DEV) {
+              console.error(`Failed to load sessions for course ${course.id}:`, error);
+            }
           }
         })
       );
       
       setCourseSessionsMap(sessionsMap);
     } catch (error) {
-      console.error('Failed to load course sessions:', error);
-    } finally {
-      setIsLoading(false);
+      if (import.meta.env.DEV) {
+        console.error('Failed to load course sessions:', error);
+      }
     }
-  };
+  }, [courses]);
+
+  // Combined reload function for realtime updates
+  const handleRealtimeUpdate = useCallback(() => {
+    loadEvents();
+    loadCourseSessions();
+  }, [loadEvents, loadCourseSessions]);
+
+  // Load calendar events and course sessions
+  useEffect(() => {
+    if (isOpen) {
+      setIsLoading(true);
+      Promise.all([loadEvents(), loadCourseSessions()]).finally(() => {
+        setIsLoading(false);
+      });
+    }
+  }, [isOpen, loadEvents, loadCourseSessions]);
+
+  // Setup realtime subscription for calendar updates (only when modal is open)
+  useCalendarRealtimeUpdates(handleRealtimeUpdate, isOpen);
 
   // Get calendar grid data
   const calendarData = useMemo(() => {

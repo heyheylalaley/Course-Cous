@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, memo } from 'react';
+import React, { useEffect, useState, useRef, memo, useCallback } from 'react';
 import { UserProfile, EnglishLevel, Language, Registration, Course } from '../types';
 import { useCourses } from '../hooks/useCourses';
 import { useCourses as useCoursesContext } from '../contexts/CoursesContext';
@@ -11,6 +11,7 @@ import { ProfileInfoModal } from './ProfileInfoModal';
 import { ConfirmationModal } from './ConfirmationModal';
 import { useUI } from '../contexts/UIContext';
 import { formatPriorityLabel } from '../utils/courseUtils';
+import { useUserRealtimeUpdates } from '../hooks/useRealtimeSubscription';
 
 // Helper functions for data masking
 const maskEmail = (email: string): string => {
@@ -79,6 +80,49 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
   const { setSidebarOpen } = useUI();
   const t = TRANSLATIONS[language] as any;
 
+  // Callback to load all dashboard data
+  const loadDashboardData = useCallback(async () => {
+    try {
+      // Always reload registrations to get latest priorities
+      const regs = await db.getRegistrations();
+      setCourseRegistrations(regs);
+      
+      // Load course queues
+      const queues = await db.getCourseQueues();
+      const queueMap = new Map<string, number>();
+      queues.forEach(q => {
+        queueMap.set(q.courseId, q.queueLength);
+      });
+      setCourseQueues(queueMap);
+
+      // Check if profile is complete
+      const complete = await db.isProfileComplete();
+      setIsProfileComplete(complete);
+
+      // Load completed courses
+      try {
+        const completed = await db.getUserCompletedCourses();
+        setCompletedCourses(completed);
+      } catch (err) {
+        // Silently fail - completions might not be available
+        if (import.meta.env.DEV) {
+          console.error("Failed to load completed courses", err);
+        }
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error("Failed to load data", error);
+      }
+    }
+  }, []);
+
+  // Setup realtime subscription for user-specific updates
+  useUserRealtimeUpdates(
+    userProfile.id || null,
+    loadDashboardData,
+    !!userProfile.id
+  );
+
   // Load registrations with priorities and course queues
   // Use refs to track previous values and avoid unnecessary reloads
   const prevRegistrationsRef = useRef<string[]>([]);
@@ -103,47 +147,9 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
     prevRegistrationsRef.current = [...registrations];
     prevUserProfileIdRef.current = userProfile.id;
     
-    const loadData = async () => {
-      try {
-        // Always reload registrations to get latest priorities
-        const regs = await db.getRegistrations();
-        setCourseRegistrations(regs);
-        
-        // Load course queues
-        const queues = await db.getCourseQueues();
-        const queueMap = new Map<string, number>();
-        queues.forEach(q => {
-          queueMap.set(q.courseId, q.queueLength);
-        });
-        setCourseQueues(queueMap);
-
-        // Check if profile is complete
-        const complete = await db.isProfileComplete();
-        setIsProfileComplete(complete);
-
-        // Load completed courses
-        try {
-          const completed = await db.getUserCompletedCourses();
-          setCompletedCourses(completed);
-        } catch (err) {
-          // Silently fail - completions might not be available
-          console.error("Failed to load completed courses", err);
-        }
-      } catch (error) {
-        console.error("Failed to load data", error);
-      }
-    };
-    
-    // Load immediately, then reload after a short delay to catch rapid registrations
-    loadData();
-    const timeoutId = setTimeout(() => {
-      loadData();
-    }, 300);
-    
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [registrations, userProfile.id]);
+    // Load data
+    loadDashboardData();
+  }, [registrations, userProfile.id, loadDashboardData]);
 
   // Sync local state if parent updates
   useEffect(() => {

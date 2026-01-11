@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo } from 'react';
+import React, { useState, useEffect, memo, useCallback } from 'react';
 import { AdminCourseStats, Language } from '../types';
 import { db } from '../services/db';
 import { TRANSLATIONS } from '../translations';
@@ -13,6 +13,7 @@ import { AdminCategoryManagement } from './AdminCategoryManagement';
 import { AdminCalendarEvents } from './AdminCalendarEvents';
 import { Shield, Users, BookOpen, ArrowLeft, Settings, BarChart3, Bot, Menu, Database, Cog, FolderOpen, Calendar } from 'lucide-react';
 import { useUI } from '../contexts/UIContext';
+import { useAdminRealtimeUpdates } from '../hooks/useRealtimeSubscription';
 
 interface AdminDashboardProps {
   language: Language;
@@ -57,23 +58,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = memo(({ language, o
     }
   }, [selectedCourseId]);
 
-  useEffect(() => {
-    loadCourseStats();
-  }, []);
-
-  const loadCourseStats = async () => {
-    setIsLoading(true);
-    setError(null);
+  // Callback to load course stats
+  const loadCourseStats = useCallback(async () => {
     try {
       const stats = await db.getAdminCourseStats();
       setCourseStats(stats);
     } catch (err: any) {
-      console.error('Failed to load course stats:', err);
+      if (import.meta.env.DEV) {
+        console.error('Failed to load course stats:', err);
+      }
       setError(err.message || 'Failed to load course statistics');
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    const init = async () => {
+      setIsLoading(true);
+      setError(null);
+      await loadCourseStats();
+      setIsLoading(false);
+    };
+    init();
+  }, [loadCourseStats]);
+
+  // Setup realtime subscription for admin updates
+  // Only refresh when on overview tab to avoid unnecessary API calls
+  useAdminRealtimeUpdates(
+    loadCourseStats,
+    activeView === 'overview' && !selectedCourseId
+  );
 
   const handleCourseSelect = (courseId: string) => {
     setSelectedCourseId(courseId);
