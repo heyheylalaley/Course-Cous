@@ -177,7 +177,7 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
 
   return (
     <div className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-center justify-center p-0 sm:p-4" dir={isRtl ? 'rtl' : 'ltr'}>
-      <div className="bg-white dark:bg-gray-800 rounded-none sm:rounded-2xl shadow-2xl max-w-2xl w-full h-full sm:h-auto sm:max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white dark:bg-gray-800 rounded-none sm:rounded-2xl shadow-2xl max-w-2xl lg:max-w-5xl w-full h-full sm:h-auto sm:max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3">
@@ -203,44 +203,44 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 dark:border-indigo-400"></div>
             </div>
           ) : (
-            <>
-              {/* Month Navigation */}
-              <div className="flex items-center justify-between mb-3 sm:mb-4 md:mb-2">
-                <button
-                  onClick={handlePrevMonth}
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors touch-manipulation min-w-[44px] min-h-[44px] md:min-w-[36px] md:min-h-[36px] md:p-1.5 flex items-center justify-center"
-                  title={t.calendarPrevMonth}
-                >
-                  <ChevronLeft className="w-5 h-5 md:w-4 md:h-4" />
-                </button>
-                <div className="flex items-center gap-2 sm:gap-3 flex-1 justify-center">
-                  <h3 className="text-base sm:text-lg md:text-base font-semibold text-gray-900 dark:text-white text-center">
-                    {MONTHS[language][calendarData.month]} {calendarData.year}
-                  </h3>
+            <div className="flex flex-col lg:grid lg:grid-cols-2 lg:gap-6">
+              {/* Left Column - Calendar */}
+              <div className="flex-shrink-0">
+                {/* Month Navigation */}
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
                   <button
-                    onClick={handleGoToToday}
-                    className="text-xs px-2 py-1.5 sm:py-1 rounded bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors touch-manipulation"
+                    onClick={handlePrevMonth}
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    title={t.calendarPrevMonth}
                   >
-                    {t.calendarToday || 'Today'}
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <div className="flex items-center gap-2 sm:gap-3 flex-1 justify-center">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white text-center">
+                      {MONTHS[language][calendarData.month]} {calendarData.year}
+                    </h3>
+                    <button
+                      onClick={handleGoToToday}
+                      className="text-xs px-2 py-1.5 sm:py-1 rounded bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors touch-manipulation"
+                    >
+                      {t.calendarToday || 'Today'}
+                    </button>
+                  </div>
+                  <button
+                    onClick={handleNextMonth}
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    title={t.calendarNextMonth}
+                  >
+                    <ChevronRight className="w-5 h-5" />
                   </button>
                 </div>
-                <button
-                  onClick={handleNextMonth}
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors touch-manipulation min-w-[44px] min-h-[44px] md:min-w-[36px] md:min-h-[36px] md:p-1.5 flex items-center justify-center"
-                  title={t.calendarNextMonth}
-                >
-                  <ChevronRight className="w-5 h-5 md:w-4 md:h-4" />
-                </button>
-              </div>
 
-              {/* Calendar Container - ограничение размера на больших экранах */}
-              <div className="max-w-md md:max-w-sm lg:max-w-xs mx-auto">
                 {/* Weekday Headers */}
-                <div className="grid grid-cols-7 gap-1 sm:gap-1 md:gap-0.5 mb-2">
+                <div className="grid grid-cols-7 gap-1 sm:gap-1.5 mb-2">
                   {WEEKDAYS[language].map((day, index) => (
                     <div
                       key={index}
-                      className="text-center text-xs sm:text-sm md:text-xs font-medium text-gray-500 dark:text-gray-400 py-1.5 sm:py-2 md:py-1"
+                      className="text-center text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 py-1.5 sm:py-2"
                     >
                       {day}
                     </div>
@@ -248,7 +248,7 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
                 </div>
 
                 {/* Calendar Grid */}
-                <div className="grid grid-cols-7 gap-1 sm:gap-1 md:gap-0.5 mb-3 sm:mb-4 md:mb-3">
+                <div className="grid grid-cols-7 gap-1 sm:gap-1.5 mb-3 sm:mb-4">
                   {calendarData.days.map((day, index) => {
                     if (day === null) {
                       return <div key={`empty-${index}`} className="aspect-square" />;
@@ -263,7 +263,7 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
                       <button
                         key={day}
                         onClick={() => handleDayClick(day)}
-                        className={`aspect-square rounded-lg flex flex-col items-center justify-center relative transition-colors touch-manipulation min-h-[44px] md:min-h-0 ${
+                        className={`aspect-square rounded-lg flex flex-col items-center justify-center relative transition-colors touch-manipulation min-h-[44px] ${
                           isSelected
                             ? 'bg-indigo-600 dark:bg-indigo-500 text-white'
                             : isTodayDate
@@ -271,17 +271,17 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
                             : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                         }`}
                       >
-                        <span className="text-sm sm:text-base md:text-xs font-medium">{day}</span>
+                        <span className="text-sm sm:text-base font-medium">{day}</span>
                         {(dayHasCourses || dayHasEvents || dayHasPrivateEvents) && (
                           <div className="flex gap-0.5 mt-0.5">
                             {dayHasCourses && (
-                              <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 md:w-1.5 md:h-1.5 rounded-full ${isSelected ? 'bg-green-300' : 'bg-green-500'}`} />
+                              <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${isSelected ? 'bg-green-300' : 'bg-green-500'}`} />
                             )}
                             {dayHasEvents && (
-                              <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 md:w-1.5 md:h-1.5 rounded-full ${isSelected ? 'bg-purple-300' : 'bg-purple-500'}`} />
+                              <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${isSelected ? 'bg-purple-300' : 'bg-purple-500'}`} />
                             )}
                             {dayHasPrivateEvents && (
-                              <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 md:w-1.5 md:h-1.5 rounded-full ${isSelected ? 'bg-gray-300' : 'bg-gray-500'}`} />
+                              <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${isSelected ? 'bg-gray-300' : 'bg-gray-500'}`} />
                             )}
                           </div>
                         )}
@@ -289,30 +289,30 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
                     );
                   })}
                 </div>
-              </div>
 
-              {/* Legend */}
-              <div className="flex items-center gap-2 sm:gap-4 md:gap-2 text-xs text-gray-500 dark:text-gray-400 mb-3 sm:mb-4 md:mb-2 flex-wrap">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
-                  <span>{t.calendarCourses || 'Courses'}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0" />
-                  <span>{t.calendarEvents || 'Events'}</span>
-                </div>
-                {isAdmin && (
+                {/* Legend */}
+                <div className="flex items-center gap-2 sm:gap-4 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
                   <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-gray-500 flex-shrink-0" />
-                    <span>{t.calendarPrivateEvents || 'Private Events'}</span>
+                    <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+                    <span>{t.calendarCourses || 'Courses'}</span>
                   </div>
-                )}
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0" />
+                    <span>{t.calendarEvents || 'Events'}</span>
+                  </div>
+                  {isAdmin && (
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-gray-500 flex-shrink-0" />
+                      <span>{t.calendarPrivateEvents || 'Private Events'}</span>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Selected Day Events */}
+              {/* Right Column - Events (only on large screens, or below calendar on mobile) */}
               {selectedDate && selectedDayEvents && (
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-3 sm:pt-4">
-                  <h4 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white mb-2 sm:mb-3">
+                <div className="lg:border-l lg:border-gray-200 lg:dark:border-gray-700 lg:pl-6 mt-4 lg:mt-0 border-t border-gray-200 dark:border-gray-700 pt-4 lg:pt-0">
+                  <h4 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white mb-3">
                     {new Date(selectedDate).toLocaleDateString(
                       language === 'ar' ? 'ar-EG' : language === 'ua' ? 'uk-UA' : language === 'ru' ? 'ru-RU' : 'en-IE',
                       { weekday: 'long', day: 'numeric', month: 'long' }
@@ -324,7 +324,7 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
                       {t.calendarNoEvents || 'No events on this day'}
                     </p>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-2 lg:max-h-[calc(90vh-280px)] lg:overflow-y-auto">
                       {/* Courses */}
                       {selectedDayEvents.courses.map(course => (
                         <div
@@ -332,7 +332,7 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
                           className="flex items-start gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800"
                         >
                           <BookOpen className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
-                          <div>
+                          <div className="flex-1 min-w-0">
                             <p className="font-medium text-gray-900 dark:text-white">{course.title}</p>
                             <p className="text-xs text-gray-500 dark:text-gray-400">{course.category}</p>
                           </div>
@@ -397,7 +397,16 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
                   )}
                 </div>
               )}
-            </>
+
+              {/* Empty state when no date selected - show message on large screens */}
+              {!selectedDate && (
+                <div className="hidden lg:flex items-center justify-center border-l border-gray-200 dark:border-gray-700 pl-6">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                    {t.calendarSelectDate || 'Select a date to view events'}
+                  </p>
+                </div>
+              )}
+            </div>
           )}
         </div>
 
