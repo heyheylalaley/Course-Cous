@@ -5,6 +5,7 @@ import { useCourses } from '../hooks/useCourses';
 import { TRANSLATIONS } from '../translations';
 import { ConfirmationModal } from './ConfirmationModal';
 import { AdminAddParticipantModal } from './AdminAddParticipantModal';
+import { supabase } from '../services/db';
 import { 
   Users, FileSpreadsheet, FileText, Mail, Phone, Calendar, GraduationCap, 
   ArrowUp, ArrowDown, Filter, Search, CheckCircle, Circle, X, ArrowLeft,
@@ -70,6 +71,37 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
   useEffect(() => {
     loadStudentDetails();
     loadCourseSessions();
+  }, [courseId]);
+
+  // Setup realtime subscription for automatic updates
+  useEffect(() => {
+    let channel: any = null;
+
+    if (supabase) {
+      channel = supabase
+        .channel(`admin-student-list-${courseId}`)
+        .on('postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'registrations',
+            filter: `course_id=eq.${courseId}`
+          },
+          () => {
+            // Reload student details when registrations change (invites, session selections, etc.)
+            loadStudentDetails();
+            loadCourseSessions(); // Also reload sessions to update enrollment counts
+          }
+        )
+        .subscribe();
+    }
+
+    return () => {
+      if (channel && supabase) {
+        supabase.removeChannel(channel);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId]);
 
   // Prevent body scroll when email modal is open

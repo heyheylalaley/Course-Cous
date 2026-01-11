@@ -454,7 +454,7 @@ $$;
 
 GRANT EXECUTE ON FUNCTION update_registration_priorities(UUID, JSONB) TO authenticated;
 
--- Function to get course student details with JOIN
+-- Function to get course student details with JOIN (includes enrollment fields)
 DROP FUNCTION IF EXISTS get_course_student_details(TEXT);
 
 CREATE OR REPLACE FUNCTION get_course_student_details(p_course_id TEXT)
@@ -471,7 +471,13 @@ RETURNS TABLE (
   registered_at TIMESTAMPTZ,
   priority INTEGER,
   ldc_ref TEXT,
-  iris_id TEXT
+  iris_id TEXT,
+  is_invited BOOLEAN,
+  invited_at TIMESTAMPTZ,
+  assigned_session_id UUID,
+  assigned_session_date DATE,
+  user_selected_session_id UUID,
+  user_selected_session_date DATE
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -492,9 +498,17 @@ BEGIN
     r.registered_at,
     r.priority,
     p.ldc_ref,
-    p.iris_id
+    p.iris_id,
+    COALESCE(r.is_invited, FALSE) as is_invited,
+    r.invited_at,
+    r.assigned_session_id,
+    cs_assigned.session_date as assigned_session_date,
+    r.user_selected_session_id,
+    cs_selected.session_date as user_selected_session_date
   FROM registrations r
   INNER JOIN profiles p ON r.user_id = p.id
+  LEFT JOIN course_sessions cs_assigned ON r.assigned_session_id = cs_assigned.id
+  LEFT JOIN course_sessions cs_selected ON r.user_selected_session_id = cs_selected.id
   WHERE r.course_id = p_course_id
   ORDER BY r.priority ASC NULLS LAST, r.registered_at ASC;
 END;
