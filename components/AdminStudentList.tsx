@@ -4,10 +4,11 @@ import { db } from '../services/db';
 import { useCourses } from '../hooks/useCourses';
 import { TRANSLATIONS } from '../translations';
 import { ConfirmationModal } from './ConfirmationModal';
+import { AdminAddParticipantModal } from './AdminAddParticipantModal';
 import { 
   Users, FileSpreadsheet, FileText, Mail, Phone, Calendar, GraduationCap, 
   ArrowUp, ArrowDown, Filter, Search, CheckCircle, Circle, X, ArrowLeft,
-  Send, CalendarCheck, Loader2, Copy, Check
+  Send, CalendarCheck, Loader2, Copy, Check, UserPlus
 } from 'lucide-react';
 
 interface AdminStudentListProps {
@@ -44,6 +45,9 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailCopied, setEmailCopied] = useState(false);
   const [emailsCopied, setEmailsCopied] = useState(false);
+  
+  // Add participant modal
+  const [showAddParticipantModal, setShowAddParticipantModal] = useState(false);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -661,6 +665,13 @@ We look forward to having you join us for this course. If you have any questions
           </div>
           <div className="flex flex-wrap gap-2">
             <button
+              onClick={() => setShowAddParticipantModal(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-600 dark:bg-green-700 text-white hover:bg-green-700 dark:hover:bg-green-600 transition-colors"
+            >
+              <UserPlus size={18} />
+              {t.adminAddParticipant || 'Add Participant'}
+            </button>
+            <button
               onClick={() => setShowFilters(!showFilters)}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
                 hasActiveFilters 
@@ -1151,6 +1162,17 @@ We look forward to having you join us for this course. If you have any questions
         language={language}
         type="warning"
         isLoading={completingUserId === studentToConfirm?.userId}
+      />
+
+      {/* Add Participant Modal */}
+      <AdminAddParticipantModal
+        isOpen={showAddParticipantModal}
+        onClose={() => setShowAddParticipantModal(false)}
+        onSave={async () => {
+          await loadStudentDetails();
+        }}
+        language={language}
+        courseId={courseId}
       />
     </div>
   );

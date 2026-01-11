@@ -2720,6 +2720,164 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
     return null;
   },
 
+  // --- User Search Methods (Admin only) ---
+  searchUsers: async (query: string): Promise<Array<{
+    userId: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    mobileNumber?: string;
+    englishLevel: EnglishLevel;
+  }>> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    // Check if user is admin
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    if (!supabase) {
+      return [];
+    }
+
+    const searchTerm = `%${query.trim()}%`;
+    
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, email, first_name, last_name, mobile_number, english_level')
+      .or(`email.ilike.${searchTerm},first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},mobile_number.ilike.${searchTerm}`)
+      .limit(50);
+
+    if (error) throw new Error(error.message);
+
+    return (data || []).map((row: any) => ({
+      userId: row.id,
+      email: row.email,
+      firstName: row.first_name || undefined,
+      lastName: row.last_name || undefined,
+      mobileNumber: row.mobile_number || undefined,
+      englishLevel: (row.english_level as EnglishLevel) || 'None'
+    }));
+  },
+
+  // Create user by admin (with temporary password)
+  createUserByAdmin: async (email: string, password: string, profileData?: {
+    firstName?: string;
+    lastName?: string;
+    mobileNumber?: string;
+    englishLevel?: EnglishLevel;
+  }): Promise<{ userId: string; email: string }> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    // Check if user is admin
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    if (!supabase) {
+      throw new Error("Supabase not configured");
+    }
+
+    // Create user with email and password
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      email: email.trim(),
+      password: password,
+      options: {
+        emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`
+      }
+    });
+
+    if (signUpError) {
+      throw new Error(signUpError.message || 'Failed to create user');
+    }
+
+    if (!signUpData.user) {
+      throw new Error('User creation failed - no user data returned');
+    }
+
+    const userId = signUpData.user.id;
+
+    // Update profile with additional data if provided
+    if (profileData && (profileData.firstName || profileData.lastName || profileData.mobileNumber || profileData.englishLevel)) {
+      const updateData: any = {};
+      if (profileData.firstName !== undefined) updateData.first_name = profileData.firstName.trim() || null;
+      if (profileData.lastName !== undefined) updateData.last_name = profileData.lastName.trim() || null;
+      if (profileData.mobileNumber !== undefined) updateData.mobile_number = profileData.mobileNumber.trim() || null;
+      if (profileData.englishLevel !== undefined) updateData.english_level = profileData.englishLevel;
+
+      // Wait a bit for profile to be created by trigger
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('id', userId);
+
+      if (updateError) {
+        console.error('Failed to update profile after user creation:', updateError);
+        // Don't throw error here - user is created, profile update can be done later
+      }
+    }
+
+    return { userId, email: signUpData.user.email! };
+  },
+
+  // Add registration for user by admin (bypasses profile completion check)
+  addRegistrationForUserByAdmin: async (userId: string, courseId: string): Promise<void> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    // Check if user is admin
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    if (!supabase) {
+      throw new Error("Supabase not configured");
+    }
+
+    // Check if course is already completed - prevent re-registration
+    const isCompleted = await db.isUserCourseCompleted(userId, courseId);
+    if (isCompleted) {
+      throw new Error('This course has already been completed by this user.');
+    }
+
+    // Check current registrations count
+    const { data: currentRegs, error: regsError } = await supabase
+      .from('registrations')
+      .select('course_id, priority')
+      .eq('user_id', userId)
+      .order('priority', { ascending: true });
+
+    if (regsError) throw new Error(regsError.message);
+
+    if ((currentRegs || []).length >= 3) {
+      throw new Error('User already has maximum 3 course registrations');
+    }
+
+    // Check if already registered
+    if ((currentRegs || []).find((r: any) => r.course_id === courseId)) {
+      throw new Error('User is already registered for this course');
+    }
+
+    const priority = (currentRegs || []).length + 1;
+    
+    const { error } = await supabase
+      .from('registrations')
+      .insert({
+        user_id: userId,
+        course_id: courseId,
+        priority: priority
+      });
+
+    if (error) throw new Error(error.message);
+  },
+
   // --- User Deletion Methods (Admin only) ---
   deleteUser: async (userId: string): Promise<void> => {
     const session = db.getCurrentSession();
