@@ -896,15 +896,32 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
       // Get registration counts per course
       const { data: registrations, error } = await supabase
         .from('registrations')
-        .select('course_id');
+        .select('course_id, user_id');
 
       if (error) throw new Error(error.message);
 
-      // Count registrations per course
+      // Get completed courses to exclude from count
+      const { data: completions, error: completionsError } = await supabase
+        .from('course_completions')
+        .select('user_id, course_id');
+
+      if (completionsError) throw new Error(completionsError.message);
+
+      // Create a Set of completed (user_id, course_id) pairs for quick lookup
+      const completedSet = new Set<string>();
+      (completions || []).forEach((c: any) => {
+        completedSet.add(`${c.user_id}:${c.course_id}`);
+      });
+
+      // Count registrations per course, excluding completed ones
       const courseCounts = new Map<string, number>();
       (registrations || []).forEach((reg: any) => {
         const courseId = reg.course_id;
-        courseCounts.set(courseId, (courseCounts.get(courseId) || 0) + 1);
+        const userId = reg.user_id;
+        // Only count if not completed
+        if (!completedSet.has(`${userId}:${courseId}`)) {
+          courseCounts.set(courseId, (courseCounts.get(courseId) || 0) + 1);
+        }
       });
 
       // Get courses from database directly (to avoid recursion)

@@ -49,7 +49,7 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [englishLevelFilter, setEnglishLevelFilter] = useState<string>('all');
-  const [completedFilter, setCompletedFilter] = useState<string>('all');
+  const [completedFilter, setCompletedFilter] = useState<string>('no'); // Default to 'no' to exclude completed students
   const [inviteFilter, setInviteFilter] = useState<string>('all');
   const [assignedDateFilter, setAssignedDateFilter] = useState<string>('all');
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
@@ -494,13 +494,18 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
     setSearchQuery('');
     setPriorityFilter('all');
     setEnglishLevelFilter('all');
-    setCompletedFilter('all');
+    setCompletedFilter('no'); // Reset to default (exclude completed)
     setInviteFilter('all');
     setAssignedDateFilter('all');
     setSelectedFilter('all');
   };
 
-  const hasActiveFilters = searchQuery || priorityFilter !== 'all' || englishLevelFilter !== 'all' || completedFilter !== 'all' || inviteFilter !== 'all' || assignedDateFilter !== 'all' || selectedFilter !== 'all';
+  const hasActiveFilters = searchQuery || priorityFilter !== 'all' || englishLevelFilter !== 'all' || completedFilter !== 'no' || inviteFilter !== 'all' || assignedDateFilter !== 'all' || selectedFilter !== 'all';
+
+  // Calculate active (non-completed) students count for display
+  const activeStudentsCount = useMemo(() => {
+    return students.filter(s => !s.isCompleted).length;
+  }, [students]);
 
   // Get invited students
   const invitedStudents = useMemo(() => {
@@ -641,9 +646,16 @@ We look forward to having you join us for this course. If you have any questions
                 {course?.title || 'Course'}
               </h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {filteredAndSortedStudents.length} {t.adminOf || 'of'} {students.length} {students.length === 1 
-                  ? (t.adminStudent || 'student') 
-                  : (t.adminStudents || 'students')}
+                {filteredAndSortedStudents.length} {t.adminOf || 'of'} {
+                  completedFilter === 'no' 
+                    ? activeStudentsCount 
+                    : students.length
+                } {(() => {
+                  const totalCount = completedFilter === 'no' ? activeStudentsCount : students.length;
+                  return totalCount === 1 
+                    ? (t.adminStudent || 'student') 
+                    : (t.adminStudents || 'students');
+                })()}
               </p>
             </div>
           </div>
