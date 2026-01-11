@@ -715,6 +715,45 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
     );
   }, [students]);
 
+  // Get future course session dates with confirmed users
+  const futureSessionDatesWithConfirmed = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Get all future session dates
+    const futureSessions = courseSessions.filter(session => {
+      if (session.status !== 'active') return false;
+      const sessionDate = new Date(session.sessionDate + 'T00:00:00');
+      sessionDate.setHours(0, 0, 0, 0);
+      return sessionDate >= today;
+    });
+    
+    // Get confirmed students (isCompleted OR assignedSessionId OR userSelectedSessionDate)
+    const confirmedStudents = students.filter(s => 
+      s.isCompleted || s.assignedSessionId || s.userSelectedSessionDate
+    );
+    
+    // Get unique dates from confirmed students that match future sessions
+    const confirmedDates = new Set<string>();
+    confirmedStudents.forEach(student => {
+      const studentDate = student.assignedSessionDate || student.userSelectedSessionDate;
+      if (studentDate) {
+        // Check if this date matches any future session
+        const matchesFutureSession = futureSessions.some(session => session.sessionDate === studentDate);
+        if (matchesFutureSession) {
+          confirmedDates.add(studentDate);
+        }
+      }
+    });
+    
+    // Convert to array and sort
+    return Array.from(confirmedDates).sort((a, b) => {
+      const dateA = new Date(a + 'T00:00:00');
+      const dateB = new Date(b + 'T00:00:00');
+      return dateA.getTime() - dateB.getTime();
+    });
+  }, [courseSessions, students]);
+
   // Get students for reminders (confirmed or assigned to upcoming sessions)
   const reminderStudents = useMemo(() => {
     const today = new Date();
@@ -1927,13 +1966,18 @@ We look forward to seeing you soon!`;
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   {(t as any).adminWordGenerateDate || 'Select date for forms'}
                 </label>
-                <input
-                  type="date"
+                <select
                   value={wordGenerateDate}
                   onChange={(e) => setWordGenerateDate(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 dark:focus:border-purple-600 focus:ring-1 focus:ring-purple-500 dark:focus:ring-purple-600 outline-none"
-                  placeholder={(t as any).adminWordGenerateDatePlaceholder || 'Select date'}
-                />
+                >
+                  <option value="">{(t as any).adminWordGenerateAllUsers || 'All users'}</option>
+                  {futureSessionDatesWithConfirmed.map(date => (
+                    <option key={date} value={date}>
+                      {formatSessionDate(date)}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
