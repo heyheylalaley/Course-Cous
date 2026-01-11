@@ -2799,8 +2799,22 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
     // User will use "Forgot Password" to set their own password when they want to login
     const randomPassword = db.generateRandomPassword();
 
-    // Create user with email and random password
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+    // Create user with email and random password using a separate client instance
+    // This prevents the signUp from affecting the current admin session
+    // We use a temporary client with persistSession: false to avoid session conflicts
+    const tempSupabaseClient = createClient(
+      SUPABASE_URL as string,
+      SUPABASE_KEY as string,
+      {
+        auth: {
+          persistSession: false, // Don't persist session - this prevents session change
+          autoRefreshToken: false,
+          detectSessionInUrl: false
+        }
+      }
+    );
+
+    const { data: signUpData, error: signUpError } = await tempSupabaseClient.auth.signUp({
       email: email.trim(),
       password: randomPassword,
       options: {

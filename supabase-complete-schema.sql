@@ -139,6 +139,9 @@ $$;
 DROP POLICY IF EXISTS "Admins can read all profiles" ON profiles;
 DROP POLICY IF EXISTS "Admins can update all profiles" ON profiles;
 DROP POLICY IF EXISTS "Admins can read all registrations" ON registrations;
+DROP POLICY IF EXISTS "Admins can insert registrations" ON registrations;
+DROP POLICY IF EXISTS "Admins can update registrations" ON registrations;
+DROP POLICY IF EXISTS "Admins can delete registrations" ON registrations;
 
 CREATE POLICY "Admins can read all profiles" ON profiles
   FOR SELECT USING (is_admin_user() = TRUE);
@@ -148,6 +151,15 @@ CREATE POLICY "Admins can update all profiles" ON profiles
 
 CREATE POLICY "Admins can read all registrations" ON registrations
   FOR SELECT USING (is_admin_user() = TRUE);
+
+CREATE POLICY "Admins can insert registrations" ON registrations
+  FOR INSERT WITH CHECK (is_admin_user() = TRUE);
+
+CREATE POLICY "Admins can update registrations" ON registrations
+  FOR UPDATE USING (is_admin_user() = TRUE);
+
+CREATE POLICY "Admins can delete registrations" ON registrations
+  FOR DELETE USING (is_admin_user() = TRUE);
 
 -- ============================================================================
 -- PART 3: Courses Table
