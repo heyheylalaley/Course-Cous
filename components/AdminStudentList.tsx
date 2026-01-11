@@ -567,6 +567,11 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
     return students.filter(s => s.isInvited);
   }, [students]);
 
+  // Get invited students who haven't selected a date yet (for email generation)
+  const invitedStudentsWithoutDate = useMemo(() => {
+    return students.filter(s => s.isInvited && !s.userSelectedSessionDate);
+  }, [students]);
+
   // Generate invitation email
   const generateInvitationEmail = (): string => {
     if (!course) return '';
@@ -623,9 +628,9 @@ We look forward to having you join us for this course. If you have any questions
     return email;
   };
 
-  // Get invited students emails as comma-separated string
+  // Get invited students emails as comma-separated string (excluding those who already selected a date)
   const getInvitedStudentsEmails = (): string => {
-    return invitedStudents.map(s => s.email).join('; ');
+    return invitedStudentsWithoutDate.map(s => s.email).join('; ');
   };
 
   // Copy email to clipboard
@@ -1046,7 +1051,7 @@ We look forward to having you join us for this course. If you have any questions
                           className={`w-full min-w-[140px] px-2 py-1.5 text-sm rounded-lg border transition-colors appearance-none pr-8 ${
                             student.assignedSessionId 
                               ? 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300'
-                              : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300'
+                              : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100'
                           } ${updatingAssignUserId === student.userId ? 'opacity-50' : ''} disabled:opacity-50 disabled:cursor-not-allowed focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none`}
                         >
                           <option value="">{t.adminNotAssigned || '— Not assigned —'}</option>
@@ -1129,7 +1134,7 @@ We look forward to having you join us for this course. If you have any questions
                   {t.adminInvitationEmail || 'Invitation Email'}
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  For {invitedStudents.length} invited {invitedStudents.length === 1 ? 'student' : 'students'}
+                  For {invitedStudentsWithoutDate.length} invited {invitedStudentsWithoutDate.length === 1 ? 'student' : 'students'} {invitedStudentsWithoutDate.length !== invitedStudents.length ? `(${invitedStudents.length} total, ${invitedStudents.length - invitedStudentsWithoutDate.length} already selected)` : ''}
                 </p>
               </div>
               <button
@@ -1180,7 +1185,7 @@ We look forward to having you join us for this course. If you have any questions
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                      {t.adminInvitedStudentsEmails || 'Invited Students Emails'} ({invitedStudents.length}):
+                      {t.adminInvitedStudentsEmails || 'Invited Students Emails'} ({invitedStudentsWithoutDate.length}):
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       {t.adminEmailsCopyHint || 'Copy emails to paste into Outlook (separated by semicolon)'}
