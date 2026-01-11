@@ -125,27 +125,28 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
 
   // Load registrations with priorities and course queues
   // Use refs to track previous values and avoid unnecessary reloads
-  const prevRegistrationsRef = useRef<string[]>([]);
+  const prevRegistrationsRef = useRef<string>('');
   const prevUserProfileIdRef = useRef<string>('');
   
   useEffect(() => {
-    // Only reload if registrations actually changed (by length or content)
-    const registrationsChanged = 
-      registrations.length !== prevRegistrationsRef.current.length ||
-      registrations.some((id, index) => id !== prevRegistrationsRef.current[index]);
+    // Create a stable string representation for comparison (sorted to handle order differences)
+    const registrationsKey = [...registrations].sort().join(',');
+    const prevRegistrationsKey = prevRegistrationsRef.current;
+    
+    // Only reload if registrations actually changed (by content)
+    const registrationsChanged = registrationsKey !== prevRegistrationsKey;
     
     // Only reload if user profile ID changed (not just other properties)
     const profileChanged = userProfile.id !== prevUserProfileIdRef.current;
     
-    // Skip reload if nothing meaningful changed
-    if (!registrationsChanged && !profileChanged && 
-        prevRegistrationsRef.current.length > 0 && prevUserProfileIdRef.current) {
+    // Skip reload if nothing meaningful changed (but always load on initial mount)
+    if (!registrationsChanged && !profileChanged && prevRegistrationsKey !== '') {
       return;
     }
     
     // Update refs
-    prevRegistrationsRef.current = [...registrations];
-    prevUserProfileIdRef.current = userProfile.id;
+    prevRegistrationsRef.current = registrationsKey;
+    prevUserProfileIdRef.current = userProfile.id || '';
     
     // Load data
     loadDashboardData();
