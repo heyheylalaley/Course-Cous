@@ -689,6 +689,54 @@ We look forward to having you join us for this course. If you have any questions
     }
   };
 
+  // Open email client with BCC and email body
+  const handleOpenEmailClient = async () => {
+    try {
+      const emails = getInvitedStudentsEmails();
+      if (!emails) {
+        alert(t.adminNoInvitedStudents || 'No invited students found.');
+        return;
+      }
+
+      // Get generated email text
+      const emailText = generatedEmail || await generateInvitationEmail();
+      
+      // Parse subject and body from email format: "Subject: ...\n\nBody..."
+      const subjectMatch = emailText.match(/^Subject:\s*(.+)$/m);
+      const subject = subjectMatch ? subjectMatch[1].trim() : '';
+      
+      // Extract body (everything after "Subject: ...\n\n")
+      const bodyMatch = emailText.match(/^Subject:.*\n\n([\s\S]*)$/m);
+      const body = bodyMatch ? bodyMatch[1].trim() : emailText;
+
+      // URL encode parameters
+      const encodedSubject = encodeURIComponent(subject);
+      const encodedBody = encodeURIComponent(body);
+      // Split emails by semicolon, filter empty, and join with commas
+      // Note: Email addresses in mailto: links don't need encoding, but we encode the whole parameter
+      // Actually, commas should remain unencoded in mailto: links for multiple addresses
+      const emailList = emails.split(';').map(e => e.trim()).filter(e => e).join(',');
+      
+      // Build mailto link
+      // Note: Some email clients prefer semicolon, some comma for multiple addresses
+      // We'll use comma which is more widely supported
+      // For mailto: links, commas in BCC should remain unencoded
+      const mailtoUrl = `mailto:?bcc=${emailList}&subject=${encodedSubject}&body=${encodedBody}`;
+
+      // Check URL length (browsers typically limit to ~2000 characters)
+      if (mailtoUrl.length > 2000) {
+        alert(t.adminEmailTooLong || 'Email is too long for mailto: link. Please use the copy button instead.');
+        return;
+      }
+
+      // Open email client
+      window.location.href = mailtoUrl;
+    } catch (err) {
+      console.error('Failed to open email client:', err);
+      alert('Failed to open email client. Please use the copy button instead.');
+    }
+  };
+
   // Show email modal and generate email
   const handleGenerateEmail = async () => {
     if (invitedStudents.length === 0) {
@@ -1238,22 +1286,32 @@ We look forward to having you join us for this course. If you have any questions
                       {t.adminEmailsCopyHint || 'Copy emails to paste into Outlook (separated by semicolon)'}
                     </p>
                   </div>
-                  <button
-                    onClick={handleCopyEmails}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors text-sm flex-shrink-0"
-                  >
-                    {emailsCopied ? (
-                      <>
-                        <Check size={16} />
-                        {t.adminCopied || 'Copied!'}
-                      </>
-                    ) : (
-                      <>
-                        <Copy size={16} />
-                        {t.adminCopyEmails || 'Copy Emails'}
-                      </>
-                    )}
-                  </button>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={handleOpenEmailClient}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-600 dark:bg-purple-700 text-white hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors text-sm"
+                      title={t.adminOpenEmailClient || 'Open email client with BCC and email body'}
+                    >
+                      <Mail size={16} />
+                      {t.adminOpenEmailClient || 'Open Email Client'}
+                    </button>
+                    <button
+                      onClick={handleCopyEmails}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors text-sm"
+                    >
+                      {emailsCopied ? (
+                        <>
+                          <Check size={16} />
+                          {t.adminCopied || 'Copied!'}
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={16} />
+                          {t.adminCopyEmails || 'Copy Emails'}
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
                   <p className="text-sm text-gray-900 dark:text-gray-100 font-mono break-all">
