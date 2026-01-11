@@ -2813,6 +2813,22 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
       throw new Error("Supabase not configured");
     }
 
+    // Check if user already exists
+    const trimmedEmail = email.trim().toLowerCase();
+    const { data: existingUser, error: checkError } = await supabase
+      .from('profiles')
+      .select('id, email')
+      .eq('email', trimmedEmail)
+      .maybeSingle();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw new Error(checkError.message || 'Failed to check if user exists');
+    }
+
+    if (existingUser) {
+      throw new Error('USER_ALREADY_EXISTS');
+    }
+
     // Generate a random password that user will never know
     // User will use "Forgot Password" to set their own password when they want to login
     const randomPassword = db.generateRandomPassword();

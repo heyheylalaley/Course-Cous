@@ -155,7 +155,11 @@ export const AdminAddParticipantModal: React.FC<AdminAddParticipantModalProps> =
       onClose();
     } catch (err: any) {
       console.error('Failed to create and add user:', err);
-      setError(err.message || 'Failed to create user. Please try again.');
+      if (err.message === 'USER_ALREADY_EXISTS') {
+        setError(t.adminCreateUserAlreadyExists || 'A user with this email already exists');
+      } else {
+        setError(err.message || 'Failed to create user. Please try again.');
+      }
     } finally {
       setIsCreating(false);
     }
