@@ -87,6 +87,10 @@ CCPLearn is a full-stack web application designed for Cork City Partnership to h
 - **Category Filtering**: Filter courses by category in sidebar
 - **Calendar Integration**: View all course dates and events in interactive calendar format
 - **External Links in Events**: Calendar events can include external links (e.g., registration pages)
+- **Course Sessions**: Multiple sessions per course with dates and capacity management
+- **Session Selection**: Users can select preferred session dates when invited by admin
+- **Invite System**: Admins can invite registered users to select course sessions
+- **Session Assignment**: Admins can directly assign sessions to users or let them choose
 
 ### 👤 User Features
 
@@ -106,6 +110,9 @@ CCPLearn is a full-stack web application designed for Cork City Partnership to h
 - **User Tour**: Interactive guided tour for new users showing key features (auto-starts on first login)
 - **Swipe Gestures**: Mobile-friendly swipe gestures to open/close sidebar (LTR and RTL support)
 - **Search & Filter**: Real-time course search with debounced input (300ms delay)
+- **Session Selection**: Select preferred course session dates when invited by admin
+- **Invite Notifications**: Visual indicators when invited to select a course session
+- **Session Status**: See assigned or selected session dates in dashboard
 
 ### 🔐 Authentication
 
@@ -177,10 +184,13 @@ CCPLearn is a full-stack web application designed for Cork City Partnership to h
 │   ├── AdminCalendarEvents.tsx # Admin: calendar events CRUD with sorting
 │   ├── AdminCategoryManagement.tsx # Admin: course category management
 │   ├── AdminCourseList.tsx    # Admin: course CRUD operations
-│   ├── AdminCourseManagement.tsx # Admin: course translations management
+│   ├── AdminCourseManagement.tsx # Admin: course translations and sessions management
+│   ├── AdminCourseSessionsModal.tsx # Admin: course sessions CRUD (create, edit, archive)
+│   ├── AdminAddParticipantModal.tsx # Admin: add participants to courses
 │   ├── AdminDashboard.tsx     # Admin: main dashboard layout with tabs
-│   ├── AdminStudentList.tsx   # Admin: student management per course with export
+│   ├── AdminStudentList.tsx   # Admin: student management per course with export and invites
 │   ├── AdminUserProfileModal.tsx # Admin: edit user profiles (including LDC/IRIS)
+│   ├── CourseSessionSelector.tsx # User: select course session dates when invited
 │   ├── AlertModal.tsx         # Reusable alert/notification modal
 │   ├── AuthScreen.tsx         # Login/signup forms with Google OAuth
 │   ├── CalendarEventModal.tsx # Calendar event create/edit modal
@@ -372,7 +382,8 @@ VITE_GOOGLE_TRANSLATE_API_KEY=your-translate-api-key
 | `courses` | Course catalog (title, description, difficulty, category, next_course_date, min_english_level, is_active) |
 | `course_translations` | Translated course content (UA, RU, AR) for multilingual support |
 | `course_categories` | Course categories with icons (lucide-react), colors (Tailwind classes), and sort_order |
-| `registrations` | User course registrations with priority queue system (priority: 1, 2, 3...) |
+| `registrations` | User course registrations with priority queue system, invite status, and session assignments (priority: 1, 2, 3..., is_invited, assigned_session_id, user_selected_session_id) |
+| `course_sessions` | Course session dates with capacity limits (course_id, session_date, max_capacity, status: active/archived) |
 | `course_completions` | Completed course records with admin tracking (completed_at, marked_by) |
 | `bot_instructions` | AI configuration (main instructions, contacts, external links) stored as key-value pairs |
 | `chat_messages` | Persistent chat history for all users (role, content, timestamp) |
@@ -382,6 +393,9 @@ VITE_GOOGLE_TRANSLATE_API_KEY=your-translate-api-key
 ### Key Database Features
 
 - **Priority Queue System**: Automatic priority assignment (1, 2, 3...) when courses are full
+- **Course Sessions**: Multiple sessions per course with date and capacity management
+- **Invite System**: Track invitation status for course session selection
+- **Session Assignment**: Support for admin-assigned sessions and user-selected sessions
 - **Course Translations**: Multi-language support stored in separate `course_translations` table
 - **Chat History**: Full conversation history with role-based messages (user/model)
 - **Calendar Events**: Support for external links, times, and public/private visibility
@@ -511,8 +525,14 @@ KNOWLEDGE BASE
 - **Mark Complete**: Mark courses as completed with automatic timestamp and admin tracking
 - **Remove Students**: Remove students from courses with confirmation dialog
 - **Export to Excel**: Export student lists to XLSX format with all profile fields including LDC Ref and IRIS ID
-- **Search & Filter**: Filter and search students by various criteria
+- **Search & Filter**: Filter and search students by various criteria (priority, English level, completion status, invite status, session assignment)
 - **Priority Display**: See each student's priority position (1, 2, 3...) in the queue
+- **Invite Management**: Send invites to students to select course sessions, track invite status
+- **Session Assignment**: Directly assign specific course sessions to students or let them choose
+- **Session Tracking**: See which students have selected sessions, which are assigned, and which are pending
+- **Add Participants**: Add existing users to courses or create new user accounts directly from admin panel
+- **Email Generation**: Generate invitation emails for invited students with course details
+- **Invite Status Filtering**: Filter students by invite status (invited, not invited, has selected date)
 
 #### 🤖 Bot Instructions
 - Edit main AI instructions
@@ -534,6 +554,16 @@ KNOWLEDGE BASE
 - **Demo Mode**: Toggle demo mode for testing and demonstration purposes
 - **Application Configuration**: Manage application-wide settings
 - **Settings Persistence**: All settings saved to database
+
+#### 📅 Course Sessions Management
+- **Create Sessions**: Add multiple sessions per course with specific dates and capacity limits
+- **Edit Sessions**: Modify session dates, capacity, and status
+- **Archive Sessions**: Archive old sessions while keeping historical data
+- **Session Status**: Active and archived session management
+- **Capacity Tracking**: Real-time tracking of enrolled students per session
+- **Availability Display**: Show available spots for each session
+- **Session Calendar**: View all course sessions in calendar format
+- **Future Sessions**: Filter to show only upcoming/active sessions
 
 #### 📊 Analytics Dashboard
 - **User Statistics**: Total registered users, active users, new registrations
@@ -593,6 +623,65 @@ KNOWLEDGE BASE
 6. Course appears in "My Courses" section with priority number (1, 2, or 3)
 7. If course is full, user is added to priority queue with position number
 8. User can reorder priorities using up/down arrows in Dashboard
+```
+
+### Course Session Selection (When Invited)
+
+```
+1. Admin sends invite to registered student for course session selection
+2. User receives visual notification in Dashboard (purple badge/indicator)
+3. User opens Dashboard → sees "Select your preferred date" section for invited courses
+4. Available session dates are displayed with:
+   - Formatted dates (e.g., "Mon, 15 January 2025")
+   - Available spots remaining
+   - Full/available status indicators
+5. User clicks on preferred date to select
+6. Selection is saved and visible immediately
+7. User can change selection while spots are available
+8. If admin assigns a date directly, it's shown as "Course Confirmed" (not editable by user)
+```
+
+### Course Session Management (Admin)
+
+```
+1. Admin opens Course Management
+2. Selects a course
+3. Clicks "Manage Sessions" button
+4. Creates new sessions:
+   - Select date for session
+   - Set maximum capacity (e.g., 20 students)
+   - Status defaults to "active"
+5. Edits existing sessions:
+   - Change date, capacity, or status
+   - Archive old sessions
+6. Views session enrollment:
+   - See how many students enrolled per session
+   - Track available spots
+7. Real-time updates when students select sessions
+```
+
+### Inviting Students & Session Assignment (Admin)
+
+```
+1. Admin opens Student Management
+2. Selects a course
+3. Views student list with invite status column
+4. Sends invites:
+   - Click "Invite" button next to student
+   - Student receives notification to select session
+5. Direct Session Assignment (optional):
+   - Select student
+   - Choose "Assign Session" from dropdown
+   - Select specific session date
+   - Student sees confirmed date (non-editable)
+6. Generate Invitation Email:
+   - Click "Generate Invite Email" button
+   - Copy email template with course details
+   - Send to invited students
+7. Track invite status:
+   - See who's invited
+   - See who selected dates
+   - See who hasn't selected yet
 ```
 
 ### Course Completion (Admin)
@@ -732,6 +821,18 @@ npm run preview
 - **Complete Data**: All fields included in export (including admin-only fields like LDC Ref and IRIS ID)
 - **Multiple Exports**: Export from different views (Student List, All Users)
 - **Excel Compatibility**: Generated files compatible with Microsoft Excel, Google Sheets, and LibreOffice
+- **Session Data**: Export includes session assignment and selection information
+
+### Course Sessions & Enrollment Management
+- **Multiple Sessions**: Create multiple session dates for the same course
+- **Capacity Management**: Set maximum capacity per session and track enrollment
+- **Real-time Availability**: See available spots update in real-time as users select sessions
+- **Invite Workflow**: Admin-controlled workflow where students are invited to select sessions
+- **Flexible Assignment**: Admins can assign sessions directly or let users choose
+- **Session Status**: Track active and archived sessions separately
+- **User Choice**: Users can select preferred dates when invited (if admin allows)
+- **Change Management**: Users can change selections while spots are available
+- **Archive Old Sessions**: Archive past sessions while maintaining historical data
 
 ---
 
@@ -785,6 +886,18 @@ npm run preview
 - Verify events are marked as "public" (private events only visible to admins)
 - Check event dates are in the future (past events filtered out in bot context)
 - Ensure calendar modal is opened from sidebar calendar button
+
+#### Session selection not appearing
+- User must be invited by admin first (check invite status in admin panel)
+- Verify course has active sessions created by admin
+- Check that session dates are in the future
+- Ensure user is registered for the course
+
+#### Cannot add participants
+- Verify you have admin privileges
+- Check that course exists and is active
+- Ensure user email is valid format
+- For existing users, they may already be registered (check duplicates)
 
 ### Getting Help
 
