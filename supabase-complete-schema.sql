@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS registrations (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   course_id TEXT NOT NULL,
-  priority INTEGER NOT NULL DEFAULT 1 CHECK (priority >= 1 AND priority <= 3),
+  priority INTEGER NOT NULL DEFAULT 1 CHECK (priority >= 1 AND priority <= 100),
   registered_at TIMESTAMPTZ DEFAULT NOW(),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, course_id)

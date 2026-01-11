@@ -10,6 +10,7 @@ import { TRANSLATIONS } from '../translations';
 import { ProfileInfoModal } from './ProfileInfoModal';
 import { ConfirmationModal } from './ConfirmationModal';
 import { useUI } from '../contexts/UIContext';
+import { formatPriorityLabel } from '../utils/courseUtils';
 
 // Helper functions for data masking
 const maskEmail = (email: string): string => {
@@ -418,10 +419,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
               {registeredCourses.map(({ course, priority, registration }) => {
                 const canMoveUp = priority > 1;
                 const canMoveDown = priority < registeredCourses.length;
-                const priorityLabel = t[`priority${priority}`] || 
-                  (priority === 1 ? (t.priorityFirst || '1st choice') : 
-                   priority === 2 ? (t.prioritySecond || '2nd choice') : 
-                   (t.priorityThird || '3rd choice'));
+                const priorityLabel = formatPriorityLabel(priority, language, t);
                 const priorityColor = priority === 1 
                   ? 'bg-green-500 dark:bg-green-600' 
                   : priority === 2 
