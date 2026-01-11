@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Language } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { db } from '../services/db';
-import { Settings, Play, Loader2, Mail, Save, MessageSquare, BookOpen, Phone, MapPin, Globe, Clock, Bell } from 'lucide-react';
+import { Settings, Play, Loader2, Mail, Save, MessageSquare, BookOpen, Phone, MapPin, Globe, Clock, Bell, FileText, Upload } from 'lucide-react';
 
 interface AdminAppSettingsProps {
   language: Language;
@@ -64,6 +64,13 @@ export const AdminAppSettings: React.FC<AdminAppSettingsProps> = ({ language }) 
   const [contactSaveSuccess, setContactSaveSuccess] = useState(false);
   const [contactError, setContactError] = useState<string | null>(null);
 
+  // Word template state
+  const [isLoadingWordTemplate, setIsLoadingWordTemplate] = useState(false);
+  const [isUploadingWordTemplate, setIsUploadingWordTemplate] = useState(false);
+  const [wordTemplateUploadSuccess, setWordTemplateUploadSuccess] = useState(false);
+  const [wordTemplateError, setWordTemplateError] = useState<string | null>(null);
+  const [wordTemplateFileName, setWordTemplateFileName] = useState<string | null>(null);
+
   const t = TRANSLATIONS[language];
   const isRtl = language === 'ar';
 
@@ -74,6 +81,7 @@ export const AdminAppSettings: React.FC<AdminAppSettingsProps> = ({ language }) 
     loadWelcomeMessages();
     loadRegistrationLimit();
     loadContactInfo();
+    loadWordTemplateInfo();
   }, []);
 
   const loadSettings = async () => {
@@ -337,6 +345,68 @@ We look forward to seeing you soon!`);
       setContactError(err.message || 'Failed to save contact information');
     } finally {
       setIsSavingContact(false);
+    }
+  };
+
+  const loadWordTemplateInfo = async () => {
+    setIsLoadingWordTemplate(true);
+    setWordTemplateError(null);
+    try {
+      const url = await db.getWordTemplateUrl();
+      if (url) {
+        // Extract filename from URL if possible
+        try {
+          const urlObj = new URL(url);
+          const pathParts = urlObj.pathname.split('/');
+          const fileName = pathParts[pathParts.length - 1];
+          setWordTemplateFileName(fileName || 'template.docx');
+        } catch {
+          setWordTemplateFileName('template.docx');
+        }
+      } else {
+        setWordTemplateFileName(null);
+      }
+    } catch (err: any) {
+      setWordTemplateError(err.message || 'Failed to load template info');
+    } finally {
+      setIsLoadingWordTemplate(false);
+    }
+  };
+
+  const handleUploadWordTemplate = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.docx')) {
+      setWordTemplateError('Please upload a .docx file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setWordTemplateError('File size must be less than 5MB');
+      return;
+    }
+
+    setIsUploadingWordTemplate(true);
+    setWordTemplateError(null);
+    setWordTemplateUploadSuccess(false);
+
+    try {
+      const { error, url } = await db.uploadWordTemplate(file);
+      
+      if (error) {
+        setWordTemplateError(error);
+      } else {
+        setWordTemplateFileName(file.name);
+        setWordTemplateUploadSuccess(true);
+        setTimeout(() => setWordTemplateUploadSuccess(false), 2000);
+      }
+    } catch (err: any) {
+      setWordTemplateError(err.message || 'Failed to upload template');
+    } finally {
+      setIsUploadingWordTemplate(false);
+      // Reset input
+      event.target.value = '';
     }
   };
 
@@ -914,6 +984,84 @@ We look forward to seeing you soon!`);
               )}
               {(t as any).adminWelcomeMessageSave || 'Save Welcome Messages'}
             </button>
+          </div>
+        )}
+      </div>
+
+      {/* Word Template Settings */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg">
+            <FileText size={20} />
+          </div>
+          <div>
+            <h3 className="font-medium text-gray-900 dark:text-white">
+              {(t as any).adminWordTemplate || 'Word Document Template'}
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {(t as any).adminWordTemplateDesc || 'Upload a Word template (.docx) with placeholders like {firstName}, {lastName}, {email}, {courseDate}, etc. This template will be used to generate personalized documents for each student.'}
+            </p>
+          </div>
+        </div>
+
+        {/* Template Error Message */}
+        {wordTemplateError && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg border border-red-100 dark:border-red-800">
+            {wordTemplateError}
+          </div>
+        )}
+
+        {/* Template Success Message */}
+        {wordTemplateUploadSuccess && (
+          <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-sm rounded-lg border border-green-100 dark:border-green-800">
+            {(t as any).adminWordTemplateSaved || 'Template uploaded successfully'}
+          </div>
+        )}
+
+        {isLoadingWordTemplate ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-indigo-600 dark:text-indigo-400" />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Current Template Info */}
+            {wordTemplateFileName && (
+              <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  <span className="font-medium">{(t as any).adminWordTemplateCurrent || 'Current template:'}</span> {wordTemplateFileName}
+                </p>
+              </div>
+            )}
+
+            {/* Upload Button */}
+            <div>
+              <label className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                {isUploadingWordTemplate ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {(t as any).adminWordTemplateUploading || 'Uploading...'}
+                  </>
+                ) : (
+                  <>
+                    <Upload size={16} />
+                    {wordTemplateFileName 
+                      ? ((t as any).adminWordTemplateReplace || 'Replace Template')
+                      : ((t as any).adminWordTemplateUpload || 'Upload Template')
+                    }
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept=".docx"
+                  onChange={handleUploadWordTemplate}
+                  disabled={isUploadingWordTemplate}
+                  className="hidden"
+                />
+              </label>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                {(t as any).adminWordTemplateHint || 'Maximum file size: 5MB. Supported placeholders: {firstName}, {lastName}, {email}, {mobileNumber}, {address}, {eircode}, {dateOfBirth}, {englishLevel}, {courseTitle}, {courseDate}, {ldcRef}, {irisId}'}
+              </p>
+            </div>
           </div>
         )}
       </div>

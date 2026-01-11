@@ -9,8 +9,11 @@ import { supabase } from '../services/db';
 import { 
   Users, FileSpreadsheet, FileText, Mail, Phone, Calendar, GraduationCap, 
   ArrowUp, ArrowDown, Filter, Search, CheckCircle, Circle, X, ArrowLeft,
-  Send, CalendarCheck, Loader2, Copy, Check, UserPlus, Trash2, Bell
+  Send, CalendarCheck, Loader2, Copy, Check, UserPlus, Trash2, Bell, FileDown
 } from 'lucide-react';
+import Docxtemplater from 'docxtemplater';
+import PizZip from 'pizzip';
+import { saveAs } from 'file-saver';
 
 interface AdminStudentListProps {
   courseId: string;
@@ -60,6 +63,9 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
   
   // Add participant modal
   const [showAddParticipantModal, setShowAddParticipantModal] = useState(false);
+
+  // Word document generation
+  const [isGeneratingWordDocs, setIsGeneratingWordDocs] = useState(false);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -397,60 +403,6 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
       : <ArrowDown size={14} className="inline ml-1" />;
   };
 
-  const exportToCSV = () => {
-    if (filteredAndSortedStudents.length === 0) return;
-
-    const headers = [
-      t.adminExportFirstName || 'First Name',
-      t.adminExportLastName || 'Last Name',
-      t.adminExportEmail || 'Email',
-      t.adminExportMobile || 'Mobile Number',
-      t.adminExportAddress || 'Address',
-      t.adminExportEircode || 'Eircode',
-      t.adminExportDateOfBirth || 'Date of Birth',
-      t.adminExportEnglishLevel || 'English Level',
-      'LDC Ref',
-      'IRIS ID',
-      t.adminExportPriority || 'Priority',
-      t.adminExportRegisteredAt || 'Registered At',
-      t.adminInvite || 'Invite',
-      t.adminAssignedDate || 'Assigned Date',
-      t.adminSelectedDate || 'Selected Date'
-    ];
-
-    const rows = filteredAndSortedStudents.map(student => [
-      student.firstName || '',
-      student.lastName || '',
-      student.email || '', // Keep email in export for CSV/Excel even though it's removed from table
-      student.mobileNumber || '',
-      student.address || '',
-      student.eircode || '',
-      student.dateOfBirth || '',
-      student.englishLevel || '',
-      student.ldcRef || '',
-      student.irisId || '',
-      student.priority?.toString() || '',
-      student.registeredAt.toLocaleString(),
-      student.isInvited ? 'Yes' : 'No',
-      student.assignedSessionDate || 'Not assigned',
-      student.userSelectedSessionDate || 'Not selected'
-    ]);
-
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${course?.title || 'course'}_students_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   const loadXLSXLibrary = (): Promise<any> => {
     return new Promise((resolve, reject) => {
@@ -547,6 +499,103 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
     } catch (error) {
       console.error('Error exporting to Excel:', error);
       alert(`Error exporting to Excel: ${error instanceof Error ? error.message : 'Unknown error'}.`);
+    }
+  };
+
+  const generateWordDocuments = async () => {
+    if (filteredAndSortedStudents.length === 0) {
+      alert(t.adminNoStudentsToGenerate || 'No students to generate documents for');
+      return;
+    }
+
+    setIsGeneratingWordDocs(true);
+
+    try {
+      // Download template
+      const { error: downloadError, blob: templateBlob } = await db.downloadWordTemplate();
+      
+      if (downloadError || !templateBlob) {
+        alert(t.adminWordTemplateNotFound || 'Word template not found. Please upload a template in App Settings first.');
+        setIsGeneratingWordDocs(false);
+        return;
+      }
+
+      // Convert blob to array buffer
+      const arrayBuffer = await templateBlob.arrayBuffer();
+
+      // Format date helper for Word template
+      const formatDateForWord = (dateString: string | undefined): string => {
+        if (!dateString) return '';
+        try {
+          const date = new Date(dateString + 'T00:00:00');
+          return date.toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+          });
+        } catch {
+          return dateString;
+        }
+      };
+
+      // Generate document for each student
+      for (const student of filteredAndSortedStudents) {
+        try {
+          // Load template for each student (we need to reload it each time)
+          const zip = new PizZip(arrayBuffer);
+          const doc = new Docxtemplater(zip, {
+            paragraphLoop: true,
+            linebreaks: true,
+          });
+
+          // Prepare data for template
+          const courseDate = student.assignedSessionDate || student.userSelectedSessionDate || '';
+          const templateData = {
+            firstName: student.firstName || '',
+            lastName: student.lastName || '',
+            email: student.email || '',
+            mobileNumber: student.mobileNumber || '',
+            address: student.address || '',
+            eircode: student.eircode || '',
+            dateOfBirth: formatDateForWord(student.dateOfBirth),
+            englishLevel: student.englishLevel || '',
+            courseTitle: course?.title || '',
+            courseDate: formatDateForWord(courseDate),
+            ldcRef: student.ldcRef || '',
+            irisId: student.irisId || '',
+            priority: student.priority?.toString() || '',
+            registeredAt: student.registeredAt.toLocaleDateString('en-GB'),
+          };
+
+          // Render document
+          doc.render(templateData);
+
+          // Generate output
+          const buf = doc.getZip().generate({
+            type: 'blob',
+            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            compression: 'DEFLATE',
+          });
+
+          // Create filename
+          const studentName = `${student.firstName || ''}_${student.lastName || ''}`.trim() || 'student';
+          const safeFileName = studentName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+          const fileName = `${safeFileName}_${course?.title?.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'course'}.docx`;
+
+          // Save file
+          saveAs(buf, fileName);
+        } catch (studentError: any) {
+          console.error(`Error generating document for ${student.firstName} ${student.lastName}:`, studentError);
+          // Continue with next student even if one fails
+        }
+      }
+
+      alert(t.adminWordDocumentsGenerated || `Generated ${filteredAndSortedStudents.length} document(s) successfully`);
+    } catch (error: any) {
+      console.error('Error generating Word documents:', error);
+      alert(t.adminWordDocumentsError || `Error generating documents: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsGeneratingWordDocs(false);
     }
   };
 
@@ -1084,11 +1133,21 @@ We look forward to seeing you soon!`;
             {filteredAndSortedStudents.length > 0 && (
               <>
                 <button
-                  onClick={exportToCSV}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-600 dark:bg-green-700 text-white hover:bg-green-700 dark:hover:bg-green-600 transition-colors"
+                  onClick={generateWordDocuments}
+                  disabled={isGeneratingWordDocs}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-600 dark:bg-purple-700 text-white hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <FileText size={18} />
-                  CSV
+                  {isGeneratingWordDocs ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      {(t as any).adminGeneratingWordDocs || 'Generating...'}
+                    </>
+                  ) : (
+                    <>
+                      <FileDown size={18} />
+                      {(t as any).adminGenerateWordDocs || 'Generate Word Docs'}
+                    </>
+                  )}
                 </button>
                 <button
                   onClick={exportToExcel}

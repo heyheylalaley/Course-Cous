@@ -3251,5 +3251,120 @@ We look forward to seeing you soon!`,
     } catch (error: any) {
       throw new Error(`Failed to delete user data: ${error.message}`);
     }
+  },
+
+  // --- Word Template Methods ---
+  uploadWordTemplate: async (file: File): Promise<{ error: string | null; url: string | null }> => {
+    if (!supabase) {
+      // Mock fallback: convert to base64 and store in localStorage
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const base64 = e.target?.result as string;
+          localStorage.setItem('word_template_base64', base64);
+          resolve({ error: null, url: 'local://word_template.docx' });
+        };
+        reader.onerror = () => resolve({ error: 'Failed to read file', url: null });
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Check if user is admin
+    const session = db.getCurrentSession();
+    if (!session) {
+      return { error: 'Not authenticated', url: null };
+    }
+
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      return { error: 'Admin access required', url: null };
+    }
+
+    try {
+      // Create bucket if it doesn't exist (this might fail if bucket exists, but that's ok)
+      const bucketName = 'word-templates';
+      await supabase.storage.createBucket(bucketName, {
+        public: false,
+        fileSizeLimit: 5242880, // 5MB
+        allowedMimeTypes: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+      }).catch(() => {}); // Ignore error if bucket already exists
+
+      // Upload file
+      const fileName = `template_${Date.now()}.docx`;
+      const { data, error: uploadError } = await supabase.storage
+        .from(bucketName)
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        return { error: uploadError.message, url: null };
+      }
+
+      // Get public URL (we'll use signed URL for private buckets)
+      const { data: urlData } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(fileName);
+
+      // Save URL in app_settings
+      const { error: settingsError } = await db.setAppSetting('word_template_url', urlData.publicUrl);
+      if (settingsError) {
+        // Try to delete uploaded file on error
+        await supabase.storage.from(bucketName).remove([fileName]);
+        return { error: settingsError, url: null };
+      }
+
+      return { error: null, url: urlData.publicUrl };
+    } catch (error: any) {
+      return { error: error.message || 'Failed to upload template', url: null };
+    }
+  },
+
+  getWordTemplateUrl: async (): Promise<string | null> => {
+    const url = await db.getAppSetting('word_template_url');
+    return url;
+  },
+
+  downloadWordTemplate: async (): Promise<{ error: string | null; blob: Blob | null }> => {
+    if (!supabase) {
+      // Mock fallback: get from localStorage
+      const base64 = localStorage.getItem('word_template_base64');
+      if (!base64) {
+        return { error: 'Template not found', blob: null };
+      }
+      try {
+        const response = await fetch(base64);
+        const blob = await response.blob();
+        return { error: null, blob };
+      } catch (error: any) {
+        return { error: error.message, blob: null };
+      }
+    }
+
+    const url = await db.getWordTemplateUrl();
+    if (!url) {
+      return { error: 'Template not found', blob: null };
+    }
+
+    try {
+      // Extract bucket and file path from URL
+      const urlObj = new URL(url);
+      const pathParts = urlObj.pathname.split('/');
+      const bucketName = pathParts[2]; // Usually 'word-templates'
+      const fileName = pathParts.slice(3).join('/');
+
+      const { data, error } = await supabase.storage
+        .from(bucketName)
+        .download(fileName);
+
+      if (error) {
+        return { error: error.message, blob: null };
+      }
+
+      return { error: null, blob: data };
+    } catch (error: any) {
+      return { error: error.message || 'Failed to download template', blob: null };
+    }
   }
 };
