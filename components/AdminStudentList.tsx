@@ -574,8 +574,14 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
   }, [students]);
 
   // Get invited students who haven't selected a date yet (for email generation)
+  // Exclude students who: 1) confirmed themselves (isCompleted), 2) were assigned by admin (assignedSessionId), or 3) both
   const invitedStudentsWithoutDate = useMemo(() => {
-    return students.filter(s => s.isInvited && !s.userSelectedSessionDate);
+    return students.filter(s => 
+      s.isInvited && 
+      !s.userSelectedSessionDate &&
+      !s.isCompleted && // Exclude students who confirmed themselves
+      !s.assignedSessionId // Exclude students who were assigned by admin
+    );
   }, [students]);
 
   // Generate invitation email
@@ -634,7 +640,8 @@ We look forward to having you join us for this course. If you have any questions
     return email;
   };
 
-  // Get invited students emails as comma-separated string (excluding those who already selected a date)
+  // Get invited students emails as comma-separated string
+  // Excludes students who: 1) already selected a date, 2) confirmed themselves, 3) were assigned by admin
   const getInvitedStudentsEmails = (): string => {
     return invitedStudentsWithoutDate.map(s => s.email).join('; ');
   };
