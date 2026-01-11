@@ -239,14 +239,29 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
   // Filter out completed courses from the recommendation list
   const availableForRecommendation = availableCourses.filter(c => !completedIds.includes(c.id));
   
+  // Load next session dates for all courses in parallel
+  const courseDatesMap = new Map<string, string | null>();
+  await Promise.all(
+    availableForRecommendation.map(async (c) => {
+      try {
+        const date = await db.getNextCourseSessionDate(c.id);
+        courseDatesMap.set(c.id, date);
+      } catch (error) {
+        console.error(`Failed to load session date for course ${c.id}:`, error);
+        courseDatesMap.set(c.id, null);
+      }
+    })
+  );
+  
   // Build course list with English names and descriptions only
   // Bot will translate descriptions to user's language when responding
   const courseListForBot = availableForRecommendation.map(c => {
     const level = c.minEnglishLevel || 'None';
     const levelStr = level === 'None' ? '' : ` [${level}+]`;
     // Format date for bot (e.g., "15 Feb 2026")
-    const dateStr = c.nextCourseDate 
-      ? ` (next: ${new Date(c.nextCourseDate).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })})`
+    const nextSessionDate = courseDatesMap.get(c.id);
+    const dateStr = nextSessionDate 
+      ? ` (next: ${new Date(nextSessionDate).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })})`
       : '';
     
     // Format: Course name and English description only

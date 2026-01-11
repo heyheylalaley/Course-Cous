@@ -36,25 +36,52 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [courseSessionsMap, setCourseSessionsMap] = useState<Map<string, string[]>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
 
   const t = TRANSLATIONS[language] as any;
   const isRtl = language === 'ar';
 
-  // Load calendar events
+  // Load calendar events and course sessions
   useEffect(() => {
     if (isOpen) {
       loadEvents();
+      loadCourseSessions();
     }
-  }, [isOpen, isAdmin]);
+  }, [isOpen, isAdmin, courses]);
 
   const loadEvents = async () => {
-    setIsLoading(true);
     try {
       const events = await db.getCalendarEvents(isAdmin);
       setCalendarEvents(events);
     } catch (error) {
       console.error('Failed to load calendar events:', error);
+    }
+  };
+
+  const loadCourseSessions = async () => {
+    setIsLoading(true);
+    try {
+      const sessionsMap = new Map<string, string[]>();
+      
+      // Load sessions for all courses
+      await Promise.all(
+        courses.map(async (course) => {
+          try {
+            const sessions = await db.getCourseSessions(course.id, false);
+            const sessionDates = sessions.map(s => s.sessionDate);
+            if (sessionDates.length > 0) {
+              sessionsMap.set(course.id, sessionDates);
+            }
+          } catch (error) {
+            console.error(`Failed to load sessions for course ${course.id}:`, error);
+          }
+        })
+      );
+      
+      setCourseSessionsMap(sessionsMap);
+    } catch (error) {
+      console.error('Failed to load course sessions:', error);
     } finally {
       setIsLoading(false);
     }
@@ -90,7 +117,10 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
   const getEventsForDay = (day: number): DayEvents => {
     const dateStr = `${calendarData.year}-${String(calendarData.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     
-    const dayCourses = courses.filter(course => course.nextCourseDate === dateStr);
+    const dayCourses = courses.filter(course => {
+      const sessionDates = courseSessionsMap.get(course.id);
+      return sessionDates && sessionDates.includes(dateStr);
+    });
     const dayEvents = calendarEvents
       .filter(event => event.eventDate === dateStr)
       .sort((a, b) => {

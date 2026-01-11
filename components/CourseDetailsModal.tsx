@@ -121,11 +121,24 @@ export const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
   isLoading = false
 }) => {
   const [categories, setCategories] = useState<CourseCategory[]>([]);
+  const [nextSessionDate, setNextSessionDate] = useState<string | null>(null);
 
   // Load categories
   useEffect(() => {
     db.getCategories().then(setCategories).catch(console.error);
   }, []);
+
+  // Load next session date when course changes
+  useEffect(() => {
+    if (isOpen && course) {
+      db.getNextCourseSessionDate(course.id)
+        .then(date => setNextSessionDate(date))
+        .catch(error => {
+          console.error('Failed to load next session date:', error);
+          setNextSessionDate(null);
+        });
+    }
+  }, [isOpen, course?.id]);
 
   if (!isOpen || !course) return null;
 
@@ -198,8 +211,8 @@ export const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
                 <span className="text-sm font-medium text-purple-900 dark:text-purple-300">{t.nextCourseDate}</span>
               </div>
               <span className="text-lg font-bold text-purple-700 dark:text-purple-400">
-                {course.nextCourseDate 
-                  ? new Date(course.nextCourseDate).toLocaleDateString(language === 'ar' ? 'ar-EG' : language === 'ua' ? 'uk-UA' : language === 'ru' ? 'ru-RU' : 'en-IE', { 
+                {nextSessionDate 
+                  ? new Date(nextSessionDate).toLocaleDateString(language === 'ar' ? 'ar-EG' : language === 'ua' ? 'uk-UA' : language === 'ru' ? 'ru-RU' : 'en-IE', { 
                       day: 'numeric', 
                       month: 'long', 
                       year: 'numeric' 

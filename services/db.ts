@@ -1340,7 +1340,6 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
           category: course.category,
           description: course.description,
           difficulty: course.difficulty,
-          next_course_date: course.nextCourseDate || null,
           min_english_level: course.minEnglishLevel || null,
           is_active: course.isActive !== false
         })
@@ -1402,7 +1401,6 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
       if (updates.category !== undefined) updateData.category = updates.category;
       if (updates.description !== undefined) updateData.description = updates.description;
       if (updates.difficulty !== undefined) updateData.difficulty = updates.difficulty;
-      if (updates.nextCourseDate !== undefined) updateData.next_course_date = updates.nextCourseDate || null;
       if (updates.minEnglishLevel !== undefined) updateData.min_english_level = updates.minEnglishLevel || null;
       if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
 
@@ -2470,6 +2468,26 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
     }
 
     throw new Error("Supabase not configured");
+  },
+
+  getNextCourseSessionDate: async (courseId: string): Promise<string | null> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    try {
+      const sessions = await db.getCourseSessions(courseId, false);
+      if (sessions.length === 0) return null;
+
+      const today = new Date().toISOString().split('T')[0];
+      const futureSessions = sessions
+        .filter(s => s.sessionDate >= today)
+        .sort((a, b) => a.sessionDate.localeCompare(b.sessionDate));
+
+      return futureSessions.length > 0 ? futureSessions[0].sessionDate : null;
+    } catch (error) {
+      console.error('[DB] Failed to get next course session date:', error);
+      return null;
+    }
   },
 
   createCourseSession: async (courseId: string, sessionDate: string, maxCapacity: number): Promise<CourseSession> => {
