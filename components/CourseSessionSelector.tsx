@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { SessionWithAvailability, Registration, Language } from '../types';
 import { db, supabase } from '../services/db';
 import { TRANSLATIONS } from '../translations';
@@ -32,10 +32,28 @@ export const CourseSessionSelector: React.FC<CourseSessionSelectorProps> = ({
   const effectiveSessionId = registration.assignedSessionId || registration.userSelectedSessionId;
   const isAssignedByAdmin = !!registration.assignedSessionId;
 
+  const loadAvailableSessions = useCallback(async (skipLoadingState = false) => {
+    if (!skipLoadingState) {
+      setIsLoading(true);
+    }
+    setError(null);
+    try {
+      const availableSessions = await db.getAvailableSessions(courseId);
+      setSessions(availableSessions);
+    } catch (err: any) {
+      console.error('Failed to load available sessions:', err);
+      setError(err.message || 'Failed to load available sessions');
+    } finally {
+      if (!skipLoadingState) {
+        setIsLoading(false);
+      }
+    }
+  }, [courseId]);
+
   useEffect(() => {
     loadAvailableSessions();
 
-    // Setup real-time subscription for course_sessions changes
+    // Setup real-time subscriptions for course_sessions and registrations changes
     if (supabase) {
       const channel = supabase
         .channel(`course-sessions-${courseId}`)
@@ -51,27 +69,25 @@ export const CourseSessionSelector: React.FC<CourseSessionSelectorProps> = ({
             loadAvailableSessions();
           }
         )
+        .on('postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'registrations',
+            filter: `course_id=eq.${courseId}`
+          },
+          () => {
+            // Reload sessions when registrations change (affects availability)
+            loadAvailableSessions();
+          }
+        )
         .subscribe();
 
       return () => {
         supabase.removeChannel(channel);
       };
     }
-  }, [courseId]);
-
-  const loadAvailableSessions = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const availableSessions = await db.getAvailableSessions(courseId);
-      setSessions(availableSessions);
-    } catch (err: any) {
-      console.error('Failed to load available sessions:', err);
-      setError(err.message || 'Failed to load available sessions');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [courseId, loadAvailableSessions]);
 
   const handleSelectSession = async (sessionId: string | null) => {
     if (isAssignedByAdmin) return; // Cannot change if admin assigned
@@ -81,6 +97,8 @@ export const CourseSessionSelector: React.FC<CourseSessionSelectorProps> = ({
     try {
       await db.selectUserSession(courseId, sessionId);
       setSelectedSessionId(sessionId);
+      // Immediately reload sessions to update availability in real-time
+      await loadAvailableSessions(true); // Skip loading state for smoother UX
       onSessionSelected?.();
     } catch (err: any) {
       console.error('Failed to select session:', err);
