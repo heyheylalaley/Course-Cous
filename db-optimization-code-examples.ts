@@ -130,10 +130,6 @@ if (supabase) {
       throw new Error(profileError.message);
     }
 
-    // Log only in development mode
-    if (import.meta.env.DEV) {
-      console.log(`Fetched ${profiles?.length || 0} profiles`);
-    }
 
     // Combine registration and profile data
     const details: AdminStudentDetail[] = (registrations || []).map((reg: any) => {

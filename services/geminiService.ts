@@ -120,9 +120,6 @@ const loadCoursesWithAllTranslations = async (): Promise<(Course & { _translatio
       .select('course_id, language, title, description')
       .in('course_id', courseIds);
 
-    if (translationsError && import.meta.env.DEV) {
-      console.warn('[Gemini] Failed to load translations:', translationsError);
-    }
 
     // Build translations map: courseId -> language -> {title, description}
     const translationsMap: Record<string, Record<string, { title: string | null; description: string }>> = {};
@@ -182,9 +179,6 @@ const shouldReinitialize = async (language: Language): Promise<{ needsReinit: bo
     completedCourseIds = completedCourses.map(c => c.courseId);
   } catch (error) {
     // User might not be authenticated - that's ok
-    if (import.meta.env.DEV) {
-      console.log('[Gemini] Could not load user profile:', error);
-    }
   }
 
   const currentHash = createCoursesHash(availableCourses);
@@ -196,13 +190,6 @@ const shouldReinitialize = async (language: Language): Promise<{ needsReinit: bo
                       language !== lastLanguage ||
                       currentEnglishLevel !== lastEnglishLevel;
   
-  if (import.meta.env.DEV && needsReinit) {
-    const reason = !chatSession ? 'no session' : 
-                   currentHash !== lastCoursesHash ? 'courses changed' : 
-                   language !== lastLanguage ? 'language changed' :
-                   'English level changed';
-    console.log(`[Gemini] Reinitializing chat session (reason: ${reason}, user level: ${currentEnglishLevel})`);
-  }
   
   return { needsReinit, courses: availableCourses, profile: userProfile, completedCourseIds };
 };
@@ -231,9 +218,6 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
     }
   })();
 
-  if (import.meta.env.DEV && availableCourses.length > 0) {
-    console.log(`[Gemini] Bot has ${availableCourses.length} courses available`);
-  }
 
   // Build compact course list for bot with all translations
   // Filter out completed courses from the recommendation list
@@ -287,18 +271,8 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
     mainInstructions = await db.getBotInstructions('main', 'en');
     contactsInstructions = await db.getBotInstructions('contacts', 'en');
     externalLinksInstructions = await db.getBotInstructions('external_links', 'en');
-    
-    if (import.meta.env.DEV) {
-      console.log('[Gemini] Loaded instructions from database:', {
-        main: mainInstructions ? `${mainInstructions.length} chars` : 'empty',
-        contacts: contactsInstructions ? `${contactsInstructions.length} chars` : 'empty',
-        external_links: externalLinksInstructions ? `${externalLinksInstructions.length} chars` : 'empty'
-      });
-    }
   } catch (error) {
-    if (import.meta.env.DEV) {
-      console.warn('[Gemini] Failed to load bot instructions from database:', error);
-    }
+    // Ignore error
   }
 
   if (!mainInstructions || mainInstructions.trim() === '') {
@@ -341,17 +315,8 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
   try {
     const allEvents = await db.getCalendarEvents(false); // false = only public events
     upcomingEventsText = formatUpcomingEvents(allEvents);
-    
-    if (import.meta.env.DEV) {
-      console.log('[Gemini] Loaded calendar events:', {
-        total: allEvents.length,
-        upcoming: upcomingEventsText ? upcomingEventsText.split('\n\n').length : 0
-      });
-    }
   } catch (error) {
-    if (import.meta.env.DEV) {
-      console.warn('[Gemini] Failed to load calendar events:', error);
-    }
+    // Ignore error
   }
 
   // Append upcoming events if provided (uses {{UPCOMING_EVENTS}} placeholder or appends)
@@ -366,13 +331,6 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
     instructions = instructions.replace(/\{\{UPCOMING_EVENTS\}\}/g, 'No upcoming public events at this time.');
   }
 
-  if (import.meta.env.DEV) {
-    console.log(`[Gemini] Instructions prepared with ${availableCourses.length} courses, user level: ${userProfile?.englishLevel || 'unknown'}`);
-  }
-
-  if (availableCourses.length === 0) {
-    console.warn('[Gemini] WARNING: No courses loaded! Bot will have no courses to recommend.');
-  }
 
   // Create chat session
   try {
@@ -384,7 +342,6 @@ export const initializeChat = async (userProfile?: UserProfile, language: Langua
       },
     });
   } catch (error) {
-    console.warn('gemini-2.0-flash not available, trying gemini-1.5-flash');
     chatSession = ai.chats.create({
       model: 'gemini-1.5-flash',
       config: {
@@ -439,7 +396,6 @@ export const sendMessageToGemini = async function* (message: string, _userProfil
     
     // If session error, try to reinitialize once
     if (error?.message?.includes('session') || error?.status === 400) {
-      console.log('[Gemini] Session error, attempting to reinitialize...');
       chatSession = null; // Force reinit
       lastCoursesHash = ''; // Force courses reload
       
@@ -483,7 +439,4 @@ export const invalidateChatCache = () => {
   chatSession = null;
   lastCoursesHash = '';
   lastEnglishLevel = 'None';
-  if (import.meta.env.DEV) {
-    console.log('[Gemini] Chat cache invalidated');
-  }
 };

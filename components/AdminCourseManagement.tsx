@@ -39,10 +39,6 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
       try {
         const state = JSON.parse(savedModalState);
         if (state.isOpen) {
-          console.log('[AdminCourseManagement] Restoring modal state from localStorage', {
-            editingCourseId: state.editingCourseId,
-            timestamp: new Date().toISOString()
-          });
           isRestoringRef.current = true;
           setEditingCourseId(state.editingCourseId);
           if (state.editingCourseData) {
@@ -67,14 +63,6 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
   useEffect(() => {
     if (isRestoringRef.current) return; // Don't save during restoration
     
-    console.log('[AdminCourseManagement] Component state updated', {
-      isEditModalOpenRef: isEditModalOpenRef.current,
-      editingCourseIdRef: editingCourseIdRef.current,
-      isEditModalOpen,
-      editingCourseId,
-      timestamp: new Date().toISOString()
-    });
-    
     // Save to localStorage
     if (isEditModalOpen) {
       const stateToSave = {
@@ -83,10 +71,8 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
         editingCourseData: editingCourseData || editingCourseDataRef.current
       };
       localStorage.setItem('adminEditModalState', JSON.stringify(stateToSave));
-      console.log('[AdminCourseManagement] Saved modal state to localStorage', stateToSave);
     } else {
       localStorage.removeItem('adminEditModalState');
-      console.log('[AdminCourseManagement] Removed modal state from localStorage');
     }
     
     // Sync refs with state
@@ -101,38 +87,12 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
     ? (courses.find(c => c.id === editingCourseId) || editingCourseData)
     : null;
   
-  // Log when modal state changes
-  useEffect(() => {
-    console.log('[AdminCourseManagement] isEditModalOpen changed', {
-      isEditModalOpen,
-      editingCourseId,
-      editingCourse: editingCourse ? { id: editingCourse.id, title: editingCourse.title } : null,
-      coursesCount: courses.length,
-      timestamp: new Date().toISOString(),
-      stack: new Error().stack
-    });
-  }, [isEditModalOpen, editingCourseId, editingCourse, courses.length]);
-  
-  // Log when editingCourse changes
-  useEffect(() => {
-    console.log('[AdminCourseManagement] editingCourse changed', {
-      editingCourseId,
-      editingCourse: editingCourse ? { id: editingCourse.id, title: editingCourse.title } : null,
-      foundInCourses: editingCourseId ? courses.some(c => c.id === editingCourseId) : false,
-      editingCourseData: editingCourseData ? { id: editingCourseData.id, title: editingCourseData.title } : null,
-      timestamp: new Date().toISOString()
-    });
-  }, [editingCourse, editingCourseId, courses, editingCourseData]);
   
   // Update stored course data when courses list is updated and we're editing
   useEffect(() => {
     if (editingCourseId && courses.length > 0) {
       const foundCourse = courses.find(c => c.id === editingCourseId);
       if (foundCourse && (!editingCourseData || editingCourseData.id !== foundCourse.id)) {
-        console.log('[AdminCourseManagement] Updating stored course data', {
-          editingCourseId,
-          courseTitle: foundCourse.title
-        });
         setEditingCourseData(foundCourse);
       }
     }
@@ -178,7 +138,6 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
   });
 
   const handleCreateCourse = () => {
-    console.log('[AdminCourseManagement] handleCreateCourse called');
     setEditingCourseId(null);
     setEditingCourseData(null);
     editingCourseIdRef.current = null;
@@ -187,21 +146,13 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
   };
 
   const handleEditCourse = (course: Course) => {
-    console.log('[AdminCourseManagement] handleEditCourse called', { courseId: course.id, courseTitle: course.title });
     setEditingCourseId(course.id);
     setEditingCourseData(course); // Store course data to prevent loss during re-render
     setIsEditModalOpenWithLogging(true);
   };
   
-  // Wrap setIsEditModalOpen to log all changes and update refs
+  // Wrap setIsEditModalOpen to update refs
   const setIsEditModalOpenWithLogging = (value: boolean) => {
-    console.log('[AdminCourseManagement] setIsEditModalOpen called', {
-      newValue: value,
-      currentValue: isEditModalOpen,
-      editingCourseId,
-      timestamp: new Date().toISOString(),
-      stack: new Error().stack
-    });
     isEditModalOpenRef.current = value;
     setIsEditModalOpen(value);
   };
@@ -397,10 +348,6 @@ export const AdminCourseManagement: React.FC<AdminCourseManagementProps> = ({ la
       <CourseEditModal
         isOpen={isEditModalOpen}
         onClose={() => {
-          console.log('[AdminCourseManagement] Modal onClose called', {
-            timestamp: new Date().toISOString(),
-            stack: new Error().stack
-          });
           setIsEditModalOpenWithLogging(false);
           setEditingCourseId(null);
           setEditingCourseData(null);

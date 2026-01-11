@@ -126,10 +126,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         // Listen to auth state changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-          if (import.meta.env.DEV) {
-            console.log('Auth state changed:', event);
-          }
-          
           // Handle PASSWORD_RECOVERY event from Supabase
           if (event === 'PASSWORD_RECOVERY' && session) {
             setIsPasswordRecovery(true);

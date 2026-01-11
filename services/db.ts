@@ -269,14 +269,6 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
       }
 
       const isAdminValue = data.is_admin === true || data.is_admin === 'true' || data.is_admin === 1;
-      // Log only in development mode
-      if (import.meta.env.DEV) {
-        console.log('Profile loaded:', {
-          userId: data.id,
-          email: data.email,
-          isAdmin: isAdminValue
-        });
-      }
 
       return {
         id: data.id,
@@ -1231,11 +1223,6 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
       // CRITICAL: Double-check filter - never return inactive courses if includeInactive is false
       if (!includeInactive) {
         const filtered = courses.filter(c => c.isActive !== false);
-        const removed = courses.length - filtered.length;
-        if (removed > 0) {
-          console.warn(`[DB] Filtered out ${removed} inactive course(s) from getAllCourses:`, 
-            courses.filter(c => c.isActive === false).map(c => c.title));
-        }
         return filtered;
       }
 
@@ -1632,12 +1619,7 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
 
   // --- Course Translation Methods ---
   saveCourseTranslation: async (courseId: string, language: 'en' | 'ua' | 'ru' | 'ar', title: string | null, description: string): Promise<void> => {
-    // Log only in development mode
-    if (import.meta.env.DEV) {
-      console.log(`[DB] Saving translation for ${courseId}/${language}`);
-    }
-    
-    if (!supabase) {
+      if (!supabase) {
       // Mock fallback: save to localStorage
       const storageKey = `course_translations_${courseId}_${language}`;
       localStorage.setItem(storageKey, JSON.stringify({ courseId, language, title, description }));
