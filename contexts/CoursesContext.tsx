@@ -259,8 +259,7 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
       }
       
       // Always reload from database after successful operation to ensure sync
-      // Use a small delay to allow DB to process all rapid registrations
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // No delay needed - let realtime subscriptions handle rapid updates
       await Promise.all([
         loadRegistrations(), // Reload registrations from DB
         loadQueues(),        // Reload queues from DB

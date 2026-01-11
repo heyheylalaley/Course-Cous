@@ -148,7 +148,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
     prevRegistrationsRef.current = registrationsKey;
     prevUserProfileIdRef.current = userProfile.id || '';
     
-    // Load data
+    // Load data immediately when registrations change (for real-time updates)
     loadDashboardData();
   }, [registrations, userProfile.id, loadDashboardData]);
 
