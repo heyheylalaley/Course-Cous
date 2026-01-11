@@ -250,8 +250,13 @@ export const UserTour: React.FC<UserTourProps> = ({
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 320;
   const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 568;
-  const tooltipMaxWidth = isMobile ? Math.min(320, viewportWidth - 32) : 320;
-  const tooltipPadding = 16;
+  
+  // Reduce maxWidth for RTL and mobile to prevent overflow
+  // Also reduce for Russian/Ukrainian if needed (they have longer text)
+  const baseMaxWidth = isMobile ? Math.min(300, viewportWidth - 32) : 300;
+  const tooltipMaxWidth = isRtl ? Math.min(baseMaxWidth, viewportWidth - 40) : baseMaxWidth;
+  
+  const tooltipPadding = 20; // Increased padding for better margins
   const estimatedTooltipHeight = 250; // Approximate height
   
   // Convert absolute position to fixed position (relative to viewport)
@@ -273,21 +278,37 @@ export const UserTour: React.FC<UserTourProps> = ({
     Math.min(fixedLeft, viewportWidth - tooltipPadding - halfTooltipWidth)
   );
   
-  // For RTL, ensure tooltip doesn't go off right edge (which is more critical in RTL)
+  // For RTL, ensure tooltip doesn't go off screen edges
   let finalLeft = clampedLeft;
   let finalTransform = 'translate(-50%, 0)';
   
   if (isRtl) {
-    // In RTL, ensure we don't exceed the right edge (left side of viewport in RTL context)
-    // Add extra safety margin for RTL
-    const rtlMaxLeft = viewportWidth - tooltipPadding - halfTooltipWidth;
-    finalLeft = Math.min(finalLeft, rtlMaxLeft);
+    const minLeft = tooltipPadding + halfTooltipWidth;
+    const maxLeft = viewportWidth - tooltipPadding - halfTooltipWidth;
     
-    // For RTL with 'right' position, flip the transform
+    // Ensure tooltip stays within bounds
+    finalLeft = Math.max(minLeft, Math.min(clampedLeft, maxLeft));
+    
+    // For RTL with 'right' position (steps 2 and 3), tooltip should be to the left of element
+    // If it would go off the left edge, center it instead
     if (currentStepData.position === 'right') {
-      finalTransform = 'translate(50%, 0)';
+      // Check if original clamped position would go off left edge
+      // Use clampedLeft before bounds check to detect overflow
+      if (clampedLeft - halfTooltipWidth < tooltipPadding + 15) {
+        // Center the tooltip to prevent overflow
+        finalLeft = viewportWidth / 2;
+        finalTransform = 'translate(-50%, 0)';
+      } else {
+        finalTransform = 'translate(-50%, 0)';
+      }
     } else if (currentStepData.position === 'left') {
-      // In RTL, 'left' position means tooltip should be to the right, so flip transform
+      // In RTL, position 'left' means tooltip to the right of element
+      finalTransform = 'translate(-50%, 0)';
+    }
+    
+    // On mobile RTL, always center to prevent overflow
+    if (isMobile) {
+      finalLeft = viewportWidth / 2;
       finalTransform = 'translate(-50%, 0)';
     }
   }
@@ -299,15 +320,17 @@ export const UserTour: React.FC<UserTourProps> = ({
     transform: finalTransform,
     zIndex: 10000,
     maxWidth: `${tooltipMaxWidth}px`,
-    width: isMobile ? 'calc(100vw - 32px)' : 'auto',
+    width: isMobile ? (isRtl ? 'calc(100vw - 40px)' : 'calc(100vw - 32px)') : 'auto',
     pointerEvents: 'auto',
     maxHeight: `${viewportHeight - clampedTop - tooltipPadding}px`,
     overflowY: 'auto',
-    overflowX: 'hidden'
+    overflowX: 'hidden',
+    wordWrap: 'break-word',
+    overflowWrap: 'break-word'
   };
 
-  // On mobile, center horizontally if tooltip would be too close to edge
-  if (isMobile) {
+  // On mobile (non-RTL), center horizontally if tooltip would be too close to edge
+  if (isMobile && !isRtl) {
     if (finalLeft - halfTooltipWidth < tooltipPadding || finalLeft + halfTooltipWidth > viewportWidth - tooltipPadding) {
       tooltipStyle.left = '50%';
       tooltipStyle.transform = 'translate(-50%, 0)';
