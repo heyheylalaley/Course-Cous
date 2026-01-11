@@ -1149,6 +1149,28 @@ We look forward to having you join us for this course. If you have any questions
                 </pre>
               </div>
               
+              {/* Copy Email Button */}
+              <div className="flex items-center justify-between mt-4">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {t.adminEmailCopyHint || 'Copy the email above and send it to invited students'}
+                </p>
+                <button
+                  onClick={handleCopyEmail}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600 dark:bg-purple-700 text-white hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors"
+                >
+                  {emailCopied ? (
+                    <>
+                      <Check size={18} />
+                      {t.adminCopied || 'Copied!'}
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={18} />
+                      {t.adminCopyEmail || 'Copy Email'}
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Footer */}
@@ -1186,29 +1208,6 @@ We look forward to having you join us for this course. If you have any questions
                     {getInvitedStudentsEmails() || t.adminNoInvitedStudents || 'No invited students'}
                   </p>
                 </div>
-              </div>
-
-              {/* Copy Email Button Section */}
-              <div className="flex items-center justify-between p-4 sm:p-6">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {t.adminEmailCopyHint || 'Copy the email above and send it to invited students'}
-                </p>
-                <button
-                  onClick={handleCopyEmail}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600 dark:bg-purple-700 text-white hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors"
-                >
-                  {emailCopied ? (
-                    <>
-                      <Check size={18} />
-                      {t.adminCopied || 'Copied!'}
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={18} />
-                      {t.adminCopyEmail || 'Copy Email'}
-                    </>
-                  )}
-                </button>
               </div>
             </div>
           </div>
