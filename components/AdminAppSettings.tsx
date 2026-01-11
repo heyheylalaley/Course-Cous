@@ -352,17 +352,12 @@ We look forward to seeing you soon!`);
     setIsLoadingWordTemplate(true);
     setWordTemplateError(null);
     try {
-      const url = await db.getWordTemplateUrl();
-      if (url) {
-        // Extract filename from URL if possible
-        try {
-          const urlObj = new URL(url);
-          const pathParts = urlObj.pathname.split('/');
-          const fileName = pathParts[pathParts.length - 1];
-          setWordTemplateFileName(fileName || 'template.docx');
-        } catch {
-          setWordTemplateFileName('template.docx');
-        }
+      const filePath = await db.getWordTemplateUrl();
+      if (filePath) {
+        // Extract filename from path (format: "word-templates/template_1234567890.docx")
+        const pathParts = filePath.split('/');
+        const fileName = pathParts[pathParts.length - 1];
+        setWordTemplateFileName(fileName || 'template.docx');
       } else {
         setWordTemplateFileName(null);
       }
