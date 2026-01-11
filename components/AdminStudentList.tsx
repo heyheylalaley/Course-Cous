@@ -539,6 +539,20 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
         }
       };
 
+      // Format Date object helper for Word template
+      const formatDateObjectForWord = (date: Date | undefined): string => {
+        if (!date) return '';
+        try {
+          return date.toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+          });
+        } catch {
+          return '';
+        }
+      };
+
       // Create ZIP archive for all documents
       const zip = new JSZip();
       let documentsGenerated = 0;
@@ -555,22 +569,43 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
 
           // Prepare data for template
           const courseDate = student.assignedSessionDate || student.userSelectedSessionDate || '';
+          const fullName = `${student.firstName || ''} ${student.lastName || ''}`.trim() || '';
           const templateData = {
+            // Student basic info
+            userId: student.userId || '',
             firstName: student.firstName || '',
             lastName: student.lastName || '',
+            fullName: fullName,
             email: student.email || '',
             mobileNumber: student.mobileNumber || '',
             address: student.address || '',
             eircode: student.eircode || '',
             dateOfBirth: formatDateForWord(student.dateOfBirth),
             englishLevel: student.englishLevel || '',
+            // Course info
+            courseId: course?.id || '',
             courseTitle: course?.title || '',
-            courseDate: formatDateForWord(courseDate),
-            courseRegistrationDate: formatDateForWord(student.registeredAt ? student.registeredAt.toISOString().split('T')[0] : undefined),
-            ldcRef: student.ldcRef || '',
-            irisId: student.irisId || '',
+            courseDescription: course?.description || '',
+            courseCategory: course?.category || '',
+            courseDifficulty: course?.difficulty || '',
+            courseMinEnglishLevel: course?.minEnglishLevel || '',
+            // Registration info
             priority: student.priority?.toString() || '',
             registeredAt: student.registeredAt.toLocaleDateString('en-GB'),
+            courseRegistrationDate: formatDateForWord(student.registeredAt ? student.registeredAt.toISOString().split('T')[0] : undefined),
+            isCompleted: student.isCompleted ? 'Yes' : 'No',
+            completedAt: formatDateObjectForWord(student.completedAt),
+            // Enrollment management
+            isInvited: student.isInvited ? 'Yes' : 'No',
+            invitedAt: formatDateObjectForWord(student.invitedAt),
+            assignedSessionId: student.assignedSessionId || '',
+            assignedSessionDate: formatDateForWord(student.assignedSessionDate),
+            userSelectedSessionId: student.userSelectedSessionId || '',
+            userSelectedSessionDate: formatDateForWord(student.userSelectedSessionDate),
+            courseDate: formatDateForWord(courseDate),
+            // Admin fields
+            ldcRef: student.ldcRef || '',
+            irisId: student.irisId || '',
           };
 
           // Render document

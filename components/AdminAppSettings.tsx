@@ -1028,6 +1028,70 @@ We look forward to seeing you soon!`);
               </div>
             )}
 
+            {/* Variables Info */}
+            <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                {(t as any).adminWordTemplateVariables || 'Available Variables:'}
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="font-medium text-gray-600 dark:text-gray-400 mb-2">Student Information:</p>
+                  <ul className="space-y-1 text-gray-600 dark:text-gray-400">
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;userId&#125;</code> - User ID</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;firstName&#125;</code> - First Name</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;lastName&#125;</code> - Last Name</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;fullName&#125;</code> - Full Name</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;email&#125;</code> - Email</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;mobileNumber&#125;</code> - Phone Number</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;address&#125;</code> - Address</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;eircode&#125;</code> - Eircode</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;dateOfBirth&#125;</code> - Date of Birth (formatted)</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;englishLevel&#125;</code> - English Level</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-600 dark:text-gray-400 mb-2">Course Information:</p>
+                  <ul className="space-y-1 text-gray-600 dark:text-gray-400">
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;courseId&#125;</code> - Course ID</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;courseTitle&#125;</code> - Course Title</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;courseDescription&#125;</code> - Course Description</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;courseCategory&#125;</code> - Course Category</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;courseDifficulty&#125;</code> - Course Difficulty</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;courseMinEnglishLevel&#125;</code> - Min English Level</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-600 dark:text-gray-400 mb-2">Registration Information:</p>
+                  <ul className="space-y-1 text-gray-600 dark:text-gray-400">
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;priority&#125;</code> - Priority Number</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;registeredAt&#125;</code> - Registration Date (DD/MM/YYYY)</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;courseRegistrationDate&#125;</code> - Registration Date (formatted)</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;isCompleted&#125;</code> - Completion Status (Yes/No)</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;completedAt&#125;</code> - Completion Date (formatted)</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-600 dark:text-gray-400 mb-2">Enrollment & Dates:</p>
+                  <ul className="space-y-1 text-gray-600 dark:text-gray-400">
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;isInvited&#125;</code> - Invitation Status (Yes/No)</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;invitedAt&#125;</code> - Invitation Date (formatted)</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;assignedSessionId&#125;</code> - Assigned Session ID</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;assignedSessionDate&#125;</code> - Assigned Date (formatted)</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;userSelectedSessionId&#125;</code> - Selected Session ID</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;userSelectedSessionDate&#125;</code> - Selected Date (formatted)</li>
+                    <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;courseDate&#125;</code> - Course Date (formatted)</li>
+                  </ul>
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <p className="font-medium text-gray-600 dark:text-gray-400 mb-2">Admin Fields:</p>
+                <ul className="space-y-1 text-gray-600 dark:text-gray-400 text-sm">
+                  <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;ldcRef&#125;</code> - LDC Reference</li>
+                  <li><code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">&#123;irisId&#125;</code> - IRIS ID</li>
+                </ul>
+              </div>
+            </div>
+
             {/* Upload Button */}
             <div>
               <label className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
@@ -1054,7 +1118,7 @@ We look forward to seeing you soon!`);
                 />
               </label>
               <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                {(t as any).adminWordTemplateHint || 'Maximum file size: 5MB. Supported placeholders: {firstName}, {lastName}, {email}, {mobileNumber}, {address}, {eircode}, {dateOfBirth}, {englishLevel}, {courseTitle}, {courseDate}, {ldcRef}, {irisId}'}
+                {(t as any).adminWordTemplateHint || 'Maximum file size: 5MB. All formatted dates use format: "day month year" (e.g., "15 January 2024")'}
               </p>
             </div>
           </div>
