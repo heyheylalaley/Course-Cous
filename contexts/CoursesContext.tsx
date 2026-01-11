@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import { Course, CourseCategory, Language } from '../types';
 import { db, supabase } from '../services/db';
 import { TRANSLATIONS } from '../translations';
@@ -41,6 +41,9 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
   const [courseQueues, setCourseQueues] = useState<Map<string, number>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Lock to prevent concurrent registration operations - queue operations sequentially
+  const registrationLockRef = useRef<Promise<{ success: boolean; error?: string }>>(Promise.resolve({ success: true }));
 
   // Memoized sorted courses: registered first, then by difficulty
   // Filter out completed courses - users shouldn't see them in the catalog
@@ -194,65 +197,80 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
   }, [language, loadCourses]);
 
   const toggleRegistration = useCallback(async (courseId: string, language: Language): Promise<{ success: boolean; error?: string }> => {
-    const t = TRANSLATIONS[language] as any;
-    const isRegistered = registrations.includes(courseId);
-    const isCompleted = completedCourses.includes(courseId);
-    
-    // Check if course is already completed - prevent re-registration
-    if (!isRegistered && isCompleted) {
-      return { success: false, error: t.courseAlreadyCompleted || 'This course has already been completed. You cannot register for it again.' };
-    }
-    
-    // Optimistic update
-    if (isRegistered) {
-      setRegistrations(prev => prev.filter(id => id !== courseId));
-      setCourseQueues(prev => {
-        const newMap = new Map(prev);
-        const currentCount = newMap.get(courseId) || 0;
-        newMap.set(courseId, Math.max(0, currentCount - 1));
-        return newMap;
-      });
-    } else {
-      if (registrations.length >= 3) {
-        return { success: false, error: t.maxCoursesReached || 'Maximum 3 courses allowed' };
+    // Queue this operation to run after previous operations complete
+    // This prevents race conditions when registering for multiple courses quickly
+    const operation = async (): Promise<{ success: boolean; error?: string }> => {
+      const t = TRANSLATIONS[language] as any;
+      
+      // Always check current state from database first to avoid race conditions
+      const currentRegs = await db.getRegistrations();
+      const currentRegIds = currentRegs.map(r => r.courseId);
+      const isRegistered = currentRegIds.includes(courseId);
+      const isCompleted = completedCourses.includes(courseId);
+      
+      // Check if course is already completed - prevent re-registration
+      if (!isRegistered && isCompleted) {
+        return { success: false, error: t.courseAlreadyCompleted || 'This course has already been completed. You cannot register for it again.' };
       }
       
-      // Check if profile is complete before allowing registration
-      const isComplete = await db.isProfileComplete();
-      if (!isComplete) {
-        return { success: false, error: t.profileIncompleteDesc || 'Please complete your profile before registering for courses.' };
-      }
-      
-      setRegistrations(prev => [...prev, courseId]);
-      setCourseQueues(prev => {
-        const newMap = new Map(prev);
-        const currentCount = newMap.get(courseId) || 0;
-        newMap.set(courseId, currentCount + 1);
-        return newMap;
-      });
-    }
-
-    try {
+      // For removal, we can do optimistic update (simpler case)
       if (isRegistered) {
-        await db.removeRegistration(courseId);
+        // Optimistic update for removal
+        setRegistrations(prev => prev.filter(id => id !== courseId));
+        setCourseQueues(prev => {
+          const newMap = new Map(prev);
+          const currentCount = newMap.get(courseId) || 0;
+          newMap.set(courseId, Math.max(0, currentCount - 1));
+          return newMap;
+        });
       } else {
-        await db.addRegistration(courseId);
+        // For registration, check limits from database state
+        if (currentRegIds.length >= 3) {
+          return { success: false, error: t.maxCoursesReached || 'Maximum 3 courses allowed' };
+        }
+        
+        // Check if profile is complete before allowing registration
+        const isComplete = await db.isProfileComplete();
+        if (!isComplete) {
+          return { success: false, error: t.profileIncompleteDesc || 'Please complete your profile before registering for courses.' };
+        }
+        
+        // NO optimistic update for registration - wait for DB confirmation
+        // This prevents race conditions when registering for multiple courses quickly
       }
-      
-      // Explicitly refresh all registration-related data to ensure real-time sync
-      // This ensures UI updates immediately even if Realtime subscription has delay
-      await Promise.all([
-        loadRegistrations(), // Reload registrations first
-        loadQueues(),        // Then reload queues
-        loadCompletedCourses() // Also check for any completion status changes
-      ]);
-      return { success: true };
-    } catch (err: any) {
-      // Rollback on error - reload all data to ensure UI is in sync
-      await Promise.all([loadRegistrations(), loadQueues(), loadCompletedCourses()]);
-      return { success: false, error: err.message || 'Failed to update registration' };
-    }
-  }, [registrations, completedCourses, loadRegistrations, loadQueues]);
+
+      try {
+        if (isRegistered) {
+          await db.removeRegistration(courseId);
+        } else {
+          await db.addRegistration(courseId);
+        }
+        
+        // ALWAYS reload from database after successful operation to ensure 100% accuracy
+        // This is critical for handling rapid successive registrations
+        await Promise.all([
+          loadRegistrations(), // Reload registrations from DB
+          loadQueues(),        // Reload queues from DB
+          loadCompletedCourses() // Reload completions from DB
+        ]);
+        
+        return { success: true };
+      } catch (err: any) {
+        // On error, reload all data to ensure UI matches database state
+        await Promise.all([loadRegistrations(), loadQueues(), loadCompletedCourses()]);
+        return { success: false, error: err.message || 'Failed to update registration' };
+      }
+    };
+    
+    // Chain operations to execute sequentially - each new operation waits for previous to complete
+    const previousOperation = registrationLockRef.current;
+    const currentOperation = previousOperation
+      .then(() => operation())
+      .catch(() => operation()); // If previous failed, still run current operation
+    
+    registrationLockRef.current = currentOperation;
+    return currentOperation;
+  }, [completedCourses, loadRegistrations, loadQueues, loadCompletedCourses]);
 
   const updatePriority = useCallback(async (courseId: string, newPriority: number) => {
     try {

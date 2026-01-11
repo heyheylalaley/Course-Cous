@@ -83,12 +83,53 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
   const prevRegistrationsRef = useRef<string[]>([]);
   const prevUserProfileIdRef = useRef<string>('');
   const isMountedRef = useRef(false);
+  const lastLoadTimeRef = useRef<number>(0);
+  
+  // Helper function to load data from database
+  const loadDataFromDB = useCallback(async () => {
+    const now = Date.now();
+    // Throttle: don't reload more than once per 200ms to avoid excessive DB calls
+    if (now - lastLoadTimeRef.current < 200 && lastLoadTimeRef.current > 0) {
+      return;
+    }
+    lastLoadTimeRef.current = now;
+    
+    try {
+      // Always reload registrations to get latest priorities and ensure real-time sync
+      // This ensures Dashboard shows correct data even if context state is slightly out of sync
+      const regs = await db.getRegistrations();
+      setCourseRegistrations(regs);
+      
+      // Load course queues
+      const queues = await db.getCourseQueues();
+      const queueMap = new Map<string, number>();
+      queues.forEach(q => {
+        queueMap.set(q.courseId, q.queueLength);
+      });
+      setCourseQueues(queueMap);
+
+      // Check if profile is complete
+      const complete = await db.isProfileComplete();
+      setIsProfileComplete(complete);
+
+      // Load completed courses
+      try {
+        const completed = await db.getUserCompletedCourses();
+        setCompletedCourses(completed);
+      } catch (err) {
+        // Silently fail - completions might not be available
+        console.error("Failed to load completed courses", err);
+      }
+    } catch (error) {
+      console.error("Failed to load data", error);
+    }
+  }, []);
   
   useEffect(() => {
-    // Only reload if registrations actually changed (by length or content)
-    const registrationsChanged = 
-      registrations.length !== prevRegistrationsRef.current.length ||
-      registrations.some((id, index) => id !== prevRegistrationsRef.current[index]);
+    // Create a string representation for more reliable comparison (sorted to handle order differences)
+    const currentRegsStr = [...registrations].sort().join(',');
+    const prevRegsStr = [...prevRegistrationsRef.current].sort().join(',');
+    const registrationsChanged = currentRegsStr !== prevRegsStr;
     
     // Only reload if user profile ID changed (not just other properties)
     const profileChanged = userProfile.id !== prevUserProfileIdRef.current;
@@ -107,39 +148,19 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
     prevUserProfileIdRef.current = userProfile.id;
     isMountedRef.current = true;
     
-    const loadData = async () => {
-      try {
-        // Always reload registrations to get latest priorities and ensure real-time sync
-        // This ensures Dashboard shows correct data even if context state is slightly out of sync
-        const regs = await db.getRegistrations();
-        setCourseRegistrations(regs);
-        
-        // Load course queues
-        const queues = await db.getCourseQueues();
-        const queueMap = new Map<string, number>();
-        queues.forEach(q => {
-          queueMap.set(q.courseId, q.queueLength);
-        });
-        setCourseQueues(queueMap);
-
-        // Check if profile is complete
-        const complete = await db.isProfileComplete();
-        setIsProfileComplete(complete);
-
-        // Load completed courses
-        try {
-          const completed = await db.getUserCompletedCourses();
-          setCompletedCourses(completed);
-        } catch (err) {
-          // Silently fail - completions might not be available
-          console.error("Failed to load completed courses", err);
-        }
-      } catch (error) {
-        console.error("Failed to load data", error);
-      }
+    // Load data immediately
+    loadDataFromDB();
+    
+    // Also schedule a delayed refresh to catch any updates that might have been missed
+    // This is especially important when registering for multiple courses quickly
+    const timeoutId = setTimeout(() => {
+      loadDataFromDB();
+    }, 500); // 500ms delay to allow DB to process all operations
+    
+    return () => {
+      clearTimeout(timeoutId);
     };
-    loadData();
-  }, [registrations, userProfile.id]);
+  }, [registrations, userProfile.id, loadDataFromDB]);
 
   // Sync local state if parent updates
   useEffect(() => {
