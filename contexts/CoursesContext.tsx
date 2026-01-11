@@ -138,6 +138,15 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
 
     // Setup Supabase Realtime instead of polling
     if (supabase) {
+      // Get current user ID for filtering (if available)
+      let currentUserId: string | null = null;
+      try {
+        const session = db.getCurrentSession();
+        currentUserId = session?.id || null;
+      } catch (e) {
+        // Session might not be available yet
+      }
+
       channel = supabase
         .channel('courses-changes')
         .on('postgres_changes', 
@@ -147,10 +156,26 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
           }
         )
         .on('postgres_changes',
-          { event: '*', schema: 'public', table: 'registrations' },
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'registrations',
+            // Filter by user_id if available (RLS should handle this, but explicit filter helps)
+            ...(currentUserId ? { filter: `user_id=eq.${currentUserId}` } : {})
+          },
           () => {
+            // Reload all registration-related data when registrations change
             loadRegistrations();
             loadQueues();
+            loadCompletedCourses();
+          }
+        )
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'course_completions' },
+          () => {
+            // Reload completed courses when completions change
+            loadCompletedCourses();
+            loadRegistrations(); // Also reload registrations as completed courses affect what's shown
           }
         )
         .subscribe();
@@ -214,12 +239,17 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
         await db.addRegistration(courseId);
       }
       
-      // Refresh queues to ensure sync
-      await loadQueues();
+      // Explicitly refresh all registration-related data to ensure real-time sync
+      // This ensures UI updates immediately even if Realtime subscription has delay
+      await Promise.all([
+        loadRegistrations(), // Reload registrations first
+        loadQueues(),        // Then reload queues
+        loadCompletedCourses() // Also check for any completion status changes
+      ]);
       return { success: true };
     } catch (err: any) {
-      // Rollback on error
-      await Promise.all([loadRegistrations(), loadQueues()]);
+      // Rollback on error - reload all data to ensure UI is in sync
+      await Promise.all([loadRegistrations(), loadQueues(), loadCompletedCourses()]);
       return { success: false, error: err.message || 'Failed to update registration' };
     }
   }, [registrations, completedCourses, loadRegistrations, loadQueues]);

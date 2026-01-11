@@ -31,7 +31,7 @@ const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(m =
 // Main App Content (uses contexts)
 const AppContent: React.FC = () => {
   const { isAuthenticated, userProfile, isLoading: authLoading, isPasswordRecovery, isDemoUser, login, logout, updateProfile, updateEnglishLevel, completePasswordRecovery } = useAuth();
-  const { courses, categories, registrations, courseQueues, isLoading: coursesLoading, toggleRegistration, refreshCourses, updatePriority } = useCourses();
+  const { courses, categories, registrations, courseQueues, isLoading: coursesLoading, toggleRegistration, refreshCourses, refreshRegistrations, updatePriority } = useCourses();
   const { language, theme, isSidebarOpen, activeTab, setLanguage, toggleTheme, setSidebarOpen, setActiveTab, isRtl } = useUI();
 
   // Local UI state
@@ -294,7 +294,11 @@ const AppContent: React.FC = () => {
     setErrorMessage(null);
     setErrorActionButton(undefined);
     const result = await toggleRegistration(courseId, language);
-    if (!result.success && result.error) {
+    if (result.success) {
+      // Explicitly refresh registrations after successful registration to ensure real-time sync
+      // This ensures Dashboard and other components see the update immediately
+      await refreshRegistrations();
+    } else if (result.error) {
       // Check if error is about max courses reached - show extended message with dashboard link
       if (result.error.includes('Maximum') || result.error.includes('Максимум') || result.error.includes('الحد الأقصى')) {
         setErrorMessage(t.maxCoursesReachedModal || result.error);
@@ -317,7 +321,7 @@ const AppContent: React.FC = () => {
         setErrorMessage(result.error);
       }
     }
-  }, [toggleRegistration, language, t.completeProfile, t.maxCoursesReachedModal, t.goToDashboard, setActiveTab, setSidebarOpen]);
+  }, [toggleRegistration, refreshRegistrations, language, t.completeProfile, t.maxCoursesReachedModal, t.goToDashboard, setActiveTab, setSidebarOpen]);
 
   const handleViewCourseDetails = useCallback((course: Course) => {
     setSelectedCourse(course);
@@ -436,6 +440,8 @@ const AppContent: React.FC = () => {
         onRegister={async (courseId) => {
           const result = await toggleRegistration(courseId, language);
           if (result.success) {
+            // Explicitly refresh registrations after successful registration
+            await refreshRegistrations();
             setShowCourseDetails(false);
             setSelectedCourse(null);
           } else if (result.error) {

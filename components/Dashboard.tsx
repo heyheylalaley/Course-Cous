@@ -82,6 +82,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
   // Use refs to track previous values and avoid unnecessary reloads
   const prevRegistrationsRef = useRef<string[]>([]);
   const prevUserProfileIdRef = useRef<string>('');
+  const isMountedRef = useRef(false);
   
   useEffect(() => {
     // Only reload if registrations actually changed (by length or content)
@@ -92,8 +93,11 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
     // Only reload if user profile ID changed (not just other properties)
     const profileChanged = userProfile.id !== prevUserProfileIdRef.current;
     
-    // Skip reload if nothing meaningful changed
-    if (!registrationsChanged && !profileChanged && 
+    // On first mount, always load data to ensure fresh state
+    const isFirstMount = !isMountedRef.current;
+    
+    // Skip reload if nothing meaningful changed (but not on first mount)
+    if (!isFirstMount && !registrationsChanged && !profileChanged && 
         prevRegistrationsRef.current.length > 0 && prevUserProfileIdRef.current) {
       return;
     }
@@ -101,10 +105,12 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
     // Update refs
     prevRegistrationsRef.current = [...registrations];
     prevUserProfileIdRef.current = userProfile.id;
+    isMountedRef.current = true;
     
     const loadData = async () => {
       try {
-        // Always reload registrations to get latest priorities
+        // Always reload registrations to get latest priorities and ensure real-time sync
+        // This ensures Dashboard shows correct data even if context state is slightly out of sync
         const regs = await db.getRegistrations();
         setCourseRegistrations(regs);
         
@@ -218,9 +224,17 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
     setIsRemoving(true);
     try {
       await onRemoveRegistration(courseToRemove.id);
-      // Refresh registrations after removal
-      const regs = await db.getRegistrations();
+      // Refresh all registration-related data after removal to ensure real-time sync
+      const [regs, queues] = await Promise.all([
+        db.getRegistrations(),
+        db.getCourseQueues()
+      ]);
       setCourseRegistrations(regs);
+      const queueMap = new Map<string, number>();
+      queues.forEach(q => {
+        queueMap.set(q.courseId, q.queueLength);
+      });
+      setCourseQueues(queueMap);
     } finally {
       setIsRemoving(false);
       setCourseToRemove(null);

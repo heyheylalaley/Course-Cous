@@ -82,15 +82,15 @@ export const AdminUserProfileModal: React.FC<AdminUserProfileModalProps> = ({
     
     try {
       await db.updateUserProfileByAdmin(user.userId, {
-        firstName: firstName.trim() || undefined,
-        lastName: lastName.trim() || undefined,
-        mobileNumber: mobileNumber.trim() || undefined,
-        address: address.trim() || undefined,
-        eircode: eircode.trim() || undefined,
-        dateOfBirth: dateOfBirth.trim() || undefined,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        mobileNumber: mobileNumber.trim(),
+        address: address.trim(),
+        eircode: eircode.trim(),
+        dateOfBirth: dateOfBirth.trim(),
         englishLevel: englishLevel,
-        ldcRef: ldcRef.trim() || undefined,
-        irisId: irisId.trim() || undefined
+        ldcRef: ldcRef.trim(),
+        irisId: irisId.trim()
       });
 
       // Wait a bit to ensure database transaction is committed

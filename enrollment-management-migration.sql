@@ -275,7 +275,9 @@ BEGIN
   UPDATE registrations
   SET 
     is_invited = p_is_invited,
-    invited_at = CASE WHEN p_is_invited THEN NOW() ELSE NULL END
+    invited_at = CASE WHEN p_is_invited THEN NOW() ELSE NULL END,
+    -- Clear user_selected_session_id when invite is removed
+    user_selected_session_id = CASE WHEN p_is_invited THEN user_selected_session_id ELSE NULL END
   WHERE user_id = p_user_id AND course_id = p_course_id;
 END;
 $$;
