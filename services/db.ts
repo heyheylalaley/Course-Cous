@@ -2909,6 +2909,55 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
     if (error) throw new Error(error.message);
   },
 
+  // Remove user registration by admin (can remove any user's registration)
+  removeUserRegistrationByAdmin: async (userId: string, courseId: string): Promise<void> => {
+    const session = db.getCurrentSession();
+    if (!session) throw new Error("Not authenticated");
+
+    // Check if user is admin
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      throw new Error("Admin access required");
+    }
+
+    if (!supabase) {
+      throw new Error("Supabase not configured");
+    }
+
+    // Delete the registration
+    const { error } = await supabase
+      .from('registrations')
+      .delete()
+      .eq('user_id', userId)
+      .eq('course_id', courseId);
+
+    if (error) throw new Error(error.message);
+
+    // Recalculate priorities for remaining registrations
+    const { data: remainingRegs, error: regsError } = await supabase
+      .from('registrations')
+      .select('course_id, priority')
+      .eq('user_id', userId)
+      .order('priority', { ascending: true });
+
+    if (regsError) throw new Error(regsError.message);
+
+    if ((remainingRegs || []).length > 0) {
+      // Prepare priorities JSON for batch update
+      const priorities = (remainingRegs || []).map((reg: any, index: number) => ({
+        course_id: reg.course_id,
+        priority: index + 1
+      }));
+
+      const { error: updateError } = await supabase.rpc('update_registration_priorities', {
+        p_user_id: userId,
+        p_priorities: priorities
+      });
+
+      if (updateError) throw new Error(updateError.message);
+    }
+  },
+
   // --- User Deletion Methods (Admin only) ---
   deleteUser: async (userId: string): Promise<void> => {
     const session = db.getCurrentSession();

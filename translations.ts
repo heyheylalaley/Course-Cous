@@ -234,6 +234,10 @@ export const TRANSLATIONS = {
     adminDeleteProfileTitle: 'Delete User Profile',
     adminDeleteProfileMessage: 'Are you sure you want to delete the profile for {email}? This will permanently delete the profile and all course registrations. This action cannot be undone.',
     adminDeleteConfirm: 'Delete',
+    adminRemoveRegistration: 'Remove Registration',
+    adminRemoveRegistrationConfirm: 'Are you sure you want to remove',
+    adminFromCourse: 'from',
+    adminRemove: 'Remove',
     adminLdcRefFilterPlaceholder: 'Filter by LDC Ref...',
     // Forgot Password
     forgotPassword: 'Forgot Password?',
@@ -638,6 +642,10 @@ export const TRANSLATIONS = {
     adminDeleteProfileTitle: 'Видалити профіль користувача',
     adminDeleteProfileMessage: 'Ви впевнені, що хочете видалити профіль для {email}? Це назавжди видалить профіль та всі реєстрації на курси. Цю дію неможливо скасувати.',
     adminDeleteConfirm: 'Видалити',
+    adminRemoveRegistration: 'Видалити реєстрацію',
+    adminRemoveRegistrationConfirm: 'Ви впевнені, що хочете видалити',
+    adminFromCourse: 'з',
+    adminRemove: 'Видалити',
     adminLdcRefFilterPlaceholder: 'Фільтр по LDC Ref...',
     // Forgot Password
     forgotPassword: 'Забули пароль?',
@@ -1042,6 +1050,10 @@ export const TRANSLATIONS = {
     adminDeleteProfileTitle: 'Удалить профиль пользователя',
     adminDeleteProfileMessage: 'Вы уверены, что хотите удалить профиль для {email}? Это навсегда удалит профиль и все регистрации на курсы. Это действие нельзя отменить.',
     adminDeleteConfirm: 'Удалить',
+    adminRemoveRegistration: 'Удалить регистрацию',
+    adminRemoveRegistrationConfirm: 'Вы уверены, что хотите удалить',
+    adminFromCourse: 'из',
+    adminRemove: 'Удалить',
     adminLdcRefFilterPlaceholder: 'Фильтр по LDC Ref...',
     // Forgot Password
     forgotPassword: 'Забыли пароль?',
@@ -1446,6 +1458,10 @@ export const TRANSLATIONS = {
     adminDeleteProfileTitle: 'حذف ملف المستخدم',
     adminDeleteProfileMessage: 'هل أنت متأكد أنك تريد حذف الملف لـ {email}؟ سيؤدي هذا إلى حذف الملف وجميع التسجيلات في الدورات بشكل دائم. لا يمكن التراجع عن هذا الإجراء.',
     adminDeleteConfirm: 'حذف',
+    adminRemoveRegistration: 'إزالة التسجيل',
+    adminRemoveRegistrationConfirm: 'هل أنت متأكد أنك تريد إزالة',
+    adminFromCourse: 'من',
+    adminRemove: 'إزالة',
     adminLdcRefFilterPlaceholder: 'تصفية حسب LDC Ref...',
     // Forgot Password
     forgotPassword: 'نسيت كلمة المرور؟',

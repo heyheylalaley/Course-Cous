@@ -8,7 +8,7 @@ import { AdminAddParticipantModal } from './AdminAddParticipantModal';
 import { 
   Users, FileSpreadsheet, FileText, Mail, Phone, Calendar, GraduationCap, 
   ArrowUp, ArrowDown, Filter, Search, CheckCircle, Circle, X, ArrowLeft,
-  Send, CalendarCheck, Loader2, Copy, Check, UserPlus
+  Send, CalendarCheck, Loader2, Copy, Check, UserPlus, Trash2
 } from 'lucide-react';
 
 interface AdminStudentListProps {
@@ -32,6 +32,8 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [completingUserId, setCompletingUserId] = useState<string | null>(null);
   const [studentToConfirm, setStudentToConfirm] = useState<AdminStudentDetail | null>(null);
+  const [removingUserId, setRemovingUserId] = useState<string | null>(null);
+  const [studentToRemove, setStudentToRemove] = useState<AdminStudentDetail | null>(null);
   const { courses: availableCourses } = useCourses(false, language);
   const t = TRANSLATIONS[language] as any;
   const isRtl = language === 'ar';
@@ -196,6 +198,23 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
       alert(err.message || 'Failed to update completion status');
     } finally {
       setCompletingUserId(null);
+    }
+  };
+
+  // Handle removal of registration
+  const handleRemoveRegistration = async () => {
+    if (!studentToRemove) return;
+    
+    setRemovingUserId(studentToRemove.userId);
+    try {
+      await db.removeUserRegistrationByAdmin(studentToRemove.userId, courseId);
+      await loadStudentDetails();
+      setStudentToRemove(null);
+    } catch (err: any) {
+      console.error('Failed to remove registration:', err);
+      alert(err.message || 'Failed to remove registration');
+    } finally {
+      setRemovingUserId(null);
     }
   };
 
@@ -905,6 +924,9 @@ We look forward to having you join us for this course. If you have any questions
                     {t.adminSelectedDate || 'Selected'}
                     <SortIcon field="selectedDate" />
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    {t.adminActions || 'Actions'}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -1023,6 +1045,21 @@ We look forward to having you join us for this course. If you have any questions
                       ) : (
                         <span className="text-gray-300 dark:text-gray-600">—</span>
                       )}
+                    </td>
+                    {/* Actions Column */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <button
+                        onClick={() => setStudentToRemove(student)}
+                        disabled={removingUserId === student.userId}
+                        className="p-1.5 rounded-lg transition-colors text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 disabled:opacity-50"
+                        title={t.adminRemoveRegistration || 'Remove registration'}
+                      >
+                        {removingUserId === student.userId ? (
+                          <Loader2 size={18} className="animate-spin" />
+                        ) : (
+                          <Trash2 size={18} />
+                        )}
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -1162,6 +1199,24 @@ We look forward to having you join us for this course. If you have any questions
         language={language}
         type="warning"
         isLoading={completingUserId === studentToConfirm?.userId}
+      />
+
+      {/* Remove Registration Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!studentToRemove}
+        onClose={() => setStudentToRemove(null)}
+        onConfirm={handleRemoveRegistration}
+        title={t.adminRemoveRegistration || 'Remove Registration'}
+        message={
+          studentToRemove && course
+            ? `${t.adminRemoveRegistrationConfirm || 'Are you sure you want to remove'} ${studentToRemove.firstName || ''} ${studentToRemove.lastName || ''} ${t.adminFromCourse || 'from'} ${course.title}?`
+            : ''
+        }
+        confirmText={t.adminRemove || 'Remove'}
+        cancelText={t.cancel || 'Cancel'}
+        language={language}
+        type="danger"
+        isLoading={removingUserId === studentToRemove?.userId}
       />
 
       {/* Add Participant Modal */}
