@@ -2762,8 +2762,21 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
     }));
   },
 
-  // Create user by admin (with temporary password)
-  createUserByAdmin: async (email: string, password: string, profileData?: {
+  // Generate a random secure password (user will use password reset to set their own)
+  generateRandomPassword: (): string => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    const length = 32;
+    let password = '';
+    const array = new Uint32Array(length);
+    crypto.getRandomValues(array);
+    for (let i = 0; i < length; i++) {
+      password += chars[array[i] % chars.length];
+    }
+    return password;
+  },
+
+  // Create user by admin (without password - user will use password reset to set their own)
+  createUserByAdmin: async (email: string, profileData?: {
     firstName?: string;
     lastName?: string;
     mobileNumber?: string;
@@ -2782,10 +2795,14 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
       throw new Error("Supabase not configured");
     }
 
-    // Create user with email and password
+    // Generate a random password that user will never know
+    // User will use "Forgot Password" to set their own password when they want to login
+    const randomPassword = db.generateRandomPassword();
+
+    // Create user with email and random password
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email: email.trim(),
-      password: password,
+      password: randomPassword,
       options: {
         emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`
       }

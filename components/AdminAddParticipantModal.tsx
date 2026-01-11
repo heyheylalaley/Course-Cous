@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search, User, Loader2, UserPlus, AlertCircle, Plus, Mail, Lock, User as UserIcon } from 'lucide-react';
+import { X, Search, User, Loader2, UserPlus, AlertCircle, Plus, Mail, User as UserIcon, Info } from 'lucide-react';
 import { Language, EnglishLevel } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { db } from '../services/db';
@@ -41,7 +41,6 @@ export const AdminAddParticipantModal: React.FC<AdminAddParticipantModalProps> =
   
   // Create user form fields
   const [newUserEmail, setNewUserEmail] = useState('');
-  const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserFirstName, setNewUserFirstName] = useState('');
   const [newUserLastName, setNewUserLastName] = useState('');
   const [newUserMobileNumber, setNewUserMobileNumber] = useState('');
@@ -59,7 +58,6 @@ export const AdminAddParticipantModal: React.FC<AdminAddParticipantModalProps> =
       setSelectedUserId(null);
       setShowCreateForm(false);
       setNewUserEmail('');
-      setNewUserPassword('');
       setNewUserFirstName('');
       setNewUserLastName('');
       setNewUserMobileNumber('');
@@ -121,13 +119,8 @@ export const AdminAddParticipantModal: React.FC<AdminAddParticipantModalProps> =
   };
 
   const handleCreateAndAddUser = async () => {
-    if (!newUserEmail.trim() || !newUserPassword.trim()) {
-      setError(t.adminCreateUserEmailPasswordRequired || 'Email and password are required');
-      return;
-    }
-
-    if (newUserPassword.length < 6) {
-      setError(t.adminCreateUserPasswordMinLength || 'Password must be at least 6 characters');
+    if (!newUserEmail.trim()) {
+      setError(t.adminCreateUserEmailRequired || 'Email is required');
       return;
     }
 
@@ -135,10 +128,9 @@ export const AdminAddParticipantModal: React.FC<AdminAddParticipantModalProps> =
     setError(null);
 
     try {
-      // Create user
+      // Create user (without password - user will use password reset to set their own)
       const { userId } = await db.createUserByAdmin(
         newUserEmail.trim(),
-        newUserPassword,
         {
           firstName: newUserFirstName.trim() || undefined,
           lastName: newUserLastName.trim() || undefined,
@@ -266,24 +258,19 @@ export const AdminAddParticipantModal: React.FC<AdminAddParticipantModalProps> =
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    {t.adminCreateUserPassword || 'Password'} <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="password"
-                      value={newUserPassword}
-                      onChange={(e) => setNewUserPassword(e.target.value)}
-                      placeholder={t.adminCreateUserPassword || 'Password (min 6 characters)'}
-                      className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 outline-none"
-                      disabled={isCreating}
-                    />
+                {/* Info box about password */}
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <Info size={20} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-1">
+                        {t.adminCreateUserNoPasswordTitle || 'No Password Required'}
+                      </p>
+                      <p className="text-sm text-blue-700 dark:text-blue-400">
+                        {t.adminCreateUserNoPasswordHint || 'User will be created without a password. When they want to access their account, they can use "Forgot Password" to set their own password.'}
+                      </p>
+                    </div>
                   </div>
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    {t.adminCreateUserPasswordHint || 'Minimum 6 characters. User will need this to login.'}
-                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -356,7 +343,7 @@ export const AdminAddParticipantModal: React.FC<AdminAddParticipantModalProps> =
 
                 <button
                   onClick={handleCreateAndAddUser}
-                  disabled={isCreating || !newUserEmail.trim() || !newUserPassword.trim()}
+                  disabled={isCreating || !newUserEmail.trim()}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-green-600 dark:bg-green-700 text-white hover:bg-green-700 dark:hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                 >
                   {isCreating ? (
