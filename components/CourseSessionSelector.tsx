@@ -93,7 +93,7 @@ export const CourseSessionSelector: React.FC<CourseSessionSelectorProps> = ({
         <div className="flex items-center gap-2 mb-1">
           <CalendarCheck size={18} className="text-indigo-600 dark:text-indigo-400" />
           <span className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
-            {t.sessionConfirmed || 'Session Confirmed'}
+            {t.sessionConfirmed || 'Course Confirmed'}
           </span>
         </div>
         <p className="text-sm text-indigo-600 dark:text-indigo-400">
