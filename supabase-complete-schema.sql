@@ -138,6 +138,7 @@ $$;
 -- Admin RLS policies
 DROP POLICY IF EXISTS "Admins can read all profiles" ON profiles;
 DROP POLICY IF EXISTS "Admins can update all profiles" ON profiles;
+DROP POLICY IF EXISTS "Admins can delete all profiles" ON profiles;
 DROP POLICY IF EXISTS "Admins can read all registrations" ON registrations;
 DROP POLICY IF EXISTS "Admins can insert registrations" ON registrations;
 DROP POLICY IF EXISTS "Admins can update registrations" ON registrations;
@@ -148,6 +149,9 @@ CREATE POLICY "Admins can read all profiles" ON profiles
 
 CREATE POLICY "Admins can update all profiles" ON profiles
   FOR UPDATE USING (is_admin_user() = TRUE);
+
+CREATE POLICY "Admins can delete all profiles" ON profiles
+  FOR DELETE USING (is_admin_user() = TRUE);
 
 CREATE POLICY "Admins can read all registrations" ON registrations
   FOR SELECT USING (is_admin_user() = TRUE);
@@ -968,6 +972,41 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS iris_id TEXT;
 -- COMPLETE!
 -- ============================================================================
 
+-- ============================================================================
+-- PART 14: Admin User Deletion Function
+-- ============================================================================
+
+-- Function to delete user from auth.users (Admin only)
+-- This function deletes a user completely including from auth.users
+-- It should be called after deleting all related data
+CREATE OR REPLACE FUNCTION delete_user_from_auth(p_user_id UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = auth, public
+AS $$
+BEGIN
+  -- Check if current user is admin
+  IF NOT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid()
+    AND is_admin = TRUE
+  ) THEN
+    RAISE EXCEPTION 'Admin access required';
+  END IF;
+
+  -- Prevent self-deletion
+  IF p_user_id = auth.uid() THEN
+    RAISE EXCEPTION 'Cannot delete your own account';
+  END IF;
+
+  -- Delete from auth.users (this will cascade to profiles and related tables)
+  DELETE FROM auth.users WHERE id = p_user_id;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION delete_user_from_auth(UUID) TO authenticated;
+
 -- Verify all tables were created
 SELECT 
   'Database setup complete!' as status,
@@ -992,7 +1031,8 @@ WHERE routine_schema = 'public'
     'get_courses_with_translations',
     'is_admin_user',
     'handle_new_user',
-    'setup_demo_user'
+    'setup_demo_user',
+    'delete_user_from_auth'
   )
 ORDER BY routine_name;
 

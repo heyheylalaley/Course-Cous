@@ -3005,7 +3005,7 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
         throw new Error(`Failed to delete registrations: ${registrationsError.message}`);
       }
 
-      // Delete user profile (this should cascade to auth.users if ON DELETE CASCADE is set)
+      // Delete user profile (requires admin policy)
       const { error: profileError } = await supabase
         .from('profiles')
         .delete()
@@ -3015,10 +3015,15 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
         throw new Error(`Failed to delete profile: ${profileError.message}`);
       }
 
-      // Note: To delete from auth.users, you need to use Supabase Admin API
-      // This should be done via an Edge Function or backend service
-      // If ON DELETE CASCADE is set on profiles table, this may be handled automatically
-      // Otherwise, the user will remain in auth.users but without a profile
+      // Delete user from auth.users using RPC function
+      // This must be done after deleting the profile to avoid foreign key issues
+      const { error: authDeleteError } = await supabase.rpc('delete_user_from_auth', {
+        p_user_id: userId
+      });
+
+      if (authDeleteError) {
+        throw new Error(`Failed to delete user from auth: ${authDeleteError.message}`);
+      }
       
       return;
     }
