@@ -3281,15 +3281,9 @@ We look forward to seeing you soon!`,
     }
 
     try {
-      // Create bucket if it doesn't exist (this might fail if bucket exists, but that's ok)
       const bucketName = 'word-templates';
-      await supabase.storage.createBucket(bucketName, {
-        public: false,
-        fileSizeLimit: 5242880, // 5MB
-        allowedMimeTypes: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document']
-      }).catch(() => {}); // Ignore error if bucket already exists
-
-      // Upload file
+      
+      // Try to upload file first (bucket should be created manually in Supabase Dashboard)
       const fileName = `template_${Date.now()}.docx`;
       const { data, error: uploadError } = await supabase.storage
         .from(bucketName)
@@ -3299,23 +3293,29 @@ We look forward to seeing you soon!`,
         });
 
       if (uploadError) {
+        // Provide helpful error message if bucket doesn't exist
+        if (uploadError.message?.includes('Bucket not found') || uploadError.message?.includes('not found')) {
+          return { 
+            error: 'Storage bucket "word-templates" not found. Please create it in Supabase Dashboard: Storage → Create bucket → name it "word-templates" → set as private → create.', 
+            url: null 
+          };
+        }
         return { error: uploadError.message, url: null };
       }
 
-      // Get public URL (we'll use signed URL for private buckets)
-      const { data: urlData } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(fileName);
+      // For private buckets, we need to store the file path, not URL
+      // We'll download it using the path when needed
+      const filePath = `${bucketName}/${fileName}`;
 
-      // Save URL in app_settings
-      const { error: settingsError } = await db.setAppSetting('word_template_url', urlData.publicUrl);
+      // Save file path in app_settings (we'll reconstruct the path when downloading)
+      const { error: settingsError } = await db.setAppSetting('word_template_url', filePath);
       if (settingsError) {
         // Try to delete uploaded file on error
         await supabase.storage.from(bucketName).remove([fileName]);
         return { error: settingsError, url: null };
       }
 
-      return { error: null, url: urlData.publicUrl };
+      return { error: null, url: filePath };
     } catch (error: any) {
       return { error: error.message || 'Failed to upload template', url: null };
     }
@@ -3342,23 +3342,28 @@ We look forward to seeing you soon!`,
       }
     }
 
-    const url = await db.getWordTemplateUrl();
-    if (!url) {
+    const filePath = await db.getWordTemplateUrl();
+    if (!filePath) {
       return { error: 'Template not found', blob: null };
     }
 
     try {
-      // Extract bucket and file path from URL
-      const urlObj = new URL(url);
-      const pathParts = urlObj.pathname.split('/');
-      const bucketName = pathParts[2]; // Usually 'word-templates'
-      const fileName = pathParts.slice(3).join('/');
+      // File path format: "word-templates/template_1234567890.docx"
+      const pathParts = filePath.split('/');
+      const bucketName = pathParts[0];
+      const fileName = pathParts.slice(1).join('/');
 
       const { data, error } = await supabase.storage
         .from(bucketName)
         .download(fileName);
 
       if (error) {
+        if (error.message?.includes('Bucket not found') || error.message?.includes('not found')) {
+          return { 
+            error: 'Storage bucket "word-templates" not found. Please create it in Supabase Dashboard: Storage → Create bucket → name it "word-templates" → set as private → create.', 
+            blob: null 
+          };
+        }
         return { error: error.message, blob: null };
       }
 
