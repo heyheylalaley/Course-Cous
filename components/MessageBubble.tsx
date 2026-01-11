@@ -67,6 +67,22 @@ export const MessageBubble: React.FC<MessageBubbleProps> = memo(({ message, cour
           <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
         </a>
       );
+    },
+    // Custom list styling for beautiful bullet points
+    ul: ({ children, ...props }) => {
+      return (
+        <ul className="list-none space-y-1.5 my-2 pl-0" {...props}>
+          {children}
+        </ul>
+      );
+    },
+    li: ({ children, ...props }) => {
+      return (
+        <li className="flex items-start gap-2.5" {...props}>
+          <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 mt-1.5"></span>
+          <span className="flex-1">{children}</span>
+        </li>
+      );
     }
   }), [courseTitleMap, onCourseClick]);
 
