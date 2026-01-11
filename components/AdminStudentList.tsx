@@ -67,6 +67,9 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
 
   // Word document generation
   const [isGeneratingWordDocs, setIsGeneratingWordDocs] = useState(false);
+  const [showWordGenerateModal, setShowWordGenerateModal] = useState(false);
+  const [wordGenerateUserType, setWordGenerateUserType] = useState<'all' | 'confirmed'>('all');
+  const [wordGenerateDate, setWordGenerateDate] = useState<string>('');
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -122,7 +125,7 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
 
   // Prevent body scroll when email modal is open
   useEffect(() => {
-    if (showEmailModal || showReminderModal) {
+    if (showEmailModal || showReminderModal || showWordGenerateModal) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -130,7 +133,7 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
     return () => {
       document.body.style.overflow = '';
     };
-  }, [showEmailModal, showReminderModal]);
+  }, [showEmailModal, showReminderModal, showWordGenerateModal]);
 
   const loadCourseSessions = async () => {
     try {
@@ -503,8 +506,27 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
     }
   };
 
-  const generateWordDocuments = async () => {
-    if (filteredAndSortedStudents.length === 0) {
+  const generateWordDocuments = async (userType: 'all' | 'confirmed' = 'all', selectedDate: string = '') => {
+    // Filter students based on criteria
+    let studentsToGenerate = [...students];
+    
+    // Filter by user type
+    if (userType === 'confirmed') {
+      // Only confirmed/assigned users (isCompleted OR assignedSessionId OR userSelectedSessionDate)
+      studentsToGenerate = studentsToGenerate.filter(s => 
+        s.isCompleted || s.assignedSessionId || s.userSelectedSessionDate
+      );
+    }
+    
+    // Filter by date if provided
+    if (selectedDate) {
+      studentsToGenerate = studentsToGenerate.filter(s => {
+        const studentDate = s.assignedSessionDate || s.userSelectedSessionDate;
+        return studentDate === selectedDate;
+      });
+    }
+    
+    if (studentsToGenerate.length === 0) {
       alert(t.adminNoStudentsToGenerate || 'No students to generate documents for');
       return;
     }
@@ -558,7 +580,7 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
       let documentsGenerated = 0;
 
       // Generate document for each student
-      for (const student of filteredAndSortedStudents) {
+      for (const student of studentsToGenerate) {
         try {
           // Load template for each student (we need to reload it each time)
           const docxZip = new PizZip(arrayBuffer);
@@ -1184,7 +1206,7 @@ We look forward to seeing you soon!`;
             {filteredAndSortedStudents.length > 0 && (
               <>
                 <button
-                  onClick={generateWordDocuments}
+                  onClick={() => setShowWordGenerateModal(true)}
                   disabled={isGeneratingWordDocs}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-600 dark:bg-purple-700 text-white hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -1834,6 +1856,108 @@ We look forward to seeing you soon!`;
         language={language}
         courseId={courseId}
       />
+
+      {/* Word Document Generation Options Modal */}
+      {showWordGenerateModal && (
+        <div
+          className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowWordGenerateModal(false);
+            }
+          }}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full border border-gray-200 dark:border-gray-700"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                {(t as any).adminWordGenerateOptions || 'Generation Options'}
+              </h2>
+              <button
+                onClick={() => setShowWordGenerateModal(false)}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 sm:p-6 space-y-4">
+              {/* User Type Selection */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                  {(t as any).adminWordGenerateOptions || 'Select users to generate for:'}
+                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <input
+                      type="radio"
+                      name="userType"
+                      value="all"
+                      checked={wordGenerateUserType === 'all'}
+                      onChange={(e) => setWordGenerateUserType(e.target.value as 'all' | 'confirmed')}
+                      className="w-4 h-4 text-purple-600 dark:text-purple-400 focus:ring-purple-500 dark:focus:ring-purple-400"
+                    />
+                    <span className="text-gray-900 dark:text-white">
+                      {(t as any).adminWordGenerateAllUsers || 'All registered users'}
+                    </span>
+                  </label>
+                  <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <input
+                      type="radio"
+                      name="userType"
+                      value="confirmed"
+                      checked={wordGenerateUserType === 'confirmed'}
+                      onChange={(e) => setWordGenerateUserType(e.target.value as 'all' | 'confirmed')}
+                      className="w-4 h-4 text-purple-600 dark:text-purple-400 focus:ring-purple-500 dark:focus:ring-purple-400"
+                    />
+                    <span className="text-gray-900 dark:text-white">
+                      {(t as any).adminWordGenerateConfirmedOnly || 'Only confirmed/assigned users'}
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Date Selection */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  {(t as any).adminWordGenerateDate || 'Select date for forms'}
+                </label>
+                <input
+                  type="date"
+                  value={wordGenerateDate}
+                  onChange={(e) => setWordGenerateDate(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 dark:focus:border-purple-600 focus:ring-1 focus:ring-purple-500 dark:focus:ring-purple-600 outline-none"
+                  placeholder={(t as any).adminWordGenerateDatePlaceholder || 'Select date'}
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowWordGenerateModal(false)}
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+              >
+                {t.cancel || 'Cancel'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowWordGenerateModal(false);
+                  generateWordDocuments(wordGenerateUserType, wordGenerateDate);
+                }}
+                className="px-4 py-2 rounded-lg bg-purple-600 dark:bg-purple-700 text-white hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors"
+              >
+                {(t as any).adminGenerateWordDocs || 'Generate Word Docs'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
