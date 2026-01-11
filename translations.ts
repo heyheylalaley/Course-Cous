@@ -270,6 +270,10 @@ export const TRANSLATIONS = {
     adminEmailTemplateVarWebsiteUrl: 'Website URL',
     adminEmailTemplateSave: 'Save Email Template',
     adminEmailTemplateSaved: 'Email template saved successfully',
+    adminWelcomeMessage: 'Welcome Message',
+    adminWelcomeMessageDesc: 'Customize the welcome message shown to users when they start a chat. You can set different messages for each language.',
+    adminWelcomeMessageSave: 'Save Welcome Messages',
+    adminWelcomeMessageSaved: 'Welcome messages saved successfully',
     demoModeAdminInfo: 'Demo mode allows users to explore the app without registration. Demo users cannot register for courses - they need to create an account to do so.',
     // Category Management
     adminCategoryManagement: 'Categories',
@@ -690,6 +694,10 @@ export const TRANSLATIONS = {
     adminEmailTemplateVarWebsiteUrl: 'URL веб-сайту',
     adminEmailTemplateSave: 'Зберегти шаблон листа',
     adminEmailTemplateSaved: 'Шаблон листа успішно збережено',
+    adminWelcomeMessage: 'Привітальне повідомлення',
+    adminWelcomeMessageDesc: 'Налаштуйте привітальне повідомлення, яке показується користувачам при початку чату. Ви можете встановити різні повідомлення для кожної мови.',
+    adminWelcomeMessageSave: 'Зберегти привітальні повідомлення',
+    adminWelcomeMessageSaved: 'Привітальні повідомлення успішно збережено',
     demoModeAdminInfo: 'Демо режим дозволяє користувачам ознайомитися з додатком без реєстрації. Демо-користувачі не можуть реєструватися на курси - для цього їм потрібно створити обліковий запис.',
     // Category Management
     adminCategoryManagement: 'Категорії',
@@ -1110,6 +1118,10 @@ export const TRANSLATIONS = {
     adminEmailTemplateVarWebsiteUrl: 'URL веб-сайта',
     adminEmailTemplateSave: 'Сохранить шаблон письма',
     adminEmailTemplateSaved: 'Шаблон письма успешно сохранен',
+    adminWelcomeMessage: 'Приветственное сообщение',
+    adminWelcomeMessageDesc: 'Настройте приветственное сообщение, которое показывается пользователям при начале чата. Вы можете установить разные сообщения для каждого языка.',
+    adminWelcomeMessageSave: 'Сохранить приветственные сообщения',
+    adminWelcomeMessageSaved: 'Приветственные сообщения успешно сохранены',
     demoModeAdminInfo: 'Демо режим позволяет пользователям ознакомиться с приложением без регистрации. Демо-пользователи не могут регистрироваться на курсы - для этого им нужно создать учетную запись.',
     // Category Management
     adminCategoryManagement: 'Категории',
@@ -1530,6 +1542,10 @@ export const TRANSLATIONS = {
     adminEmailTemplateVarWebsiteUrl: 'رابط الموقع',
     adminEmailTemplateSave: 'حفظ قالب البريد الإلكتروني',
     adminEmailTemplateSaved: 'تم حفظ قالب البريد الإلكتروني بنجاح',
+    adminWelcomeMessage: 'رسالة الترحيب',
+    adminWelcomeMessageDesc: 'قم بتخصيص رسالة الترحيب المعروضة للمستخدمين عند بدء المحادثة. يمكنك تعيين رسائل مختلفة لكل لغة.',
+    adminWelcomeMessageSave: 'حفظ رسائل الترحيب',
+    adminWelcomeMessageSaved: 'تم حفظ رسائل الترحيب بنجاح',
     demoModeAdminInfo: 'يتيح الوضع التجريبي للمستخدمين استكشاف التطبيق دون تسجيل. لا يمكن للمستخدمين التجريبيين التسجيل في الدورات - يحتاجون إلى إنشاء حساب للقيام بذلك.',
     // Category Management
     adminCategoryManagement: 'الفئات',

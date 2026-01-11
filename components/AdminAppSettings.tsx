@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Language } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { db } from '../services/db';
-import { Settings, Play, Loader2, Mail, Save } from 'lucide-react';
+import { Settings, Play, Loader2, Mail, Save, MessageSquare } from 'lucide-react';
 
 interface AdminAppSettingsProps {
   language: Language;
@@ -23,12 +23,25 @@ export const AdminAppSettings: React.FC<AdminAppSettingsProps> = ({ language }) 
   const [templateSaveSuccess, setTemplateSaveSuccess] = useState(false);
   const [templateError, setTemplateError] = useState<string | null>(null);
 
+  // Welcome message state
+  const [welcomeMessages, setWelcomeMessages] = useState<Record<Language, string>>({
+    en: '',
+    ua: '',
+    ru: '',
+    ar: ''
+  });
+  const [isLoadingWelcome, setIsLoadingWelcome] = useState(false);
+  const [isSavingWelcome, setIsSavingWelcome] = useState(false);
+  const [welcomeSaveSuccess, setWelcomeSaveSuccess] = useState(false);
+  const [welcomeError, setWelcomeError] = useState<string | null>(null);
+
   const t = TRANSLATIONS[language];
   const isRtl = language === 'ar';
 
   useEffect(() => {
     loadSettings();
     loadEmailTemplate();
+    loadWelcomeMessages();
   }, []);
 
   const loadSettings = async () => {
@@ -96,6 +109,60 @@ We look forward to having you join us for this course. If you have any questions
       setTemplateError(err.message || 'Failed to save email template');
     } finally {
       setIsSavingTemplate(false);
+    }
+  };
+
+  const loadWelcomeMessages = async () => {
+    setIsLoadingWelcome(true);
+    setWelcomeError(null);
+    try {
+      const languages: Language[] = ['en', 'ua', 'ru', 'ar'];
+      const messages: Record<Language, string> = {
+        en: '',
+        ua: '',
+        ru: '',
+        ar: ''
+      };
+
+      for (const lang of languages) {
+        const saved = await db.getWelcomeMessage(lang).catch(() => null);
+        messages[lang] = saved || TRANSLATIONS[lang].welcomeMessage;
+      }
+
+      setWelcomeMessages(messages);
+    } catch (err: any) {
+      setWelcomeError(err.message || 'Failed to load welcome messages');
+    } finally {
+      setIsLoadingWelcome(false);
+    }
+  };
+
+  const handleSaveWelcomeMessages = async () => {
+    setIsSavingWelcome(true);
+    setWelcomeError(null);
+    setWelcomeSaveSuccess(false);
+    
+    try {
+      const languages: Language[] = ['en', 'ua', 'ru', 'ar'];
+      let hasError = false;
+
+      for (const lang of languages) {
+        const { error } = await db.setWelcomeMessage(lang, welcomeMessages[lang]);
+        if (error) {
+          setWelcomeError(error);
+          hasError = true;
+          break;
+        }
+      }
+
+      if (!hasError) {
+        setWelcomeSaveSuccess(true);
+        setTimeout(() => setWelcomeSaveSuccess(false), 2000);
+      }
+    } catch (err: any) {
+      setWelcomeError(err.message || 'Failed to save welcome messages');
+    } finally {
+      setIsSavingWelcome(false);
     }
   };
 
@@ -293,6 +360,116 @@ We look forward to having you join us for this course. If you have any questions
                 <Save size={16} />
               )}
               {(t as any).adminEmailTemplateSave || 'Save Email Template'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Welcome Message Settings */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg">
+            <MessageSquare size={20} />
+          </div>
+          <div>
+            <h3 className="font-medium text-gray-900 dark:text-white">
+              {(t as any).adminWelcomeMessage || 'Welcome Message'}
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {(t as any).adminWelcomeMessageDesc || 'Customize the welcome message shown to users when they start a chat. You can set different messages for each language.'}
+            </p>
+          </div>
+        </div>
+
+        {/* Welcome Error Message */}
+        {welcomeError && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg border border-red-100 dark:border-red-800">
+            {welcomeError}
+          </div>
+        )}
+
+        {/* Welcome Success Message */}
+        {welcomeSaveSuccess && (
+          <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-sm rounded-lg border border-green-100 dark:border-green-800">
+            {(t as any).adminWelcomeMessageSaved || 'Welcome messages saved successfully'}
+          </div>
+        )}
+
+        {isLoadingWelcome ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-indigo-600 dark:text-indigo-400" />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* English */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                English (en)
+              </label>
+              <textarea
+                value={welcomeMessages.en}
+                onChange={(e) => setWelcomeMessages(prev => ({ ...prev, en: e.target.value }))}
+                rows={8}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                placeholder="Enter welcome message in English..."
+              />
+            </div>
+
+            {/* Ukrainian */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Українська (ua)
+              </label>
+              <textarea
+                value={welcomeMessages.ua}
+                onChange={(e) => setWelcomeMessages(prev => ({ ...prev, ua: e.target.value }))}
+                rows={8}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                placeholder="Введіть привітальне повідомлення українською..."
+              />
+            </div>
+
+            {/* Russian */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Русский (ru)
+              </label>
+              <textarea
+                value={welcomeMessages.ru}
+                onChange={(e) => setWelcomeMessages(prev => ({ ...prev, ru: e.target.value }))}
+                rows={8}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                placeholder="Введите приветственное сообщение на русском..."
+              />
+            </div>
+
+            {/* Arabic */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                العربية (ar)
+              </label>
+              <textarea
+                value={welcomeMessages.ar}
+                onChange={(e) => setWelcomeMessages(prev => ({ ...prev, ar: e.target.value }))}
+                rows={8}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                dir="rtl"
+                placeholder="أدخل رسالة الترحيب بالعربية..."
+              />
+            </div>
+
+            {/* Save Button */}
+            <button
+              onClick={handleSaveWelcomeMessages}
+              disabled={isSavingWelcome}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSavingWelcome ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save size={16} />
+              )}
+              {(t as any).adminWelcomeMessageSave || 'Save Welcome Messages'}
             </button>
           </div>
         )}

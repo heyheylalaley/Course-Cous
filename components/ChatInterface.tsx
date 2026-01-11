@@ -117,6 +117,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
         const profile = await db.getProfile().catch(() => undefined);
         await initializeChat(profile, language);
         
+        // Load welcome message from settings or use default
+        const welcomeMsg = await db.getWelcomeMessage(language).catch(() => null);
+        const welcomeContent = welcomeMsg || t.welcomeMessage;
+        
         // Load saved chat history from database
         const savedMessages = await loadChatHistory();
         
@@ -135,7 +139,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
               return {
                 id: 'welcome',
                 role: 'model' as const,
-                content: t.welcomeMessage,
+                content: welcomeContent,
                 timestamp: msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp),
                 isStreaming: false,
                 isError: false
@@ -156,11 +160,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
           const greeting: Message = {
             id: 'welcome',
             role: 'model',
-            content: t.welcomeMessage,
+            content: welcomeContent,
             timestamp: new Date()
           };
           setMessages([greeting]);
-          await saveChatMessage('model', t.welcomeMessage);
+          await saveChatMessage('model', welcomeContent);
         }
       } catch (error) {
         console.error('Error setting up chat:', error);
@@ -328,18 +332,28 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
     try {
       await db.clearChatHistory();
       
+      // Reset initialization flag to allow effect to create welcome message
+      initialized.current = false;
+      
       // Reinitialize chat with fresh greeting
       const profile = await db.getProfile().catch(() => undefined);
       await initializeChat(profile, language);
       
+      // Load welcome message from settings or use default
+      const welcomeMsg = await db.getWelcomeMessage(language).catch(() => null);
+      const welcomeContent = welcomeMsg || t.welcomeMessage;
+      
       const greeting: Message = {
         id: 'welcome',
         role: 'model',
-        content: t.welcomeMessage,
+        content: welcomeContent,
         timestamp: new Date()
       };
       setMessages([greeting]);
-      await saveChatMessage('model', t.welcomeMessage);
+      await saveChatMessage('model', welcomeContent);
+      
+      // Mark as initialized to prevent duplicate
+      initialized.current = true;
       
       setShowClearConfirm(false);
       setAlertModal({

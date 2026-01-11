@@ -2099,6 +2099,16 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
     return db.setAppSetting('demo_enabled', enabled ? 'true' : 'false');
   },
 
+  // --- Welcome Message Methods ---
+  getWelcomeMessage: async (language: string): Promise<string | null> => {
+    const value = await db.getAppSetting(`welcome_message_${language}`);
+    return value;
+  },
+
+  setWelcomeMessage: async (language: string, message: string): Promise<{ error: string | null }> => {
+    return db.setAppSetting(`welcome_message_${language}`, message);
+  },
+
   // --- Email Templates Methods ---
   getEmailTemplate: async (templateKey: string): Promise<{ subject: string; body: string; variables: string[] } | null> => {
     if (!supabase) {
