@@ -128,26 +128,34 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
   const prevRegistrationsRef = useRef<string>('');
   const prevUserProfileIdRef = useRef<string>('');
   
+  // Initial load on mount or profile change
+  useEffect(() => {
+    const profileChanged = userProfile.id !== prevUserProfileIdRef.current;
+    
+    // Only load on initial mount or profile change
+    if (prevUserProfileIdRef.current === '' || profileChanged) {
+      prevUserProfileIdRef.current = userProfile.id || '';
+      loadDashboardData();
+    }
+  }, [userProfile.id, loadDashboardData]);
+
   // Optimistic update: sync courseRegistrations with registrations prop immediately
+  // Don't call loadDashboardData here - let realtime subscription handle DB updates
   useEffect(() => {
     // Create a stable string representation for comparison (sorted to handle order differences)
     const registrationsKey = [...registrations].sort().join(',');
     const prevRegistrationsKey = prevRegistrationsRef.current;
     
-    // Only reload if registrations actually changed (by content)
+    // Only update if registrations actually changed (by content)
     const registrationsChanged = registrationsKey !== prevRegistrationsKey;
     
-    // Only reload if user profile ID changed (not just other properties)
-    const profileChanged = userProfile.id !== prevUserProfileIdRef.current;
-    
-    // Skip reload if nothing meaningful changed (but always load on initial mount)
-    if (!registrationsChanged && !profileChanged && prevRegistrationsKey !== '') {
+    // Skip if nothing changed (but always update refs on initial mount)
+    if (!registrationsChanged && prevRegistrationsKey !== '') {
       return;
     }
     
     // Update refs
     prevRegistrationsRef.current = registrationsKey;
-    prevUserProfileIdRef.current = userProfile.id || '';
     
     // Optimistic update: immediately add/remove courses based on registrations prop
     if (registrationsChanged) {
@@ -179,10 +187,8 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
         return updated;
       });
     }
-    
-    // Load data from database to get full registration details
-    loadDashboardData();
-  }, [registrations, userProfile.id, loadDashboardData]);
+    // Note: We don't call loadDashboardData() here - realtime subscription will update when DB changes
+  }, [registrations]);
 
   // Sync local state if parent updates
   useEffect(() => {
