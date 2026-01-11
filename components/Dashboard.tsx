@@ -128,6 +128,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
   const prevRegistrationsRef = useRef<string>('');
   const prevUserProfileIdRef = useRef<string>('');
   
+  // Optimistic update: sync courseRegistrations with registrations prop immediately
   useEffect(() => {
     // Create a stable string representation for comparison (sorted to handle order differences)
     const registrationsKey = [...registrations].sort().join(',');
@@ -148,7 +149,38 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
     prevRegistrationsRef.current = registrationsKey;
     prevUserProfileIdRef.current = userProfile.id || '';
     
-    // Load data immediately when registrations change (for real-time updates)
+    // Optimistic update: immediately add/remove courses based on registrations prop
+    if (registrationsChanged) {
+      setCourseRegistrations(prev => {
+        const currentIds = new Set(prev.map(r => r.courseId));
+        const propIds = new Set(registrations);
+        
+        // Remove courses that are no longer in registrations prop
+        let updated = prev.filter(r => propIds.has(r.courseId));
+        
+        // Add new courses that are in registrations prop but not in current state
+        const newCourseIds = [...propIds].filter(id => !currentIds.has(id));
+        newCourseIds.forEach(courseId => {
+          const nextPriority = updated.length + 1;
+          updated.push({
+            courseId,
+            registeredAt: new Date(),
+            priority: nextPriority
+          });
+        });
+        
+        // Reassign priorities based on order in registrations array
+        const priorityMap = new Map(registrations.map((id, index) => [id, index + 1]));
+        updated = updated.map(reg => ({
+          ...reg,
+          priority: priorityMap.get(reg.courseId) || reg.priority || 999
+        }));
+        
+        return updated;
+      });
+    }
+    
+    // Load data from database to get full registration details
     loadDashboardData();
   }, [registrations, userProfile.id, loadDashboardData]);
 
