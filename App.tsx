@@ -320,7 +320,7 @@ const AppContent: React.FC = () => {
 
   const hasNoSearchResults = debouncedSearchQuery.trim() && filteredCourses.length === 0;
 
-  // Swipe gestures для мобильной навигации
+  // Swipe gestures для мобильной навигации (для основного контента)
   const swipeHandlers = useSwipeable({
     onSwipedLeft: () => {
       // Закрыть sidebar при свайпе влево (для LTR) или вправо (для RTL)
@@ -348,6 +348,26 @@ const AppContent: React.FC = () => {
     },
     trackMouse: false,
     trackTouch: true
+  });
+
+  // Swipe gestures для сайдбара (закрытие по свайпу)
+  const sidebarSwipeHandlers = useSwipeable({
+    onSwipedLeft: () => {
+      // Закрыть sidebar при свайпе влево (для LTR)
+      if (isSidebarOpen && typeof window !== 'undefined' && window.innerWidth < 1024 && !isRtl) {
+        setSidebarOpen(false);
+      }
+    },
+    onSwipedRight: () => {
+      // Закрыть sidebar при свайпе вправо (для RTL)
+      if (isSidebarOpen && typeof window !== 'undefined' && window.innerWidth < 1024 && isRtl) {
+        setSidebarOpen(false);
+      }
+    },
+    trackMouse: false,
+    trackTouch: true,
+    preventScrollOnSwipe: false, // Позволяем прокрутку в сайдбаре
+    delta: 50 // Минимальное расстояние свайпа
   });
 
   // Show password update page when in recovery mode
@@ -436,6 +456,7 @@ const AppContent: React.FC = () => {
           className={`fixed inset-y-0 ${isRtl ? 'right-0 border-l' : 'left-0 border-r'} z-30 w-full sm:w-80 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static flex flex-col
           ${isSidebarOpen ? 'translate-x-0' : (isRtl ? 'translate-x-full' : '-translate-x-full')}
           `}
+          {...sidebarSwipeHandlers}
         >
           {/* Sidebar Header */}
           <div className="h-auto flex flex-col px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-green-600 to-green-700">
