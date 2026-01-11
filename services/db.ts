@@ -617,9 +617,10 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
 
     if (supabase) {
       // Check current registrations count
+      const maxRegistrations = await db.getMaxCourseRegistrations();
       const currentRegs = await db.getRegistrations();
-      if (currentRegs.length >= 3) {
-        throw new Error('Maximum 3 courses allowed');
+      if (currentRegs.length >= maxRegistrations) {
+        throw new Error(`Maximum ${maxRegistrations} courses allowed`);
       }
 
       // Check if already registered
@@ -642,9 +643,10 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
     }
 
     // Mock fallback:
+    const maxRegistrations = await db.getMaxCourseRegistrations();
     const regs = await db.getRegistrations();
-    if (regs.length >= 3) {
-      throw new Error('Maximum 3 courses allowed');
+    if (regs.length >= maxRegistrations) {
+      throw new Error(`Maximum ${maxRegistrations} courses allowed`);
     }
     if (!regs.find(r => r.courseId === courseId)) {
         const priority = regs.length + 1;
@@ -2205,6 +2207,69 @@ We look forward to having you join us for this course. If you have any questions
     }
   },
 
+  // --- Course Registration Limit Methods ---
+  getMaxCourseRegistrations: async (): Promise<number> => {
+    const value = await db.getAppSetting('max_course_registrations');
+    if (value) {
+      const parsed = parseInt(value, 10);
+      if (!isNaN(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+    return 3; // Default value
+  },
+
+  setMaxCourseRegistrations: async (limit: number): Promise<{ error: string | null }> => {
+    if (limit < 1 || limit > 100) {
+      return { error: 'Limit must be between 1 and 100' };
+    }
+    return db.setAppSetting('max_course_registrations', limit.toString());
+  },
+
+  // --- Contact Information Methods ---
+  getContactInfo: async (): Promise<{
+    organizationName: string;
+    address: string;
+    phone: string;
+    email: string;
+    website: string;
+    openingHours: string;
+  }> => {
+    const value = await db.getAppSetting('contact_info');
+    if (value) {
+      try {
+        return JSON.parse(value);
+      } catch (e) {
+        console.error('Error parsing contact_info:', e);
+      }
+    }
+    // Default values
+    return {
+      organizationName: 'Cork City Partnership',
+      address: 'Heron House, Blackpool Park\nCork, T23 R50R\nIreland',
+      phone: '+353 21 430 2310',
+      email: 'info@partnershipcork.ie',
+      website: 'www.corkcitypartnership.ie',
+      openingHours: 'Monday - Friday: 9:00 AM - 5:00 PM'
+    };
+  },
+
+  setContactInfo: async (contactInfo: {
+    organizationName: string;
+    address: string;
+    phone: string;
+    email: string;
+    website: string;
+    openingHours: string;
+  }): Promise<{ error: string | null }> => {
+    try {
+      const jsonString = JSON.stringify(contactInfo);
+      return db.setAppSetting('contact_info', jsonString);
+    } catch (error: any) {
+      return { error: error.message || 'Failed to serialize contact info' };
+    }
+  },
+
   // Sign in as demo user - creates local session only, no database interaction
   signInAsDemo: async (): Promise<{ user: { id: string, email: string } | null, error: string | null }> => {
     // Check if demo mode is enabled
@@ -3019,6 +3084,7 @@ We look forward to having you join us for this course. If you have any questions
     }
 
     // Check current registrations count
+    const maxRegistrations = await db.getMaxCourseRegistrations();
     const { data: currentRegs, error: regsError } = await supabase
       .from('registrations')
       .select('course_id, priority')
@@ -3027,8 +3093,8 @@ We look forward to having you join us for this course. If you have any questions
 
     if (regsError) throw new Error(regsError.message);
 
-    if ((currentRegs || []).length >= 3) {
-      throw new Error('User already has maximum 3 course registrations');
+    if ((currentRegs || []).length >= maxRegistrations) {
+      throw new Error(`User already has maximum ${maxRegistrations} course registrations`);
     }
 
     // Check if already registered

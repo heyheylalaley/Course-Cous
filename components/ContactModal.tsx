@@ -1,7 +1,8 @@
-import React from 'react';
-import { X, MapPin, Phone, Mail, Globe, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, MapPin, Phone, Mail, Globe, Clock, Loader2 } from 'lucide-react';
 import { Language } from '../types';
 import { TRANSLATIONS } from '../translations';
+import { db } from '../services/db';
 
 interface ContactModalProps {
   isOpen: boolean;
@@ -12,6 +13,33 @@ interface ContactModalProps {
 export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose, language }) => {
   const t = TRANSLATIONS[language];
   const isRtl = language === 'ar';
+  const [contactInfo, setContactInfo] = useState({
+    organizationName: 'Cork City Partnership',
+    address: 'Heron House, Blackpool Park\nCork, T23 R50R\nIreland',
+    phone: '+353 21 430 2310',
+    email: 'info@partnershipcork.ie',
+    website: 'www.corkcitypartnership.ie',
+    openingHours: 'Monday - Friday: 9:00 AM - 5:00 PM'
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadContactInfo();
+    }
+  }, [isOpen]);
+
+  const loadContactInfo = async () => {
+    setIsLoading(true);
+    try {
+      const info = await db.getContactInfo();
+      setContactInfo(info);
+    } catch (err) {
+      console.error('Failed to load contact info:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -32,7 +60,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose, lan
                 className="w-12 h-12 bg-white rounded-lg p-1"
               />
               <div>
-                <h2 className="text-xl font-bold text-white">{t.orgName}</h2>
+                <h2 className="text-xl font-bold text-white">{contactInfo.organizationName || t.orgName}</h2>
                 <p className="text-green-100 text-sm">{t.contactInfoTitle}</p>
               </div>
             </div>
@@ -47,6 +75,12 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose, lan
 
         {/* Contact Details */}
         <div className="p-6 space-y-4">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-indigo-600 dark:text-indigo-400" />
+            </div>
+          ) : (
+          <>
           {/* Address */}
           <div className="flex items-start gap-3">
             <div className="p-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg shrink-0">
@@ -54,10 +88,8 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose, lan
             </div>
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{t.contactAddress}</h3>
-              <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">
-                Heron House, Blackpool Park<br />
-                Cork, T23 R50R<br />
-                Ireland
+              <p className="text-gray-600 dark:text-gray-300 text-sm mt-1 whitespace-pre-line">
+                {contactInfo.address}
               </p>
             </div>
           </div>
@@ -70,10 +102,10 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose, lan
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{t.contactPhone}</h3>
               <a 
-                href="tel:+353214302310" 
+                href={`tel:${contactInfo.phone.replace(/\s/g, '')}`}
                 className="text-blue-600 dark:text-blue-400 hover:underline text-sm mt-1 block"
               >
-                +353 21 430 2310
+                {contactInfo.phone}
               </a>
             </div>
           </div>
@@ -86,10 +118,10 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose, lan
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{t.contactEmail}</h3>
               <a 
-                href="mailto:info@partnershipcork.ie" 
+                href={`mailto:${contactInfo.email}`}
                 className="text-purple-600 dark:text-purple-400 hover:underline text-sm mt-1 block"
               >
-                info@partnershipcork.ie
+                {contactInfo.email}
               </a>
             </div>
           </div>
@@ -102,12 +134,12 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose, lan
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{t.contactWebsite}</h3>
               <a 
-                href="https://www.corkcitypartnership.ie" 
+                href={`https://${contactInfo.website}`}
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-orange-600 dark:text-orange-400 hover:underline text-sm mt-1 block"
               >
-                www.corkcitypartnership.ie
+                {contactInfo.website}
               </a>
             </div>
           </div>
@@ -120,10 +152,12 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose, lan
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{t.contactOpeningHours}</h3>
               <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">
-                Monday - Friday: 9:00 AM - 5:00 PM
+                {contactInfo.openingHours}
               </p>
             </div>
           </div>
+          </>
+          )}
         </div>
 
         {/* Footer */}

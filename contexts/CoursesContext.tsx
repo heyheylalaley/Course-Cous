@@ -220,8 +220,10 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
         return newMap;
       });
     } else {
-      if (registrations.length >= 3) {
-        return { success: false, error: t.maxCoursesReached || 'Maximum 3 courses allowed' };
+      // Check registration limit
+      const maxRegistrations = await db.getMaxCourseRegistrations();
+      if (registrations.length >= maxRegistrations) {
+        return { success: false, error: t.maxCoursesReached || `Maximum ${maxRegistrations} courses allowed` };
       }
       
       // Check if profile is complete before allowing registration

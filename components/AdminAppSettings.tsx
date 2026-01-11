@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Language } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { db } from '../services/db';
-import { Settings, Play, Loader2, Mail, Save, MessageSquare } from 'lucide-react';
+import { Settings, Play, Loader2, Mail, Save, MessageSquare, BookOpen, Phone, MapPin, Globe, Clock } from 'lucide-react';
 
 interface AdminAppSettingsProps {
   language: Language;
@@ -35,6 +35,27 @@ export const AdminAppSettings: React.FC<AdminAppSettingsProps> = ({ language }) 
   const [welcomeSaveSuccess, setWelcomeSaveSuccess] = useState(false);
   const [welcomeError, setWelcomeError] = useState<string | null>(null);
 
+  // Course registration limit state
+  const [maxRegistrations, setMaxRegistrations] = useState(3);
+  const [isLoadingLimit, setIsLoadingLimit] = useState(false);
+  const [isSavingLimit, setIsSavingLimit] = useState(false);
+  const [limitSaveSuccess, setLimitSaveSuccess] = useState(false);
+  const [limitError, setLimitError] = useState<string | null>(null);
+
+  // Contact info state
+  const [contactInfo, setContactInfo] = useState({
+    organizationName: '',
+    address: '',
+    phone: '',
+    email: '',
+    website: '',
+    openingHours: ''
+  });
+  const [isLoadingContact, setIsLoadingContact] = useState(false);
+  const [isSavingContact, setIsSavingContact] = useState(false);
+  const [contactSaveSuccess, setContactSaveSuccess] = useState(false);
+  const [contactError, setContactError] = useState<string | null>(null);
+
   const t = TRANSLATIONS[language];
   const isRtl = language === 'ar';
 
@@ -42,6 +63,8 @@ export const AdminAppSettings: React.FC<AdminAppSettingsProps> = ({ language }) 
     loadSettings();
     loadEmailTemplate();
     loadWelcomeMessages();
+    loadRegistrationLimit();
+    loadContactInfo();
   }, []);
 
   const loadSettings = async () => {
@@ -189,6 +212,74 @@ We look forward to having you join us for this course. If you have any questions
     }
   };
 
+  const loadRegistrationLimit = async () => {
+    setIsLoadingLimit(true);
+    setLimitError(null);
+    try {
+      const limit = await db.getMaxCourseRegistrations();
+      setMaxRegistrations(limit);
+    } catch (err: any) {
+      setLimitError(err.message || 'Failed to load registration limit');
+    } finally {
+      setIsLoadingLimit(false);
+    }
+  };
+
+  const handleSaveRegistrationLimit = async () => {
+    setIsSavingLimit(true);
+    setLimitError(null);
+    setLimitSaveSuccess(false);
+    
+    try {
+      const { error } = await db.setMaxCourseRegistrations(maxRegistrations);
+      
+      if (error) {
+        setLimitError(error);
+      } else {
+        setLimitSaveSuccess(true);
+        setTimeout(() => setLimitSaveSuccess(false), 2000);
+      }
+    } catch (err: any) {
+      setLimitError(err.message || 'Failed to save registration limit');
+    } finally {
+      setIsSavingLimit(false);
+    }
+  };
+
+  const loadContactInfo = async () => {
+    setIsLoadingContact(true);
+    setContactError(null);
+    try {
+      const info = await db.getContactInfo();
+      setContactInfo(info);
+    } catch (err: any) {
+      setContactError(err.message || 'Failed to load contact information');
+    } finally {
+      setIsLoadingContact(false);
+    }
+  };
+
+  const handleSaveContactInfo = async () => {
+    setIsSavingContact(true);
+    setContactError(null);
+    setContactSaveSuccess(false);
+    
+    try {
+      const { error } = await db.setContactInfo(contactInfo);
+      
+      if (error) {
+        setContactError(error);
+      } else {
+        setContactSaveSuccess(true);
+        setTimeout(() => setContactSaveSuccess(false), 2000);
+      }
+    } catch (err: any) {
+      setContactError(err.message || 'Failed to save contact information');
+    } finally {
+      setIsSavingContact(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -271,6 +362,214 @@ We look forward to having you join us for this course. If you have any questions
           </p>
         </div>
       )}
+
+      {/* Course Registration Limit Settings */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg">
+            <BookOpen size={20} />
+          </div>
+          <div>
+            <h3 className="font-medium text-gray-900 dark:text-white">
+              {(t as any).adminMaxCourseRegistrations || 'Maximum Course Registrations'}
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {(t as any).adminMaxCourseRegistrationsDesc || 'Set the maximum number of courses a user can register for at the same time.'}
+            </p>
+          </div>
+        </div>
+
+        {/* Limit Error Message */}
+        {limitError && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg border border-red-100 dark:border-red-800">
+            {limitError}
+          </div>
+        )}
+
+        {/* Limit Success Message */}
+        {limitSaveSuccess && (
+          <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-sm rounded-lg border border-green-100 dark:border-green-800">
+            {(t as any).adminMaxCourseRegistrationsSaved || 'Registration limit saved successfully'}
+          </div>
+        )}
+
+        {isLoadingLimit ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-indigo-600 dark:text-indigo-400" />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {(t as any).adminMaxCourseRegistrationsLabel || 'Maximum Registrations'}
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="100"
+                value={maxRegistrations}
+                onChange={(e) => setMaxRegistrations(parseInt(e.target.value) || 1)}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="3"
+              />
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                {(t as any).adminMaxCourseRegistrationsHint || 'Enter a number between 1 and 100'}
+              </p>
+            </div>
+
+            {/* Save Button */}
+            <button
+              onClick={handleSaveRegistrationLimit}
+              disabled={isSavingLimit || maxRegistrations < 1 || maxRegistrations > 100}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSavingLimit ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save size={16} />
+              )}
+              {(t as any).adminMaxCourseRegistrationsSave || 'Save Limit'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Contact Information Settings */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 rounded-lg">
+            <Phone size={20} />
+          </div>
+          <div>
+            <h3 className="font-medium text-gray-900 dark:text-white">
+              {(t as any).adminContactInfo || 'Contact Information'}
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {(t as any).adminContactInfoDesc || 'Manage organization contact details displayed to users.'}
+            </p>
+          </div>
+        </div>
+
+        {/* Contact Error Message */}
+        {contactError && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg border border-red-100 dark:border-red-800">
+            {contactError}
+          </div>
+        )}
+
+        {/* Contact Success Message */}
+        {contactSaveSuccess && (
+          <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-sm rounded-lg border border-green-100 dark:border-green-800">
+            {(t as any).adminContactInfoSaved || 'Contact information saved successfully'}
+          </div>
+        )}
+
+        {isLoadingContact ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-indigo-600 dark:text-indigo-400" />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Organization Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {(t as any).adminContactOrgName || 'Organization Name'}
+              </label>
+              <input
+                type="text"
+                value={contactInfo.organizationName}
+                onChange={(e) => setContactInfo(prev => ({ ...prev, organizationName: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="Cork City Partnership"
+              />
+            </div>
+
+            {/* Address */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {(t as any).adminContactAddress || 'Address'}
+              </label>
+              <textarea
+                value={contactInfo.address}
+                onChange={(e) => setContactInfo(prev => ({ ...prev, address: e.target.value }))}
+                rows={3}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                placeholder="Heron House, Blackpool Park&#10;Cork, T23 R50R&#10;Ireland"
+              />
+            </div>
+
+            {/* Phone */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {(t as any).adminContactPhone || 'Phone'}
+              </label>
+              <input
+                type="text"
+                value={contactInfo.phone}
+                onChange={(e) => setContactInfo(prev => ({ ...prev, phone: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="+353 21 430 2310"
+              />
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {(t as any).adminContactEmail || 'Email'}
+              </label>
+              <input
+                type="email"
+                value={contactInfo.email}
+                onChange={(e) => setContactInfo(prev => ({ ...prev, email: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="info@partnershipcork.ie"
+              />
+            </div>
+
+            {/* Website */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {(t as any).adminContactWebsite || 'Website'}
+              </label>
+              <input
+                type="text"
+                value={contactInfo.website}
+                onChange={(e) => setContactInfo(prev => ({ ...prev, website: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="www.corkcitypartnership.ie"
+              />
+            </div>
+
+            {/* Opening Hours */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {(t as any).adminContactHours || 'Opening Hours'}
+              </label>
+              <input
+                type="text"
+                value={contactInfo.openingHours}
+                onChange={(e) => setContactInfo(prev => ({ ...prev, openingHours: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="Monday - Friday: 9:00 AM - 5:00 PM"
+              />
+            </div>
+
+            {/* Save Button */}
+            <button
+              onClick={handleSaveContactInfo}
+              disabled={isSavingContact}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSavingContact ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save size={16} />
+              )}
+              {(t as any).adminContactInfoSave || 'Save Contact Information'}
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Email Template Settings */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
