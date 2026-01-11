@@ -149,6 +149,7 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
         .on('postgres_changes',
           { event: '*', schema: 'public', table: 'registrations' },
           () => {
+            loadRegistrations();
             loadQueues();
           }
         )

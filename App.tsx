@@ -45,6 +45,7 @@ const AppContent: React.FC = () => {
   const [showContactModal, setShowContactModal] = useState(false);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [hasInvite, setHasInvite] = useState(false);
 
   // Debounced search query
   const debouncedSearchQuery = useDebounce(courseSearchQuery, 300);
@@ -205,6 +206,28 @@ const AppContent: React.FC = () => {
       refreshCourses();
     }
   }, [isAuthenticated, refreshCourses]);
+
+  // Check if user has any invites
+  useEffect(() => {
+    const checkInvites = async () => {
+      if (isAuthenticated && !isDemoUser) {
+        try {
+          const regs = await db.getRegistrations();
+          const hasAnyInvite = regs.some(r => r.isInvited === true);
+          setHasInvite(hasAnyInvite);
+        } catch (error) {
+          if (import.meta.env.DEV) {
+            console.error('Failed to check invites:', error);
+          }
+          setHasInvite(false);
+        }
+      } else {
+        setHasInvite(false);
+      }
+    };
+
+    checkInvites();
+  }, [isAuthenticated, isDemoUser, registrations]);
 
   const handleFirstLoginComplete = async (profileData: {
     firstName?: string;
@@ -508,7 +531,7 @@ const AppContent: React.FC = () => {
               <LayoutDashboard size={18} />
               {t.dashboardTab}
               {registrations.length > 0 && (
-                <span className={`bg-green-500 dark:bg-green-600 text-white text-[10px] px-1.5 py-0.5 rounded-full ${isRtl ? 'mr-auto' : 'ml-auto'}`}>
+                <span className={`${hasInvite ? 'bg-purple-500 dark:bg-purple-600' : 'bg-green-500 dark:bg-green-600'} text-white text-[10px] px-1.5 py-0.5 rounded-full ${isRtl ? 'mr-auto' : 'ml-auto'}`}>
                   {registrations.length}
                 </span>
               )}
