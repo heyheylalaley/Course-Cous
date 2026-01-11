@@ -22,6 +22,7 @@ import { TRANSLATIONS } from './translations';
 import { Moon, Sun } from 'lucide-react';
 import { UserTour, TourStep } from './components/UserTour';
 import { useUserTour } from './hooks/useUserTour';
+import { useUserRealtimeUpdates } from './hooks/useRealtimeSubscription';
 
 // Lazy load heavy components
 const ChatInterface = lazy(() => import('./components/ChatInterface').then(m => ({ default: m.ChatInterface })));
@@ -207,27 +208,35 @@ const AppContent: React.FC = () => {
     }
   }, [isAuthenticated, refreshCourses]);
 
-  // Check if user has any invites
-  useEffect(() => {
-    const checkInvites = async () => {
-      if (isAuthenticated && !isDemoUser) {
-        try {
-          const regs = await db.getRegistrations();
-          const hasAnyInvite = regs.some(r => r.isInvited === true);
-          setHasInvite(hasAnyInvite);
-        } catch (error) {
-          if (import.meta.env.DEV) {
-            console.error('Failed to check invites:', error);
-          }
-          setHasInvite(false);
+  // Callback to check if user has any invites
+  const checkInvites = useCallback(async () => {
+    if (isAuthenticated && !isDemoUser) {
+      try {
+        const regs = await db.getRegistrations();
+        const hasAnyInvite = regs.some(r => r.isInvited === true);
+        setHasInvite(hasAnyInvite);
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error('Failed to check invites:', error);
         }
-      } else {
         setHasInvite(false);
       }
-    };
+    } else {
+      setHasInvite(false);
+    }
+  }, [isAuthenticated, isDemoUser]);
 
+  // Initial check and when registrations change from context
+  useEffect(() => {
     checkInvites();
-  }, [isAuthenticated, isDemoUser, registrations]);
+  }, [checkInvites, registrations]);
+
+  // Setup realtime subscription for invites updates
+  useUserRealtimeUpdates(
+    userProfile.id || null,
+    checkInvites,
+    isAuthenticated && !isDemoUser && !!userProfile.id
+  );
 
   const handleFirstLoginComplete = async (profileData: {
     firstName?: string;
