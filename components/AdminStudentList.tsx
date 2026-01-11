@@ -3,6 +3,7 @@ import { AdminStudentDetail, Language, EnglishLevel, CourseSession } from '../ty
 import { db } from '../services/db';
 import { useCourses } from '../hooks/useCourses';
 import { TRANSLATIONS } from '../translations';
+import { ConfirmationModal } from './ConfirmationModal';
 import { 
   Users, FileSpreadsheet, FileText, Mail, Phone, Calendar, GraduationCap, 
   ArrowUp, ArrowDown, Filter, Search, CheckCircle, Circle, X, ArrowLeft,
@@ -29,6 +30,7 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [completingUserId, setCompletingUserId] = useState<string | null>(null);
+  const [studentToConfirm, setStudentToConfirm] = useState<AdminStudentDetail | null>(null);
   const { courses: availableCourses } = useCourses(false, language);
   const t = TRANSLATIONS[language] as any;
   const isRtl = language === 'ar';
@@ -158,17 +160,35 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
 
   // Handle toggling completion status
   const handleToggleCompleted = async (student: AdminStudentDetail) => {
-    setCompletingUserId(student.userId);
-    try {
-      if (student.isCompleted) {
+    // If student is already completed, unmark immediately without confirmation
+    if (student.isCompleted) {
+      setCompletingUserId(student.userId);
+      try {
         await db.unmarkCourseCompleted(student.userId, courseId);
-      } else {
-        await db.markCourseCompleted(student.userId, courseId);
+        await loadStudentDetails();
+      } catch (err: any) {
+        console.error('Failed to toggle completion:', err);
+        alert(err.message || 'Failed to update completion status');
+      } finally {
+        setCompletingUserId(null);
       }
-      // Reload data
+    } else {
+      // If student is not completed, show confirmation modal
+      setStudentToConfirm(student);
+    }
+  };
+
+  // Handle confirmation of course completion
+  const handleConfirmComplete = async () => {
+    if (!studentToConfirm) return;
+    
+    setCompletingUserId(studentToConfirm.userId);
+    try {
+      await db.markCourseCompleted(studentToConfirm.userId, courseId);
       await loadStudentDetails();
+      setStudentToConfirm(null);
     } catch (err: any) {
-      console.error('Failed to toggle completion:', err);
+      console.error('Failed to mark course as completed:', err);
       alert(err.message || 'Failed to update completion status');
     } finally {
       setCompletingUserId(null);
@@ -1102,6 +1122,24 @@ We look forward to having you join us for this course. If you have any questions
           </div>
         </div>
       )}
+
+      {/* Completion Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!studentToConfirm}
+        onClose={() => setStudentToConfirm(null)}
+        onConfirm={handleConfirmComplete}
+        title={t.adminMarkCompleted || 'Mark as completed'}
+        message={
+          studentToConfirm && course
+            ? `${t.adminMarkCompleted || 'Mark as completed'}: ${studentToConfirm.firstName || ''} ${studentToConfirm.lastName || ''} - ${course.title}?`
+            : ''
+        }
+        confirmText={t.confirm || 'Confirm'}
+        cancelText={t.cancel || 'Cancel'}
+        language={language}
+        type="warning"
+        isLoading={completingUserId === studentToConfirm?.userId}
+      />
     </div>
   );
 };
