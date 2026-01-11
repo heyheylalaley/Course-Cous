@@ -259,29 +259,35 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
         return;
       }
 
-      import('xlsx')
-        .then((XLSX) => {
-          resolve(XLSX);
-        })
-        .catch(() => {
-          if (typeof document !== 'undefined') {
-            const script = document.createElement('script');
-            script.src = 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js';
-            script.onload = () => {
-              if ((window as any).XLSX) {
-                resolve((window as any).XLSX);
-              } else {
-                reject(new Error('Failed to load XLSX library from CDN'));
-              }
-            };
-            script.onerror = () => {
-              reject(new Error('Failed to load XLSX library'));
-            };
-            document.head.appendChild(script);
+      if (typeof document !== 'undefined') {
+        // Check if script is already being loaded
+        const existingScript = document.querySelector('script[src*="xlsx.full.min.js"]');
+        if (existingScript) {
+          const checkInterval = setInterval(() => {
+            if ((window as any).XLSX) {
+              clearInterval(checkInterval);
+              resolve((window as any).XLSX);
+            }
+          }, 100);
+          return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js';
+        script.onload = () => {
+          if ((window as any).XLSX) {
+            resolve((window as any).XLSX);
           } else {
-            reject(new Error('XLSX library not available'));
+            reject(new Error('Failed to load XLSX library from CDN'));
           }
-        });
+        };
+        script.onerror = () => {
+          reject(new Error('Failed to load XLSX library'));
+        };
+        document.head.appendChild(script);
+      } else {
+        reject(new Error('XLSX library not available'));
+      }
     });
   };
 
