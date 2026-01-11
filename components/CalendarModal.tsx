@@ -205,16 +205,16 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
           ) : (
             <>
               {/* Month Navigation */}
-              <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="flex items-center justify-between mb-3 sm:mb-4 md:mb-2">
                 <button
                   onClick={handlePrevMonth}
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors touch-manipulation min-w-[44px] min-h-[44px] md:min-w-[36px] md:min-h-[36px] md:p-1.5 flex items-center justify-center"
                   title={t.calendarPrevMonth}
                 >
-                  <ChevronLeft className="w-5 h-5" />
+                  <ChevronLeft className="w-5 h-5 md:w-4 md:h-4" />
                 </button>
                 <div className="flex items-center gap-2 sm:gap-3 flex-1 justify-center">
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white text-center">
+                  <h3 className="text-base sm:text-lg md:text-base font-semibold text-gray-900 dark:text-white text-center">
                     {MONTHS[language][calendarData.month]} {calendarData.year}
                   </h3>
                   <button
@@ -226,70 +226,73 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({ isOpen, onClose, l
                 </div>
                 <button
                   onClick={handleNextMonth}
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors touch-manipulation min-w-[44px] min-h-[44px] md:min-w-[36px] md:min-h-[36px] md:p-1.5 flex items-center justify-center"
                   title={t.calendarNextMonth}
                 >
-                  <ChevronRight className="w-5 h-5" />
+                  <ChevronRight className="w-5 h-5 md:w-4 md:h-4" />
                 </button>
               </div>
 
-              {/* Weekday Headers */}
-              <div className="grid grid-cols-7 gap-1 sm:gap-1.5 mb-2">
-                {WEEKDAYS[language].map((day, index) => (
-                  <div
-                    key={index}
-                    className="text-center text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 py-1.5 sm:py-2"
-                  >
-                    {day}
-                  </div>
-                ))}
-              </div>
-
-              {/* Calendar Grid */}
-              <div className="grid grid-cols-7 gap-1 sm:gap-1.5 mb-3 sm:mb-4">
-                {calendarData.days.map((day, index) => {
-                  if (day === null) {
-                    return <div key={`empty-${index}`} className="aspect-square" />;
-                  }
-
-                  const dateStr = `${calendarData.year}-${String(calendarData.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                  const { hasCourses: dayHasCourses, hasEvents: dayHasEvents, hasPrivateEvents: dayHasPrivateEvents } = hasEvents(day);
-                  const isSelected = selectedDate === dateStr;
-                  const isTodayDate = isToday(day);
-
-                  return (
-                    <button
-                      key={day}
-                      onClick={() => handleDayClick(day)}
-                      className={`aspect-square rounded-lg flex flex-col items-center justify-center relative transition-colors touch-manipulation min-h-[44px] ${
-                        isSelected
-                          ? 'bg-indigo-600 dark:bg-indigo-500 text-white'
-                          : isTodayDate
-                          ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300'
-                          : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
-                      }`}
+              {/* Calendar Container - ограничение размера на больших экранах */}
+              <div className="max-w-md md:max-w-sm lg:max-w-xs mx-auto">
+                {/* Weekday Headers */}
+                <div className="grid grid-cols-7 gap-1 sm:gap-1 md:gap-0.5 mb-2">
+                  {WEEKDAYS[language].map((day, index) => (
+                    <div
+                      key={index}
+                      className="text-center text-xs sm:text-sm md:text-xs font-medium text-gray-500 dark:text-gray-400 py-1.5 sm:py-2 md:py-1"
                     >
-                      <span className="text-sm sm:text-base font-medium">{day}</span>
-                      {(dayHasCourses || dayHasEvents || dayHasPrivateEvents) && (
-                        <div className="flex gap-0.5 mt-0.5">
-                          {dayHasCourses && (
-                            <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${isSelected ? 'bg-green-300' : 'bg-green-500'}`} />
-                          )}
-                          {dayHasEvents && (
-                            <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${isSelected ? 'bg-purple-300' : 'bg-purple-500'}`} />
-                          )}
-                          {dayHasPrivateEvents && (
-                            <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${isSelected ? 'bg-gray-300' : 'bg-gray-500'}`} />
-                          )}
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
+                      {day}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Calendar Grid */}
+                <div className="grid grid-cols-7 gap-1 sm:gap-1 md:gap-0.5 mb-3 sm:mb-4 md:mb-3">
+                  {calendarData.days.map((day, index) => {
+                    if (day === null) {
+                      return <div key={`empty-${index}`} className="aspect-square" />;
+                    }
+
+                    const dateStr = `${calendarData.year}-${String(calendarData.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const { hasCourses: dayHasCourses, hasEvents: dayHasEvents, hasPrivateEvents: dayHasPrivateEvents } = hasEvents(day);
+                    const isSelected = selectedDate === dateStr;
+                    const isTodayDate = isToday(day);
+
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => handleDayClick(day)}
+                        className={`aspect-square rounded-lg flex flex-col items-center justify-center relative transition-colors touch-manipulation min-h-[44px] md:min-h-0 ${
+                          isSelected
+                            ? 'bg-indigo-600 dark:bg-indigo-500 text-white'
+                            : isTodayDate
+                            ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300'
+                            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        <span className="text-sm sm:text-base md:text-xs font-medium">{day}</span>
+                        {(dayHasCourses || dayHasEvents || dayHasPrivateEvents) && (
+                          <div className="flex gap-0.5 mt-0.5">
+                            {dayHasCourses && (
+                              <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 md:w-1.5 md:h-1.5 rounded-full ${isSelected ? 'bg-green-300' : 'bg-green-500'}`} />
+                            )}
+                            {dayHasEvents && (
+                              <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 md:w-1.5 md:h-1.5 rounded-full ${isSelected ? 'bg-purple-300' : 'bg-purple-500'}`} />
+                            )}
+                            {dayHasPrivateEvents && (
+                              <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 md:w-1.5 md:h-1.5 rounded-full ${isSelected ? 'bg-gray-300' : 'bg-gray-500'}`} />
+                            )}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Legend */}
-              <div className="flex items-center gap-2 sm:gap-4 text-xs text-gray-500 dark:text-gray-400 mb-3 sm:mb-4 flex-wrap">
+              <div className="flex items-center gap-2 sm:gap-4 md:gap-2 text-xs text-gray-500 dark:text-gray-400 mb-3 sm:mb-4 md:mb-2 flex-wrap">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
                   <span>{t.calendarCourses || 'Courses'}</span>
