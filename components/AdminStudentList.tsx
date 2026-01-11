@@ -48,6 +48,8 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailCopied, setEmailCopied] = useState(false);
   const [emailsCopied, setEmailsCopied] = useState(false);
+  const [generatedEmail, setGeneratedEmail] = useState<string>('');
+  const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
   
   // Add participant modal
   const [showAddParticipantModal, setShowAddParticipantModal] = useState(false);
@@ -584,8 +586,8 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
     );
   }, [students]);
 
-  // Generate invitation email
-  const generateInvitationEmail = (): string => {
+  // Generate invitation email using template from database
+  const generateInvitationEmail = async (): Promise<string> => {
     if (!course) return '';
     
     // Filter active sessions that are in the future (or today)
@@ -618,7 +620,12 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
         }).join('\n')
       : '• Dates will be announced soon';
 
-    const email = `Subject: Invitation to Join ${course.title}
+    // Load email template from database
+    const template = await db.getEmailTemplate('course_invitation');
+    
+    // If template not found, use default
+    if (!template) {
+      const defaultEmail = `Subject: Invitation to Join ${course.title}
 
 Hello!
 
@@ -636,8 +643,18 @@ Available dates for this course:
 ${datesList}
 
 We look forward to having you join us for this course. If you have any questions, please don't hesitate to reach out.`;
+      return defaultEmail;
+    }
 
-    return email;
+    // Replace template variables
+    const websiteUrl = 'https://ccplearn.pages.dev/';
+    let subject = template.subject.replace(/{courseTitle}/g, course.title);
+    let body = template.body
+      .replace(/{courseTitle}/g, course.title)
+      .replace(/{datesList}/g, datesList)
+      .replace(/{websiteUrl}/g, websiteUrl);
+
+    return `Subject: ${subject}\n\n${body}`;
   };
 
   // Get invited students emails as comma-separated string
@@ -648,7 +665,7 @@ We look forward to having you join us for this course. If you have any questions
 
   // Copy email to clipboard
   const handleCopyEmail = async () => {
-    const emailText = generateInvitationEmail();
+    const emailText = generatedEmail || await generateInvitationEmail();
     try {
       await navigator.clipboard.writeText(emailText);
       setEmailCopied(true);
@@ -672,8 +689,8 @@ We look forward to having you join us for this course. If you have any questions
     }
   };
 
-  // Show email modal
-  const handleGenerateEmail = () => {
+  // Show email modal and generate email
+  const handleGenerateEmail = async () => {
     if (invitedStudents.length === 0) {
       alert(t.adminNoInvitedStudents || 'No invited students found. Please invite students first before generating the email.');
       return;
@@ -682,7 +699,18 @@ We look forward to having you join us for this course. If you have any questions
       alert(t.adminError || 'Course information not available.');
       return;
     }
-    setShowEmailModal(true);
+    
+    setIsGeneratingEmail(true);
+    try {
+      const email = await generateInvitationEmail();
+      setGeneratedEmail(email);
+      setShowEmailModal(true);
+    } catch (err) {
+      console.error('Failed to generate email:', err);
+      alert('Failed to generate email. Please try again.');
+    } finally {
+      setIsGeneratingEmail(false);
+    }
   };
 
   if (isLoading) {
@@ -1161,11 +1189,17 @@ We look forward to having you join us for this course. If you have any questions
 
             {/* Email Content */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
-                <pre className="whitespace-pre-wrap font-mono text-sm text-gray-900 dark:text-gray-100 leading-relaxed">
-                  {generateInvitationEmail()}
-                </pre>
-              </div>
+              {isGeneratingEmail ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-indigo-600 dark:text-indigo-400" />
+                </div>
+              ) : (
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
+                  <pre className="whitespace-pre-wrap font-mono text-sm text-gray-900 dark:text-gray-100 leading-relaxed">
+                    {generatedEmail || 'Loading email template...'}
+                  </pre>
+                </div>
+              )}
               
               {/* Copy Email Button */}
               <div className="flex items-center justify-between mt-4">

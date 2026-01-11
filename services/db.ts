@@ -2099,6 +2099,102 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
     return db.setAppSetting('demo_enabled', enabled ? 'true' : 'false');
   },
 
+  // --- Email Templates Methods ---
+  getEmailTemplate: async (templateKey: string): Promise<{ subject: string; body: string; variables: string[] } | null> => {
+    if (!supabase) {
+      // Mock fallback: return default template
+      const defaultTemplates: Record<string, { subject: string; body: string; variables: string[] }> = {
+        course_invitation: {
+          subject: 'Invitation to Join {courseTitle}',
+          body: `Hello!
+
+I hope this email finds you well. I'm delighted to invite you to participate in our upcoming course: {courseTitle}.
+
+We would be thrilled to have you join us! To confirm your participation and select your preferred date, you have two options:
+
+1. Visit our website at {websiteUrl} and confirm your participation in the course, where you can also choose your preferred date.
+
+2. Simply reply to this email with your chosen date.
+
+Please note that spaces for this course are limited, so we encourage you to confirm your participation as soon as possible.
+
+Available dates for this course:
+{datesList}
+
+We look forward to having you join us for this course. If you have any questions, please don't hesitate to reach out.`,
+          variables: ['courseTitle', 'datesList', 'websiteUrl']
+        }
+      };
+      return defaultTemplates[templateKey] || null;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('email_templates')
+        .select('subject, body, variables')
+        .eq('template_key', templateKey)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') return null; // No rows returned
+        console.error('Error fetching email template:', error);
+        return null;
+      }
+
+      if (!data) return null;
+
+      return {
+        subject: data.subject || '',
+        body: data.body || '',
+        variables: (data.variables as string[]) || []
+      };
+    } catch (error) {
+      console.error('Error fetching email template:', error);
+      return null;
+    }
+  },
+
+  updateEmailTemplate: async (
+    templateKey: string,
+    subject: string,
+    body: string
+  ): Promise<{ error: string | null }> => {
+    if (!supabase) {
+      // Mock fallback: use localStorage
+      localStorage.setItem(`email_template_${templateKey}`, JSON.stringify({ subject, body }));
+      return { error: null };
+    }
+
+    // Check if user is admin
+    const session = db.getCurrentSession();
+    if (!session) {
+      return { error: 'Not authenticated' };
+    }
+
+    const profile = await db.getProfile();
+    if (!profile.isAdmin) {
+      return { error: 'Admin access required' };
+    }
+
+    try {
+      const { error } = await supabase
+        .from('email_templates')
+        .upsert({
+          template_key: templateKey,
+          subject,
+          body,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'template_key'
+        });
+
+      if (error) return { error: error.message };
+      return { error: null };
+    } catch (error: any) {
+      return { error: error.message || 'Failed to save email template' };
+    }
+  },
+
   // Sign in as demo user - creates local session only, no database interaction
   signInAsDemo: async (): Promise<{ user: { id: string, email: string } | null, error: string | null }> => {
     // Check if demo mode is enabled
