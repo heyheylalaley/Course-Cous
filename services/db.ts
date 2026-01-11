@@ -2117,6 +2117,21 @@ Available dates for this course:
 
 We look forward to having you join us for this course. If you have any questions, please don't hesitate to reach out.`,
           variables: ['courseTitle', 'datesList', 'websiteUrl']
+        },
+        course_reminder: {
+          subject: 'Reminder: Upcoming Course {courseTitle}',
+          body: `Hello!
+
+This is a friendly reminder that you are confirmed to attend our course: {courseTitle}.
+
+The course session is scheduled for {sessionDate}.
+
+Please make sure you are available on this date. If you have any questions or need to make changes, please don't hesitate to contact us.
+
+You can also visit our website at {websiteUrl} for more information.
+
+We look forward to seeing you soon!`,
+          variables: ['courseTitle', 'sessionDate', 'websiteUrl']
         }
       };
       return defaultTemplates[templateKey] || null;

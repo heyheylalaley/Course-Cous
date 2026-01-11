@@ -9,7 +9,7 @@ import { supabase } from '../services/db';
 import { 
   Users, FileSpreadsheet, FileText, Mail, Phone, Calendar, GraduationCap, 
   ArrowUp, ArrowDown, Filter, Search, CheckCircle, Circle, X, ArrowLeft,
-  Send, CalendarCheck, Loader2, Copy, Check, UserPlus, Trash2
+  Send, CalendarCheck, Loader2, Copy, Check, UserPlus, Trash2, Bell
 } from 'lucide-react';
 
 interface AdminStudentListProps {
@@ -50,6 +50,13 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
   const [emailsCopied, setEmailsCopied] = useState(false);
   const [generatedEmail, setGeneratedEmail] = useState<string>('');
   const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
+  
+  // Reminder email generation modal
+  const [showReminderModal, setShowReminderModal] = useState(false);
+  const [reminderEmailCopied, setReminderEmailCopied] = useState(false);
+  const [reminderEmailsCopied, setReminderEmailsCopied] = useState(false);
+  const [generatedReminderEmail, setGeneratedReminderEmail] = useState<string>('');
+  const [isGeneratingReminder, setIsGeneratingReminder] = useState(false);
   
   // Add participant modal
   const [showAddParticipantModal, setShowAddParticipantModal] = useState(false);
@@ -108,7 +115,7 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
 
   // Prevent body scroll when email modal is open
   useEffect(() => {
-    if (showEmailModal) {
+    if (showEmailModal || showReminderModal) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -116,7 +123,7 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
     return () => {
       document.body.style.overflow = '';
     };
-  }, [showEmailModal]);
+  }, [showEmailModal, showReminderModal]);
 
   const loadCourseSessions = async () => {
     try {
@@ -586,6 +593,46 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
     );
   }, [students]);
 
+  // Get students for reminders (confirmed or assigned to upcoming sessions)
+  const reminderStudents = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Calculate end of next week (14 days from today)
+    const endOfNextWeek = new Date(today);
+    endOfNextWeek.setDate(endOfNextWeek.getDate() + 14);
+    
+    return students.filter(s => {
+      // Must have email
+      if (!s.email) return false;
+      
+      // Must be confirmed (isCompleted) OR assigned (assignedSessionId)
+      if (!s.isCompleted && !s.assignedSessionId) return false;
+      
+      // If assigned, check if session date is in the upcoming range
+      if (s.assignedSessionId && s.assignedSessionDate) {
+        const sessionDate = new Date(s.assignedSessionDate + 'T00:00:00');
+        sessionDate.setHours(0, 0, 0, 0);
+        // Include sessions from today to end of next week
+        if (sessionDate < today || sessionDate > endOfNextWeek) return false;
+      }
+      
+      // If confirmed, check if they have any upcoming session
+      if (s.isCompleted && !s.assignedSessionId && !s.userSelectedSessionDate) {
+        // If completed but no session date, check all upcoming sessions
+        const hasUpcomingSession = courseSessions.some(session => {
+          if (session.status !== 'active') return false;
+          const sessionDate = new Date(session.sessionDate + 'T00:00:00');
+          sessionDate.setHours(0, 0, 0, 0);
+          return sessionDate >= today && sessionDate <= endOfNextWeek;
+        });
+        if (!hasUpcomingSession) return false;
+      }
+      
+      return true;
+    });
+  }, [students, courseSessions]);
+
   // Generate invitation email using template from database
   const generateInvitationEmail = async (): Promise<string> => {
     if (!course) return '';
@@ -761,6 +808,170 @@ We look forward to having you join us for this course. If you have any questions
     }
   };
 
+  // Generate reminder email using template from database
+  const generateReminderEmail = async (): Promise<string> => {
+    if (!course) return '';
+    
+    // Find the nearest upcoming session for the student (we'll use the first reminder student's session)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const endOfNextWeek = new Date(today);
+    endOfNextWeek.setDate(endOfNextWeek.getDate() + 14);
+    
+    const upcomingSessions = courseSessions.filter(s => {
+      if (s.status !== 'active') return false;
+      const sessionDate = new Date(s.sessionDate + 'T00:00:00');
+      sessionDate.setHours(0, 0, 0, 0);
+      return sessionDate >= today && sessionDate <= endOfNextWeek;
+    });
+    
+    upcomingSessions.sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime());
+    
+    const formatDateForEmail = (dateString: string) => {
+      const date = new Date(dateString + 'T00:00:00');
+      return date.toLocaleDateString('en-GB', { 
+        weekday: 'long',
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric' 
+      });
+    };
+
+    // Use the earliest upcoming session date, or a generic message if none
+    const sessionDate = upcomingSessions.length > 0 
+      ? formatDateForEmail(upcomingSessions[0].sessionDate)
+      : 'soon';
+
+    // Load email template from database
+    const template = await db.getEmailTemplate('course_reminder');
+    
+    // If template not found, use default
+    if (!template) {
+      const defaultEmail = `Subject: Reminder: Upcoming Course ${course.title}
+
+Hello!
+
+This is a friendly reminder that you are confirmed to attend our course: ${course.title}.
+
+The course session is scheduled for ${sessionDate}.
+
+Please make sure you are available on this date. If you have any questions or need to make changes, please don't hesitate to contact us.
+
+You can also visit our website at https://ccplearn.pages.dev/ for more information.
+
+We look forward to seeing you soon!`;
+      return defaultEmail;
+    }
+
+    // Replace template variables
+    const websiteUrl = 'https://ccplearn.pages.dev/';
+    let subject = template.subject.replace(/{courseTitle}/g, course.title);
+    let body = template.body
+      .replace(/{courseTitle}/g, course.title)
+      .replace(/{sessionDate}/g, sessionDate)
+      .replace(/{websiteUrl}/g, websiteUrl);
+
+    return `Subject: ${subject}\n\n${body}`;
+  };
+
+  // Get reminder students emails as semicolon-separated string
+  const getReminderStudentsEmails = (): string => {
+    return reminderStudents.map(s => s.email).filter(email => email).join('; ');
+  };
+
+  // Copy reminder email to clipboard
+  const handleCopyReminderEmail = async () => {
+    const emailText = generatedReminderEmail || await generateReminderEmail();
+    try {
+      await navigator.clipboard.writeText(emailText);
+      setReminderEmailCopied(true);
+      setTimeout(() => setReminderEmailCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy reminder email:', err);
+      alert('Failed to copy email to clipboard');
+    }
+  };
+
+  // Copy reminder email addresses to clipboard
+  const handleCopyReminderEmails = async () => {
+    const emails = getReminderStudentsEmails();
+    try {
+      await navigator.clipboard.writeText(emails);
+      setReminderEmailsCopied(true);
+      setTimeout(() => setReminderEmailsCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy reminder emails:', err);
+      alert('Failed to copy emails to clipboard');
+    }
+  };
+
+  // Open email client with BCC and reminder email body
+  const handleOpenReminderEmailClient = async () => {
+    try {
+      const emails = getReminderStudentsEmails();
+      if (!emails) {
+        alert(t.adminNoReminderStudents || 'No students found for reminders.');
+        return;
+      }
+
+      // Get generated email text
+      const emailText = generatedReminderEmail || await generateReminderEmail();
+      
+      // Parse subject and body from email format: "Subject: ...\n\nBody..."
+      const subjectMatch = emailText.match(/^Subject:\s*(.+)$/m);
+      const subject = subjectMatch ? subjectMatch[1].trim() : '';
+      
+      // Extract body (everything after "Subject: ...\n\n")
+      const bodyMatch = emailText.match(/^Subject:.*\n\n([\s\S]*)$/m);
+      const body = bodyMatch ? bodyMatch[1].trim() : emailText;
+
+      // URL encode parameters
+      const encodedSubject = encodeURIComponent(subject);
+      const encodedBody = encodeURIComponent(body);
+      const emailList = emails.split(';').map(e => e.trim()).filter(e => e).join(',');
+      
+      // Build mailto link
+      const mailtoUrl = `mailto:?bcc=${emailList}&subject=${encodedSubject}&body=${encodedBody}`;
+
+      // Check URL length (browsers typically limit to ~2000 characters)
+      if (mailtoUrl.length > 2000) {
+        alert(t.adminEmailTooLong || 'Email is too long for mailto: link. Please use the copy button instead.');
+        return;
+      }
+
+      // Open email client
+      window.location.href = mailtoUrl;
+    } catch (err) {
+      console.error('Failed to open email client:', err);
+      alert('Failed to open email client. Please use the copy button instead.');
+    }
+  };
+
+  // Show reminder email modal and generate email
+  const handleGenerateReminderEmail = async () => {
+    if (reminderStudents.length === 0) {
+      alert(t.adminNoReminderStudents || 'No students found for reminders. Please ensure students are confirmed or assigned to upcoming sessions.');
+      return;
+    }
+    if (!course) {
+      alert(t.adminError || 'Course information not available.');
+      return;
+    }
+    
+    setIsGeneratingReminder(true);
+    try {
+      const email = await generateReminderEmail();
+      setGeneratedReminderEmail(email);
+      setShowReminderModal(true);
+    } catch (err) {
+      console.error('Failed to generate reminder email:', err);
+      alert('Failed to generate reminder email. Please try again.');
+    } finally {
+      setIsGeneratingReminder(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full min-h-[400px]">
@@ -846,6 +1057,27 @@ We look forward to having you join us for this course. If you have any questions
               {invitedStudents.length > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 rounded-full bg-purple-500 dark:bg-purple-600 text-xs font-semibold">
                   {invitedStudents.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={handleGenerateReminderEmail}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                reminderStudents.length > 0
+                  ? 'bg-orange-600 dark:bg-orange-700 text-white hover:bg-orange-700 dark:hover:bg-orange-600'
+                  : 'bg-orange-400 dark:bg-orange-800 text-white opacity-75 cursor-pointer hover:opacity-100'
+              }`}
+              title={
+                reminderStudents.length > 0
+                  ? `Generate reminder email for ${reminderStudents.length} ${reminderStudents.length === 1 ? 'student' : 'students'}`
+                  : t.adminNoReminderStudents || 'No students found for reminders. Please ensure students are confirmed or assigned to upcoming sessions.'
+              }
+            >
+              <Bell size={18} />
+              {t.adminGenerateReminderEmail || 'Generate Reminder Email'}
+              {reminderStudents.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-orange-500 dark:bg-orange-600 text-xs font-semibold">
+                  {reminderStudents.length}
                 </span>
               )}
             </button>
@@ -1316,6 +1548,128 @@ We look forward to having you join us for this course. If you have any questions
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
                   <p className="text-sm text-gray-900 dark:text-gray-100 font-mono break-all">
                     {getInvitedStudentsEmails() || t.adminNoInvitedStudents || 'No invited students'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reminder Email Generation Modal */}
+      {showReminderModal && (
+        <div
+          className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowReminderModal(false);
+            }
+          }}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-gray-200 dark:border-gray-700"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  {t.adminReminderEmail || 'Reminder Email'}
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  For {reminderStudents.length} {reminderStudents.length === 1 ? 'student' : 'students'} confirmed or assigned to upcoming sessions
+                </p>
+              </div>
+              <button
+                onClick={() => setShowReminderModal(false)}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Email Content */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+              {isGeneratingReminder ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-indigo-600 dark:text-indigo-400" />
+                </div>
+              ) : (
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
+                  <pre className="whitespace-pre-wrap font-mono text-sm text-gray-900 dark:text-gray-100 leading-relaxed">
+                    {generatedReminderEmail || 'Loading email template...'}
+                  </pre>
+                </div>
+              )}
+              
+              {/* Copy Email Button */}
+              <div className="flex items-center justify-between mt-4">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {t.adminEmailCopyHint || 'Copy the email above and send it to students'}
+                </p>
+                <button
+                  onClick={handleCopyReminderEmail}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-600 dark:bg-orange-700 text-white hover:bg-orange-700 dark:hover:bg-orange-600 transition-colors"
+                >
+                  {reminderEmailCopied ? (
+                    <>
+                      <Check size={18} />
+                      {t.adminCopied || 'Copied!'}
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={18} />
+                      {t.adminCopyEmail || 'Copy Email'}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-gray-200 dark:border-gray-700">
+              {/* Email Addresses Section */}
+              <div className="p-4 sm:p-6 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                      {t.adminReminderStudentsEmails || 'Reminder Students Emails'} ({reminderStudents.length}):
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {t.adminEmailsCopyHint || 'Copy emails to paste into Outlook (separated by semicolon)'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={handleOpenReminderEmailClient}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-600 dark:bg-orange-700 text-white hover:bg-orange-700 dark:hover:bg-orange-600 transition-colors text-sm"
+                      title={t.adminOpenEmailClient || 'Open email client with BCC and email body'}
+                    >
+                      <Mail size={16} />
+                      {t.adminOpenEmailClient || 'Open Email Client'}
+                    </button>
+                    <button
+                      onClick={handleCopyReminderEmails}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors text-sm"
+                    >
+                      {reminderEmailsCopied ? (
+                        <>
+                          <Check size={16} />
+                          {t.adminCopied || 'Copied!'}
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={16} />
+                          {t.adminCopyEmails || 'Copy Emails'}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-900 dark:text-gray-100 font-mono break-all">
+                    {getReminderStudentsEmails() || t.adminNoReminderStudents || 'No students found for reminders'}
                   </p>
                 </div>
               </div>

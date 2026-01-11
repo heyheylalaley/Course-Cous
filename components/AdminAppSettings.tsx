@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Language } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { db } from '../services/db';
-import { Settings, Play, Loader2, Mail, Save, MessageSquare, BookOpen, Phone, MapPin, Globe, Clock } from 'lucide-react';
+import { Settings, Play, Loader2, Mail, Save, MessageSquare, BookOpen, Phone, MapPin, Globe, Clock, Bell } from 'lucide-react';
 
 interface AdminAppSettingsProps {
   language: Language;
@@ -22,6 +22,14 @@ export const AdminAppSettings: React.FC<AdminAppSettingsProps> = ({ language }) 
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const [templateSaveSuccess, setTemplateSaveSuccess] = useState(false);
   const [templateError, setTemplateError] = useState<string | null>(null);
+  
+  // Reminder email template state
+  const [reminderEmailSubject, setReminderEmailSubject] = useState('');
+  const [reminderEmailBody, setReminderEmailBody] = useState('');
+  const [isLoadingReminderTemplate, setIsLoadingReminderTemplate] = useState(false);
+  const [isSavingReminderTemplate, setIsSavingReminderTemplate] = useState(false);
+  const [reminderTemplateSaveSuccess, setReminderTemplateSaveSuccess] = useState(false);
+  const [reminderTemplateError, setReminderTemplateError] = useState<string | null>(null);
 
   // Welcome message state
   const [welcomeMessages, setWelcomeMessages] = useState<Record<Language, string>>({
@@ -62,6 +70,7 @@ export const AdminAppSettings: React.FC<AdminAppSettingsProps> = ({ language }) 
   useEffect(() => {
     loadSettings();
     loadEmailTemplate();
+    loadReminderEmailTemplate();
     loadWelcomeMessages();
     loadRegistrationLimit();
     loadContactInfo();
@@ -132,6 +141,57 @@ We look forward to having you join us for this course. If you have any questions
       setTemplateError(err.message || 'Failed to save email template');
     } finally {
       setIsSavingTemplate(false);
+    }
+  };
+
+  const loadReminderEmailTemplate = async () => {
+    setIsLoadingReminderTemplate(true);
+    setReminderTemplateError(null);
+    try {
+      const template = await db.getEmailTemplate('course_reminder');
+      if (template) {
+        setReminderEmailSubject(template.subject);
+        setReminderEmailBody(template.body);
+      } else {
+        // Set default values if template not found
+        setReminderEmailSubject('Reminder: Upcoming Course {courseTitle}');
+        setReminderEmailBody(`Hello!
+
+This is a friendly reminder that you are confirmed to attend our course: {courseTitle}.
+
+The course session is scheduled for {sessionDate}.
+
+Please make sure you are available on this date. If you have any questions or need to make changes, please don't hesitate to contact us.
+
+You can also visit our website at {websiteUrl} for more information.
+
+We look forward to seeing you soon!`);
+      }
+    } catch (err: any) {
+      setReminderTemplateError(err.message || 'Failed to load reminder email template');
+    } finally {
+      setIsLoadingReminderTemplate(false);
+    }
+  };
+
+  const handleSaveReminderEmailTemplate = async () => {
+    setIsSavingReminderTemplate(true);
+    setReminderTemplateError(null);
+    setReminderTemplateSaveSuccess(false);
+    
+    try {
+      const { error } = await db.updateEmailTemplate('course_reminder', reminderEmailSubject, reminderEmailBody);
+      
+      if (error) {
+        setReminderTemplateError(error);
+      } else {
+        setReminderTemplateSaveSuccess(true);
+        setTimeout(() => setReminderTemplateSaveSuccess(false), 2000);
+      }
+    } catch (err: any) {
+      setReminderTemplateError(err.message || 'Failed to save reminder email template');
+    } finally {
+      setIsSavingReminderTemplate(false);
     }
   };
 
@@ -654,6 +714,90 @@ We look forward to having you join us for this course. If you have any questions
               className="flex items-center gap-2 px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSavingTemplate ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save size={16} />
+              )}
+              {(t as any).adminEmailTemplateSave || 'Save Email Template'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Reminder Email Template Settings */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-lg">
+            <Bell size={20} />
+          </div>
+          <div>
+            <h3 className="font-medium text-gray-900 dark:text-white">
+              {(t as any).adminReminderEmailTemplate || 'Reminder Email Template'}
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {(t as any).adminReminderEmailTemplateDesc || 'Customize the reminder email template sent to students. Use {courseTitle}, {sessionDate}, and {websiteUrl} as placeholders.'}
+            </p>
+          </div>
+        </div>
+
+        {/* Template Error Message */}
+        {reminderTemplateError && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg border border-red-100 dark:border-red-800">
+            {reminderTemplateError}
+          </div>
+        )}
+
+        {/* Template Success Message */}
+        {reminderTemplateSaveSuccess && (
+          <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-sm rounded-lg border border-green-100 dark:border-green-800">
+            {(t as any).adminEmailTemplateSaved || 'Email template saved successfully'}
+          </div>
+        )}
+
+        {isLoadingReminderTemplate ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-indigo-600 dark:text-indigo-400" />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Subject Field */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {(t as any).adminEmailTemplateSubject || 'Email Subject'}
+              </label>
+              <input
+                type="text"
+                value={reminderEmailSubject}
+                onChange={(e) => setReminderEmailSubject(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="Reminder: Upcoming Course {courseTitle}"
+              />
+            </div>
+
+            {/* Body Field */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {(t as any).adminEmailTemplateBody || 'Email Body'}
+              </label>
+              <textarea
+                value={reminderEmailBody}
+                onChange={(e) => setReminderEmailBody(e.target.value)}
+                rows={15}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono text-sm"
+                placeholder="Enter email body..."
+              />
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                Available placeholders: {'{courseTitle}'}, {'{sessionDate}'}, {'{websiteUrl}'}
+              </p>
+            </div>
+
+            {/* Save Button */}
+            <button
+              onClick={handleSaveReminderEmailTemplate}
+              disabled={isSavingReminderTemplate}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-600 dark:bg-orange-700 text-white rounded-lg hover:bg-orange-700 dark:hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSavingReminderTemplate ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Save size={16} />
