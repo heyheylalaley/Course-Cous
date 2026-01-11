@@ -70,17 +70,6 @@ const AppContent: React.FC = () => {
         // No action - just highlight the button, don't switch tabs during tour
       },
       {
-        id: 'sidebar',
-        target: '[data-tour="course-catalog"]',
-        title: t.tourSidebarTitle || 'Course Catalog',
-        content: t.tourSidebarContent || 'Browse all available courses here. Use the search bar to find specific courses.',
-        position: 'left',
-        action: () => {
-          // Open sidebar to show the catalog on mobile
-          setSidebarOpen(true);
-        }
-      },
-      {
         id: 'dashboard-tab',
         target: '[data-tour="dashboard-tab"]',
         title: t.tourDashboardTitle || 'My Profile',
@@ -96,6 +85,17 @@ const AppContent: React.FC = () => {
         position: 'left',
         action: () => {
           // Open sidebar to show the calendar button on mobile
+          setSidebarOpen(true);
+        }
+      },
+      {
+        id: 'sidebar',
+        target: '[data-tour="course-catalog"]',
+        title: t.tourSidebarTitle || 'Course Catalog',
+        content: t.tourSidebarContent || 'Browse all available courses here. Use the search bar to find specific courses.',
+        position: 'left',
+        action: () => {
+          // Open sidebar to show the catalog on mobile
           setSidebarOpen(true);
         }
       }

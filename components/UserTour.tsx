@@ -267,33 +267,48 @@ export const UserTour: React.FC<UserTourProps> = ({
     tooltipPadding, 
     Math.min(fixedTop, viewportHeight - estimatedTooltipHeight - tooltipPadding)
   );
+  const halfTooltipWidth = tooltipMaxWidth / 2;
   const clampedLeft = Math.max(
-    tooltipPadding + tooltipMaxWidth / 2,
-    Math.min(fixedLeft, viewportWidth - tooltipPadding - tooltipMaxWidth / 2)
+    tooltipPadding + halfTooltipWidth,
+    Math.min(fixedLeft, viewportWidth - tooltipPadding - halfTooltipWidth)
   );
+  
+  // For RTL, ensure tooltip doesn't go off right edge (which is more critical in RTL)
+  let finalLeft = clampedLeft;
+  let finalTransform = 'translate(-50%, 0)';
+  
+  if (isRtl) {
+    // In RTL, ensure we don't exceed the right edge (left side of viewport in RTL context)
+    // Add extra safety margin for RTL
+    const rtlMaxLeft = viewportWidth - tooltipPadding - halfTooltipWidth;
+    finalLeft = Math.min(finalLeft, rtlMaxLeft);
+    
+    // For RTL with 'right' position, flip the transform
+    if (currentStepData.position === 'right') {
+      finalTransform = 'translate(50%, 0)';
+    } else if (currentStepData.position === 'left') {
+      // In RTL, 'left' position means tooltip should be to the right, so flip transform
+      finalTransform = 'translate(-50%, 0)';
+    }
+  }
   
   const tooltipStyle: React.CSSProperties = {
     position: 'fixed', // Use fixed for viewport-relative positioning
     top: `${clampedTop}px`,
-    left: `${clampedLeft}px`,
-    transform: 'translate(-50%, 0)',
+    left: `${finalLeft}px`,
+    transform: finalTransform,
     zIndex: 10000,
     maxWidth: `${tooltipMaxWidth}px`,
     width: isMobile ? 'calc(100vw - 32px)' : 'auto',
     pointerEvents: 'auto',
     maxHeight: `${viewportHeight - clampedTop - tooltipPadding}px`,
-    overflowY: 'auto'
+    overflowY: 'auto',
+    overflowX: 'hidden'
   };
-
-  // Adjust for RTL
-  if (isRtl && currentStepData.position === 'right') {
-    tooltipStyle.transform = 'translate(50%, 0)';
-  }
 
   // On mobile, center horizontally if tooltip would be too close to edge
   if (isMobile) {
-    const halfWidth = tooltipMaxWidth / 2;
-    if (clampedLeft - halfWidth < tooltipPadding || clampedLeft + halfWidth > viewportWidth - tooltipPadding) {
+    if (finalLeft - halfTooltipWidth < tooltipPadding || finalLeft + halfTooltipWidth > viewportWidth - tooltipPadding) {
       tooltipStyle.left = '50%';
       tooltipStyle.transform = 'translate(-50%, 0)';
     }
@@ -304,7 +319,7 @@ export const UserTour: React.FC<UserTourProps> = ({
       {/* Overlay */}
       <div
         ref={overlayRef}
-        className="fixed inset-0 bg-black/50 dark:bg-black/70 z-[9997] transition-opacity"
+        className="fixed inset-0 bg-black/30 dark:bg-black/50 z-[9997] transition-opacity"
         style={{ pointerEvents: 'none' }}
       />
 
@@ -318,8 +333,8 @@ export const UserTour: React.FC<UserTourProps> = ({
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-green-100 dark:bg-green-900 rounded-lg">
-              <Sparkles className="w-4 h-4 text-green-600 dark:text-green-400" />
+            <div className="p-1.5 bg-amber-100 dark:bg-amber-900 rounded-lg">
+              <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
@@ -333,7 +348,7 @@ export const UserTour: React.FC<UserTourProps> = ({
         </div>
 
         {/* Content */}
-        <p className="text-sm text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
+        <p className="text-sm text-gray-700 dark:text-gray-300 mb-4 leading-relaxed break-words">
           {currentStepData.content}
         </p>
 
@@ -357,7 +372,7 @@ export const UserTour: React.FC<UserTourProps> = ({
             )}
             <button
               onClick={handleNext}
-              className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+              className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors"
             >
               {isLastStep ? (t.tourFinish || 'Finish') : (t.tourNext || 'Next')}
               {!isLastStep && <ChevronRight className="w-4 h-4" />}
@@ -372,9 +387,9 @@ export const UserTour: React.FC<UserTourProps> = ({
               key={index}
               className={`h-1.5 flex-1 rounded-full transition-colors ${
                 index === currentStep
-                  ? 'bg-green-600 dark:bg-green-500'
+                  ? 'bg-amber-600 dark:bg-amber-500'
                   : index < currentStep
-                  ? 'bg-green-300 dark:bg-green-700'
+                  ? 'bg-amber-300 dark:bg-amber-700'
                   : 'bg-gray-200 dark:bg-gray-700'
               }`}
             />
@@ -384,18 +399,18 @@ export const UserTour: React.FC<UserTourProps> = ({
 
       <style>{`
         .tour-highlight {
-          outline: 4px solid rgba(34, 197, 94, 0.8) !important;
+          outline: 4px solid rgba(245, 158, 11, 0.8) !important;
           outline-offset: 6px !important;
           border-radius: 12px !important;
-          background-color: rgba(34, 197, 94, 0.15) !important;
-          box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.3), 0 0 20px rgba(34, 197, 94, 0.2) !important;
+          background-color: rgba(245, 158, 11, 0.15) !important;
+          box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3), 0 0 20px rgba(245, 158, 11, 0.2) !important;
           transition: all 0.3s ease !important;
         }
         @media (max-width: 768px) {
           .tour-highlight {
-            outline: 5px solid rgba(34, 197, 94, 0.9) !important;
+            outline: 5px solid rgba(245, 158, 11, 0.9) !important;
             outline-offset: 8px !important;
-            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.4), 0 0 30px rgba(34, 197, 94, 0.3) !important;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.4), 0 0 30px rgba(245, 158, 11, 0.3) !important;
           }
         }
       `}</style>
