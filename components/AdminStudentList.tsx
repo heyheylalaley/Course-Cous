@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
+import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
 interface AdminStudentListProps {
@@ -538,12 +539,16 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
         }
       };
 
+      // Create ZIP archive for all documents
+      const zip = new JSZip();
+      let documentsGenerated = 0;
+
       // Generate document for each student
       for (const student of filteredAndSortedStudents) {
         try {
           // Load template for each student (we need to reload it each time)
-          const zip = new PizZip(arrayBuffer);
-          const doc = new Docxtemplater(zip, {
+          const docxZip = new PizZip(arrayBuffer);
+          const doc = new Docxtemplater(docxZip, {
             paragraphLoop: true,
             linebreaks: true,
           });
@@ -561,6 +566,7 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
             englishLevel: student.englishLevel || '',
             courseTitle: course?.title || '',
             courseDate: formatDateForWord(courseDate),
+            courseRegistrationDate: formatDateForWord(student.registeredAt ? student.registeredAt.toISOString().split('T')[0] : undefined),
             ldcRef: student.ldcRef || '',
             irisId: student.irisId || '',
             priority: student.priority?.toString() || '',
@@ -582,15 +588,25 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
           const safeFileName = studentName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
           const fileName = `${safeFileName}_${course?.title?.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'course'}.docx`;
 
-          // Save file
-          saveAs(buf, fileName);
+          // Add document to ZIP archive
+          zip.file(fileName, buf);
+          documentsGenerated++;
         } catch (studentError: any) {
           console.error(`Error generating document for ${student.firstName} ${student.lastName}:`, studentError);
           // Continue with next student even if one fails
         }
       }
 
-      alert(t.adminWordDocumentsGenerated || `Generated ${filteredAndSortedStudents.length} document(s) successfully`);
+      // Generate ZIP archive and download
+      if (documentsGenerated > 0) {
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const courseTitle = course?.title?.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'course';
+        const zipFileName = `${courseTitle}_documents_${new Date().toISOString().split('T')[0]}.zip`;
+        saveAs(zipBlob, zipFileName);
+        alert(t.adminWordDocumentsGenerated || `Generated ${documentsGenerated} document(s) and downloaded as ZIP archive successfully`);
+      } else {
+        alert(t.adminWordDocumentsError || 'No documents were generated');
+      }
     } catch (error: any) {
       console.error('Error generating Word documents:', error);
       alert(t.adminWordDocumentsError || `Error generating documents: ${error.message || 'Unknown error'}`);
