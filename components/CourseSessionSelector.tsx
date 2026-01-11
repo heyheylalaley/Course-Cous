@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SessionWithAvailability, Registration, Language } from '../types';
-import { db } from '../services/db';
+import { db, supabase } from '../services/db';
 import { TRANSLATIONS } from '../translations';
 import { Calendar, Check, AlertCircle, Users, Loader2, CalendarCheck } from 'lucide-react';
 
@@ -34,6 +34,29 @@ export const CourseSessionSelector: React.FC<CourseSessionSelectorProps> = ({
 
   useEffect(() => {
     loadAvailableSessions();
+
+    // Setup real-time subscription for course_sessions changes
+    if (supabase) {
+      const channel = supabase
+        .channel(`course-sessions-${courseId}`)
+        .on('postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'course_sessions',
+            filter: `course_id=eq.${courseId}`
+          },
+          () => {
+            // Reload sessions when capacity changes
+            loadAvailableSessions();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, [courseId]);
 
   const loadAvailableSessions = async () => {
@@ -165,11 +188,14 @@ export const CourseSessionSelector: React.FC<CourseSessionSelectorProps> = ({
           const isFull = !session.isAvailable;
           const spotsLeft = session.maxCapacity - session.currentEnrollment;
 
+          // Allow clicking if: (1) session is selected (to deselect), or (2) session is not full
+          const canClick = isSelected || !isFull;
+
           return (
             <button
               key={session.id}
-              onClick={() => !isFull && handleSelectSession(isSelected ? null : session.id)}
-              disabled={isFull || isSaving}
+              onClick={() => canClick && handleSelectSession(isSelected ? null : session.id)}
+              disabled={!canClick || isSaving}
               className={`w-full p-3 rounded-lg border text-left transition-all ${
                 isSelected
                   ? 'bg-purple-100 dark:bg-purple-900/40 border-purple-400 dark:border-purple-600 ring-2 ring-purple-300 dark:ring-purple-700'
@@ -235,7 +261,7 @@ export const CourseSessionSelector: React.FC<CourseSessionSelectorProps> = ({
       )}
 
       <p className="mt-2 text-xs text-purple-600 dark:text-purple-500">
-        {t.sessionSelectionNote || 'You can change your selection while spots are available'}
+        {t.sessionSelectionNote || 'You can change your selection while spots are available. You can always remove your selection, even if the session is full.'}
       </p>
     </div>
   );

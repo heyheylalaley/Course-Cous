@@ -178,6 +178,13 @@ export const CoursesProvider: React.FC<CoursesProviderProps> = ({ children, lang
             loadRegistrations(); // Also reload registrations as completed courses affect what's shown
           }
         )
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'course_sessions' },
+          () => {
+            // Reload queues when session capacity changes (affects queue length)
+            loadQueues();
+          }
+        )
         .subscribe();
     }
 
