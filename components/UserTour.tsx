@@ -251,9 +251,11 @@ export const UserTour: React.FC<UserTourProps> = ({
   const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 320;
   const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 568;
   
-  // Reduce maxWidth for RTL and mobile to prevent overflow
-  // Also reduce for Russian/Ukrainian if needed (they have longer text)
-  const baseMaxWidth = isMobile ? Math.min(300, viewportWidth - 32) : 300;
+  // Increase maxWidth for Russian/Ukrainian languages (they have longer text)
+  const isRuOrUa = language === 'ru' || language === 'ua';
+  const baseMaxWidth = isMobile 
+    ? Math.min(isRuOrUa ? 340 : 300, viewportWidth - 32) 
+    : (isRuOrUa ? 360 : 300);
   const tooltipMaxWidth = isRtl ? Math.min(baseMaxWidth, viewportWidth - 40) : baseMaxWidth;
   
   const tooltipPadding = 20; // Increased padding for better margins
@@ -321,6 +323,7 @@ export const UserTour: React.FC<UserTourProps> = ({
     zIndex: 10000,
     maxWidth: `${tooltipMaxWidth}px`,
     width: isMobile ? (isRtl ? 'calc(100vw - 40px)' : 'calc(100vw - 32px)') : 'auto',
+    minWidth: 0, // Prevent flex items from overflowing
     pointerEvents: 'auto',
     maxHeight: `${viewportHeight - clampedTop - tooltipPadding}px`,
     overflowY: 'auto',
@@ -376,29 +379,29 @@ export const UserTour: React.FC<UserTourProps> = ({
         </p>
 
         {/* Footer */}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 min-w-0">
           <button
             onClick={handleSkip}
-            className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors px-3 py-1.5"
+            className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors px-2 py-1.5 flex-shrink-0 whitespace-nowrap"
           >
             {t.tourSkip || 'Skip Tour'}
           </button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0 min-w-0">
             {!isFirstStep && (
               <button
                 onClick={handlePrev}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors whitespace-nowrap"
               >
-                <ChevronLeft className="w-4 h-4" />
-                {t.tourPrev || 'Previous'}
+                <ChevronLeft className="w-4 h-4 flex-shrink-0" />
+                <span className="whitespace-nowrap">{t.tourPrev || 'Previous'}</span>
               </button>
             )}
             <button
               onClick={handleNext}
-              className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors whitespace-nowrap"
             >
-              {isLastStep ? (t.tourFinish || 'Finish') : (t.tourNext || 'Next')}
-              {!isLastStep && <ChevronRight className="w-4 h-4" />}
+              <span className="whitespace-nowrap">{isLastStep ? (t.tourFinish || 'Finish') : (t.tourNext || 'Next')}</span>
+              {!isLastStep && <ChevronRight className="w-4 h-4 flex-shrink-0" />}
             </button>
           </div>
         </div>
