@@ -110,12 +110,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
       initialized.current = false; // Reset to allow reinitialization
     }
     
+    // Set flag immediately to prevent concurrent initialization
     initialized.current = true;
+    let isCancelled = false;
     
     const setup = async () => {
       try {
         const profile = await db.getProfile().catch(() => undefined);
         await initializeChat(profile, language);
+        
+        // Check if cancelled (component unmounted or effect re-ran)
+        if (isCancelled) return;
         
         // Load welcome message from settings or use default
         const welcomeMsg = await db.getWelcomeMessage(language).catch(() => null);
@@ -124,6 +129,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
         // Load saved chat history from database
         const savedMessages = await loadChatHistory();
         
+        // Check if cancelled again after async operation
+        if (isCancelled) return;
+        
         // Ограничение количества сообщений для оптимизации памяти
         // Показываем последние 100 сообщений (или все, если меньше 100)
         const MAX_DISPLAYED_MESSAGES = 100;
@@ -131,51 +139,93 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
           ? savedMessages.slice(-MAX_DISPLAYED_MESSAGES)
           : savedMessages;
         
+        // Check if there's already a welcome message in history
+        const hasWelcomeMessage = messagesToDisplay.some((msg: any) => 
+          msg.role === 'model' && isWelcomeMessage(msg.content)
+        );
+        
         if (messagesToDisplay.length > 0) {
-          // Restore all saved messages, ensuring proper format
-          const restoredMessages = messagesToDisplay.map((msg: any, index: number) => {
-            // If it's the first message and it's a welcome message, replace with current language version
-            if (index === 0 && msg.role === 'model' && isWelcomeMessage(msg.content)) {
+          // Filter out duplicate welcome messages - keep only the first one
+          let foundFirstWelcome = false;
+          const restoredMessages = messagesToDisplay
+            .filter((msg: any, index: number) => {
+              // If this is a welcome message
+              if (msg.role === 'model' && isWelcomeMessage(msg.content)) {
+                // Keep only the first welcome message
+                if (!foundFirstWelcome) {
+                  foundFirstWelcome = true;
+                  return true;
+                }
+                // Skip duplicate welcome messages
+                return false;
+              }
+              return true;
+            })
+            .map((msg: any, index: number) => {
+              // If it's the first message and it's a welcome message, replace with current language version
+              if (index === 0 && msg.role === 'model' && isWelcomeMessage(msg.content)) {
+                return {
+                  id: 'welcome',
+                  role: 'model' as const,
+                  content: welcomeContent,
+                  timestamp: msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp),
+                  isStreaming: false,
+                  isError: false
+                };
+              }
               return {
-                id: 'welcome',
-                role: 'model' as const,
-                content: welcomeContent,
+                id: msg.id || `${Date.now()}-${Math.random()}`,
+                role: msg.role,
+                content: msg.content,
                 timestamp: msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp),
                 isStreaming: false,
                 isError: false
               };
-            }
-            return {
-              id: msg.id || `${Date.now()}-${Math.random()}`,
-              role: msg.role,
-              content: msg.content,
-              timestamp: msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp),
-              isStreaming: false,
-              isError: false
-            };
-          });
+            });
           setMessages(restoredMessages);
-        } else {
-          // Only show greeting if no history exists
-          const greeting: Message = {
-            id: 'welcome',
-            role: 'model',
-            content: welcomeContent,
-            timestamp: new Date()
-          };
-          setMessages([greeting]);
-          await saveChatMessage('model', welcomeContent);
+        } else if (!hasWelcomeMessage) {
+          // Only show greeting if no history exists AND no welcome message was found
+          // Double-check current messages state to avoid duplicates
+          setMessages(prevMessages => {
+            // If there's already a welcome message in state, don't add another
+            const alreadyHasWelcome = prevMessages.some(msg => 
+              msg.role === 'model' && isWelcomeMessage(msg.content)
+            );
+            if (alreadyHasWelcome) {
+              return prevMessages;
+            }
+            
+            const greeting: Message = {
+              id: 'welcome',
+              role: 'model',
+              content: welcomeContent,
+              timestamp: new Date()
+            };
+            // Save welcome message to database
+            saveChatMessage('model', welcomeContent).catch(console.error);
+            return [greeting];
+          });
         }
       } catch (error) {
         console.error('Error setting up chat:', error);
-        // Show welcome message even if history load fails
-        const greeting: Message = {
-          id: 'welcome',
-          role: 'model',
-          content: t.welcomeMessage,
-          timestamp: new Date()
-        };
-        setMessages([greeting]);
+        // Only show welcome message if not cancelled and not already present
+        if (!isCancelled) {
+          setMessages(prevMessages => {
+            const alreadyHasWelcome = prevMessages.some(msg => 
+              msg.role === 'model' && isWelcomeMessage(msg.content)
+            );
+            if (alreadyHasWelcome) {
+              return prevMessages;
+            }
+            const greeting: Message = {
+              id: 'welcome',
+              role: 'model',
+              content: t.welcomeMessage,
+              timestamp: new Date()
+            };
+            return [greeting];
+          });
+        }
       }
     };
     
@@ -183,6 +233,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
     
     // Reset initialization flag when component unmounts
     return () => {
+      isCancelled = true;
       // Only reset if language didn't change (component is actually unmounting)
       if (!languageChanged) {
         initialized.current = false;
