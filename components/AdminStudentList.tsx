@@ -57,6 +57,8 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
   
   // Reminder email generation modal
   const [showReminderModal, setShowReminderModal] = useState(false);
+  const [showReminderDateSelectModal, setShowReminderDateSelectModal] = useState(false);
+  const [selectedReminderDate, setSelectedReminderDate] = useState<string>('');
   const [reminderEmailCopied, setReminderEmailCopied] = useState(false);
   const [reminderEmailsCopied, setReminderEmailsCopied] = useState(false);
   const [generatedReminderEmail, setGeneratedReminderEmail] = useState<string>('');
@@ -754,45 +756,58 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
     });
   }, [courseSessions, students]);
 
-  // Get students for reminders (confirmed or assigned to upcoming sessions)
-  const reminderStudents = useMemo(() => {
+  // Get available confirmation dates (dates when students confirmed/registered)
+  const availableConfirmationDates = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // Calculate end of next week (14 days from today)
-    const endOfNextWeek = new Date(today);
-    endOfNextWeek.setDate(endOfNextWeek.getDate() + 14);
+    const datesSet = new Set<string>();
+    
+    students.forEach(s => {
+      // Use registration date as confirmation date
+      const regDate = new Date(s.registeredAt);
+      regDate.setHours(0, 0, 0, 0);
+      const regDateStr = regDate.toISOString().split('T')[0];
+      datesSet.add(regDateStr);
+    });
+    
+    // Sort dates (newest first)
+    return Array.from(datesSet).sort((a, b) => {
+      return new Date(b).getTime() - new Date(a).getTime();
+    });
+  }, [students]);
+
+  // Get students for reminders based on selected confirmation date
+  const reminderStudents = useMemo(() => {
+    if (!selectedReminderDate) {
+      return [];
+    }
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
     return students.filter(s => {
       // Must have email
       if (!s.email) return false;
       
-      // Must be confirmed (isCompleted) OR assigned (assignedSessionId)
-      if (!s.isCompleted && !s.assignedSessionId) return false;
+      // Filter by confirmation date (registration date)
+      const regDate = new Date(s.registeredAt);
+      regDate.setHours(0, 0, 0, 0);
+      const regDateStr = regDate.toISOString().split('T')[0];
+      if (regDateStr !== selectedReminderDate) return false;
       
-      // If assigned, check if session date is in the upcoming range
-      if (s.assignedSessionId && s.assignedSessionDate) {
-        const sessionDate = new Date(s.assignedSessionDate + 'T00:00:00');
-        sessionDate.setHours(0, 0, 0, 0);
-        // Include sessions from today to end of next week
-        if (sessionDate < today || sessionDate > endOfNextWeek) return false;
-      }
+      // Get session date (if both dates exist, use assignedSessionDate)
+      const sessionDateStr = s.assignedSessionDate || s.userSelectedSessionDate;
+      if (!sessionDateStr) return false;
       
-      // If confirmed, check if they have any upcoming session
-      if (s.isCompleted && !s.assignedSessionId && !s.userSelectedSessionDate) {
-        // If completed but no session date, check all upcoming sessions
-        const hasUpcomingSession = courseSessions.some(session => {
-          if (session.status !== 'active') return false;
-          const sessionDate = new Date(session.sessionDate + 'T00:00:00');
-          sessionDate.setHours(0, 0, 0, 0);
-          return sessionDate >= today && sessionDate <= endOfNextWeek;
-        });
-        if (!hasUpcomingSession) return false;
-      }
+      // Check that session date is in the future
+      const sessionDate = new Date(sessionDateStr + 'T00:00:00');
+      sessionDate.setHours(0, 0, 0, 0);
+      if (sessionDate <= today) return false; // Must be in the future
       
       return true;
     });
-  }, [students, courseSessions]);
+  }, [students, selectedReminderDate]);
 
   // Generate invitation email using template from database
   const generateInvitationEmail = async (): Promise<string> => {
@@ -983,21 +998,12 @@ We look forward to having you join us for this course. If you have any questions
   const generateReminderEmail = async (): Promise<string> => {
     if (!course) return '';
     
-    // Find the nearest upcoming session for the student (we'll use the first reminder student's session)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    if (reminderStudents.length === 0) return '';
     
-    const endOfNextWeek = new Date(today);
-    endOfNextWeek.setDate(endOfNextWeek.getDate() + 14);
-    
-    const upcomingSessions = courseSessions.filter(s => {
-      if (s.status !== 'active') return false;
-      const sessionDate = new Date(s.sessionDate + 'T00:00:00');
-      sessionDate.setHours(0, 0, 0, 0);
-      return sessionDate >= today && sessionDate <= endOfNextWeek;
-    });
-    
-    upcomingSessions.sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime());
+    // Get session date from the first reminder student
+    // Use assignedSessionDate (takes priority) or userSelectedSessionDate
+    const firstStudent = reminderStudents[0];
+    const sessionDateStr = firstStudent.assignedSessionDate || firstStudent.userSelectedSessionDate;
     
     const formatDateForEmail = (dateString: string) => {
       const date = new Date(dateString + 'T00:00:00');
@@ -1009,14 +1015,14 @@ We look forward to having you join us for this course. If you have any questions
       });
     };
 
-    // Use the earliest upcoming session date, or a generic message if none
-    const firstSession = upcomingSessions.length > 0 ? upcomingSessions[0] : null;
-    const sessionDate = firstSession 
-      ? formatDateForEmail(firstSession.sessionDate)
+    // Find session details for the date
+    const session = courseSessions.find(s => s.sessionDate === sessionDateStr);
+    const sessionDate = sessionDateStr 
+      ? formatDateForEmail(sessionDateStr)
       : 'soon';
     // Use time and address as-is, without prefixes
-    const sessionTime = firstSession?.sessionTime || '';
-    const sessionAddress = firstSession?.address || '';
+    const sessionTime = session?.sessionTime || '';
+    const sessionAddress = session?.address || '';
 
     // Load email template from database
     const template = await db.getEmailTemplate('course_reminder');
@@ -1133,17 +1139,33 @@ We look forward to seeing you soon!`;
     }
   };
 
-  // Show reminder email modal and generate email
-  const handleGenerateReminderEmail = async () => {
-    if (reminderStudents.length === 0) {
+  // Show reminder date selection modal
+  const handleGenerateReminderEmail = () => {
+    if (availableConfirmationDates.length === 0) {
       alert(t.adminNoReminderStudents || 'No students found for reminders. Please ensure students are confirmed or assigned to upcoming sessions.');
       return;
     }
+    setShowReminderDateSelectModal(true);
+  };
+
+  // Generate reminder email after date selection
+  const handleGenerateReminderEmailWithDate = async () => {
+    if (!selectedReminderDate) {
+      alert('Please select a confirmation date');
+      return;
+    }
+    
+    if (reminderStudents.length === 0) {
+      alert(t.adminNoReminderStudents || 'No students found for reminders with the selected confirmation date and future session date.');
+      return;
+    }
+    
     if (!course) {
       alert(t.adminError || 'Course information not available.');
       return;
     }
     
+    setShowReminderDateSelectModal(false);
     setIsGeneratingReminder(true);
     try {
       const email = await generateReminderEmail();
@@ -1248,23 +1270,18 @@ We look forward to seeing you soon!`;
             <button
               onClick={handleGenerateReminderEmail}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                reminderStudents.length > 0
+                availableConfirmationDates.length > 0
                   ? 'bg-orange-600 dark:bg-orange-700 text-white hover:bg-orange-700 dark:hover:bg-orange-600'
                   : 'bg-orange-400 dark:bg-orange-800 text-white opacity-75 cursor-pointer hover:opacity-100'
               }`}
               title={
-                reminderStudents.length > 0
-                  ? `Generate reminder email for ${reminderStudents.length} ${reminderStudents.length === 1 ? 'student' : 'students'}`
+                availableConfirmationDates.length > 0
+                  ? `Select confirmation date to generate reminder emails`
                   : t.adminNoReminderStudents || 'No students found for reminders. Please ensure students are confirmed or assigned to upcoming sessions.'
               }
             >
               <Bell size={18} />
               {t.adminGenerateReminderEmail || 'Generate Reminder Email'}
-              {reminderStudents.length > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-orange-500 dark:bg-orange-600 text-xs font-semibold">
-                  {reminderStudents.length}
-                </span>
-              )}
             </button>
             {filteredAndSortedStudents.length > 0 && (
               <>
@@ -1758,6 +1775,7 @@ We look forward to seeing you soon!`;
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowReminderModal(false);
+              setSelectedReminderDate(''); // Reset selected date when closing
             }
           }}
         >
@@ -1776,7 +1794,10 @@ We look forward to seeing you soon!`;
                 </p>
               </div>
               <button
-                onClick={() => setShowReminderModal(false)}
+                onClick={() => {
+                  setShowReminderModal(false);
+                  setSelectedReminderDate(''); // Reset selected date when closing
+                }}
                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                 aria-label="Close"
               >
@@ -1919,6 +1940,114 @@ We look forward to seeing you soon!`;
         language={language}
         courseId={courseId}
       />
+
+      {/* Reminder Date Selection Modal */}
+      {showReminderDateSelectModal && (
+        <div
+          className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowReminderDateSelectModal(false);
+              setSelectedReminderDate('');
+            }
+          }}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full border border-gray-200 dark:border-gray-700"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                {t.adminGenerateReminderEmail || 'Generate Reminder Email'}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowReminderDateSelectModal(false);
+                  setSelectedReminderDate('');
+                }}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 sm:p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Select confirmation date (when students registered):
+                </label>
+                <select
+                  value={selectedReminderDate}
+                  onChange={(e) => setSelectedReminderDate(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-orange-500 dark:focus:border-orange-600 focus:ring-1 focus:ring-orange-500 dark:focus:ring-orange-600 outline-none"
+                >
+                  <option value="">Select a date...</option>
+                  {availableConfirmationDates.map(date => {
+                    const dateObj = new Date(date + 'T00:00:00');
+                    const formattedDate = dateObj.toLocaleDateString(
+                      language === 'en' ? 'en-GB' : 
+                      language === 'ua' ? 'uk-UA' : 
+                      language === 'ru' ? 'ru-RU' : 'ar-SA',
+                      { day: '2-digit', month: 'short', year: 'numeric' }
+                    );
+                    // Count students for this date with future session dates
+                    const count = students.filter(s => {
+                      const regDate = new Date(s.registeredAt);
+                      regDate.setHours(0, 0, 0, 0);
+                      const regDateStr = regDate.toISOString().split('T')[0];
+                      if (regDateStr !== date) return false;
+                      
+                      // Get session date (if both dates exist, use assignedSessionDate)
+                      const sessionDateStr = s.assignedSessionDate || s.userSelectedSessionDate;
+                      if (!sessionDateStr) return false;
+                      
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const sessionDate = new Date(sessionDateStr + 'T00:00:00');
+                      sessionDate.setHours(0, 0, 0, 0);
+                      return sessionDate > today;
+                    }).length;
+                    
+                    return (
+                      <option key={date} value={date}>
+                        {formattedDate} ({count} {count === 1 ? 'student' : 'students'})
+                      </option>
+                    );
+                  })}
+                </select>
+                {selectedReminderDate && (
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    {reminderStudents.length} {reminderStudents.length === 1 ? 'student' : 'students'} will receive reminder emails
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => {
+                  setShowReminderDateSelectModal(false);
+                  setSelectedReminderDate('');
+                }}
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+              >
+                {t.cancel || 'Cancel'}
+              </button>
+              <button
+                onClick={handleGenerateReminderEmailWithDate}
+                disabled={!selectedReminderDate || reminderStudents.length === 0}
+                className="px-4 py-2 rounded-lg bg-orange-600 dark:bg-orange-700 text-white hover:bg-orange-700 dark:hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {t.adminGenerateReminderEmail || 'Generate Reminder Email'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Word Document Generation Options Modal */}
       {showWordGenerateModal && (
