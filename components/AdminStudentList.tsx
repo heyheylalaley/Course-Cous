@@ -826,7 +826,7 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
           const spotsLeft = (session.maxCapacity || 0) - (session.currentEnrollment || 0);
           let dateLine = `• ${formatDateForEmail(session.sessionDate)}`;
           if (session.sessionTime) {
-            dateLine += ` at ${session.sessionTime}`;
+            dateLine += ` ${session.sessionTime}`;
           }
           if (session.address) {
             dateLine += ` - ${session.address}`;
@@ -1014,8 +1014,9 @@ We look forward to having you join us for this course. If you have any questions
     const sessionDate = firstSession 
       ? formatDateForEmail(firstSession.sessionDate)
       : 'soon';
-    const sessionTime = firstSession?.sessionTime ? ` at ${firstSession.sessionTime}` : '';
-    const sessionAddress = firstSession?.address ? (sessionTime ? `, ${firstSession.address}` : ` at ${firstSession.address}`) : '';
+    // Use time and address as-is, without prefixes
+    const sessionTime = firstSession?.sessionTime || '';
+    const sessionAddress = firstSession?.address || '';
 
     // Load email template from database
     const template = await db.getEmailTemplate('course_reminder');
@@ -1028,7 +1029,7 @@ Hello!
 
 This is a friendly reminder that you are confirmed to attend our course: ${course.title}.
 
-The course session is scheduled for ${sessionDate}${sessionTime}${sessionAddress ? ` at ${sessionAddress}` : ''}.
+The course session is scheduled for ${sessionDate}${sessionTime ? ` ${sessionTime}` : ''}${sessionAddress ? ` at ${sessionAddress}` : ''}.
 
 Please make sure you are available on this date. If you have any questions or need to make changes, please don't hesitate to contact us.
 

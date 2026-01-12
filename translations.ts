@@ -165,7 +165,7 @@ export const TRANSLATIONS = {
     botInstructionsSaved: 'Instructions saved successfully',
     // Chat
     chatPlaceholder: 'Tell me about your goals...',
-    chatDisclaimer: 'AI can make mistakes. Please verify course information.',
+    chatDisclaimer: 'AI can make mistakes. Please verify information.',
     assistantName: 'Assistant',
     online: 'Online',
     clearChat: 'Clear Chat',
