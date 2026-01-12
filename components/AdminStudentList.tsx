@@ -756,7 +756,7 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
     });
   }, [courseSessions, students]);
 
-  // Get available session dates (dates where students are confirmed or assigned)
+  // Get available session dates (dates where students have assigned or selected session date)
   const availableSessionDates = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -764,10 +764,7 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
     const datesSet = new Set<string>();
     
     students.forEach(s => {
-      // Only include students who are confirmed (isCompleted) or assigned (assignedSessionId)
-      if (!s.isCompleted && !s.assignedSessionId) return;
-      
-      // Get session date (if both dates exist, use assignedSessionDate)
+      // Get session date (if both dates exist, use assignedSessionDate - it has priority)
       const sessionDateStr = s.assignedSessionDate || s.userSelectedSessionDate;
       if (!sessionDateStr) return;
       
@@ -798,10 +795,8 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
       // Must have email
       if (!s.email) return false;
       
-      // Must be confirmed (isCompleted) or assigned (assignedSessionId)
-      if (!s.isCompleted && !s.assignedSessionId) return false;
-      
-      // Get session date (if both dates exist, use assignedSessionDate)
+      // Get session date (if both dates exist, use assignedSessionDate - it has priority)
+      // Consider selectedDate = assignedDate (if both exist, assignedDate takes priority)
       const sessionDateStr = s.assignedSessionDate || s.userSelectedSessionDate;
       if (!sessionDateStr) return false;
       
@@ -2001,15 +1996,13 @@ We look forward to seeing you soon!`;
                       language === 'ru' ? 'ru-RU' : 'ar-SA',
                       { day: '2-digit', month: 'short', year: 'numeric' }
                     );
-                    // Count students confirmed or assigned for this session date
+                    // Count students with this session date (assigned or selected)
                     const count = students.filter(s => {
                       // Must have email
                       if (!s.email) return false;
                       
-                      // Must be confirmed (isCompleted) or assigned (assignedSessionId)
-                      if (!s.isCompleted && !s.assignedSessionId) return false;
-                      
-                      // Get session date (if both dates exist, use assignedSessionDate)
+                      // Get session date (if both dates exist, use assignedSessionDate - it has priority)
+                      // Consider selectedDate = assignedDate (if both exist, assignedDate takes priority)
                       const sessionDateStr = s.assignedSessionDate || s.userSelectedSessionDate;
                       if (!sessionDateStr) return false;
                       
