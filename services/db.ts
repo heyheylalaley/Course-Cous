@@ -2733,8 +2733,10 @@ We look forward to seeing you soon!`,
           : updates.sessionTime;
       }
 
-      console.log('updateCourseSession - updateData:', JSON.stringify(updateData, null, 2));
-      console.log('updateCourseSession - updates object:', JSON.stringify(updates, null, 2));
+      if (import.meta.env.DEV) {
+        console.log('updateCourseSession - updateData:', JSON.stringify(updateData, null, 2));
+        console.log('updateCourseSession - updates object:', JSON.stringify(updates, null, 2));
+      }
 
       const { data, error } = await supabase
         .from('course_sessions')
@@ -2744,11 +2746,15 @@ We look forward to seeing you soon!`,
         .single();
 
       if (error) {
-        console.error('Supabase update error:', error);
+        if (import.meta.env.DEV) {
+          console.error('Supabase update error:', error);
+        }
         throw new Error(error.message);
       }
       
-      console.log('updateCourseSession - response data:', data);
+      if (import.meta.env.DEV) {
+        console.log('updateCourseSession - response data:', data);
+      }
 
       // Get enrollment count
       const { data: countData } = await supabase.rpc('get_session_enrollment_count', {

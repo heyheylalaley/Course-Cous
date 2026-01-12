@@ -99,7 +99,9 @@ export const AdminCourseSessionsModal: React.FC<AdminCourseSessionsModalProps> =
         // Trim values and convert empty strings to null
         const addressValue = formAddress.trim() === '' ? null : formAddress.trim();
         const timeValue = formTime.trim() === '' ? null : formTime.trim();
-        console.log('Saving session with:', { address: addressValue, time: timeValue, formAddress, formTime });
+        if (import.meta.env.DEV) {
+          console.log('Saving session with:', { address: addressValue, time: timeValue, formAddress, formTime });
+        }
         await db.updateCourseSession(editingSession.id, {
           sessionDate: formDate,
           maxCapacity: formCapacity,
