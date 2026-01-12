@@ -32,13 +32,47 @@ export default defineConfig(({ mode }) => {
           include: [/xlsx/, /node_modules/]
         },
         // Отключаем source maps в production для безопасности
+        // ВАЖНО: source maps позволяют восстановить исходный код, поэтому они отключены
         sourcemap: false,
+        // Используем esbuild для минификации (встроен в Vite, не требует доп. зависимостей)
         minify: 'esbuild',
-        // Удаляем console.log и console.debug из production сборки
-        // console.error и console.warn остаются, но они уже обернуты в проверку окружения
+        // Максимально агрессивная минификация и обфускация
         esbuild: {
-          drop: isProduction ? ['console', 'debugger'] : []
-        }
+          drop: isProduction ? ['console', 'debugger'] : [],
+          legalComments: 'none', // Удаляем ВСЕ комментарии включая лицензионные
+          minifyIdentifiers: isProduction, // Минифицируем имена переменных
+          minifySyntax: isProduction, // Минифицируем синтаксис
+          minifyWhitespace: isProduction, // Удаляем все пробелы
+          treeShaking: true, // Удаляем неиспользуемый код
+        },
+        // Дополнительные настройки для безопасности и оптимизации
+        rollupOptions: {
+          output: {
+            // Компактный вывод без форматирования
+            compact: isProduction,
+            // Генерируем файлы с хешами для кеширования и безопасности
+            entryFileNames: isProduction ? 'assets/[name]-[hash].js' : 'assets/[name].js',
+            chunkFileNames: isProduction ? 'assets/[name]-[hash].js' : 'assets/[name].js',
+            assetFileNames: isProduction ? 'assets/[name]-[hash].[ext]' : 'assets/[name].[ext]',
+            // Удаляем комментарии из выходных файлов
+            banner: undefined,
+            footer: undefined,
+          },
+          // Дополнительная минификация через плагины Rollup
+          plugins: isProduction ? [
+            // Удаляем все комментарии из кода
+            {
+              name: 'remove-comments',
+              renderChunk(code) {
+                // Удаляем все однострочные и многострочные комментарии
+                return code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*/g, '');
+              }
+            }
+          ] : []
+        },
+        // Дополнительные настройки безопасности
+        cssCodeSplit: true, // Разделяем CSS для лучшей минификации
+        reportCompressedSize: false, // Отключаем отчет о размере для ускорения сборки
       }
     };
 });
