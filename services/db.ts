@@ -2019,14 +2019,32 @@ redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
     }
 
     try {
+      // Use maybeSingle() instead of single() to avoid 406 errors
+      // maybeSingle() returns null if no rows found, which is what we want
       const { data, error } = await supabase
         .from('app_settings')
         .select('value')
         .eq('key', key)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        if (error.code === 'PGRST116') return null; // No rows returned
+        // If maybeSingle() also fails with 406, try alternative approach
+        if (error.message?.includes('406') || error.code === '406') {
+          // Fallback: get array and take first element
+          const { data: arrayData, error: arrayError } = await supabase
+            .from('app_settings')
+            .select('value')
+            .eq('key', key)
+            .limit(1);
+          
+          if (arrayError) {
+            console.error('Error fetching app setting (fallback):', arrayError);
+            return null;
+          }
+          
+          return arrayData && arrayData.length > 0 ? arrayData[0].value : null;
+        }
+        
         console.error('Error fetching app setting:', error);
         return null;
       }
