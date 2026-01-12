@@ -756,28 +756,36 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
     });
   }, [courseSessions, students]);
 
-  // Get available confirmation dates (dates when students confirmed/registered)
-  const availableConfirmationDates = useMemo(() => {
+  // Get available session dates (dates where students are confirmed or assigned)
+  const availableSessionDates = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
     const datesSet = new Set<string>();
     
     students.forEach(s => {
-      // Use registration date as confirmation date
-      const regDate = new Date(s.registeredAt);
-      regDate.setHours(0, 0, 0, 0);
-      const regDateStr = regDate.toISOString().split('T')[0];
-      datesSet.add(regDateStr);
+      // Only include students who are confirmed (isCompleted) or assigned (assignedSessionId)
+      if (!s.isCompleted && !s.assignedSessionId) return;
+      
+      // Get session date (if both dates exist, use assignedSessionDate)
+      const sessionDateStr = s.assignedSessionDate || s.userSelectedSessionDate;
+      if (!sessionDateStr) return;
+      
+      // Check that session date is in the future
+      const sessionDate = new Date(sessionDateStr + 'T00:00:00');
+      sessionDate.setHours(0, 0, 0, 0);
+      if (sessionDate <= today) return; // Must be in the future
+      
+      datesSet.add(sessionDateStr);
     });
     
-    // Sort dates (newest first)
+    // Sort dates (earliest first)
     return Array.from(datesSet).sort((a, b) => {
-      return new Date(b).getTime() - new Date(a).getTime();
+      return new Date(a).getTime() - new Date(b).getTime();
     });
   }, [students]);
 
-  // Get students for reminders based on selected confirmation date
+  // Get students for reminders based on selected session date
   const reminderStudents = useMemo(() => {
     if (!selectedReminderDate) {
       return [];
@@ -790,15 +798,15 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
       // Must have email
       if (!s.email) return false;
       
-      // Filter by confirmation date (registration date)
-      const regDate = new Date(s.registeredAt);
-      regDate.setHours(0, 0, 0, 0);
-      const regDateStr = regDate.toISOString().split('T')[0];
-      if (regDateStr !== selectedReminderDate) return false;
+      // Must be confirmed (isCompleted) or assigned (assignedSessionId)
+      if (!s.isCompleted && !s.assignedSessionId) return false;
       
       // Get session date (if both dates exist, use assignedSessionDate)
       const sessionDateStr = s.assignedSessionDate || s.userSelectedSessionDate;
       if (!sessionDateStr) return false;
+      
+      // Filter by selected session date
+      if (sessionDateStr !== selectedReminderDate) return false;
       
       // Check that session date is in the future
       const sessionDate = new Date(sessionDateStr + 'T00:00:00');
@@ -1141,7 +1149,7 @@ We look forward to seeing you soon!`;
 
   // Show reminder date selection modal
   const handleGenerateReminderEmail = () => {
-    if (availableConfirmationDates.length === 0) {
+    if (availableSessionDates.length === 0) {
       alert(t.adminNoReminderStudents || 'No students found for reminders. Please ensure students are confirmed or assigned to upcoming sessions.');
       return;
     }
@@ -1151,12 +1159,12 @@ We look forward to seeing you soon!`;
   // Generate reminder email after date selection
   const handleGenerateReminderEmailWithDate = async () => {
     if (!selectedReminderDate) {
-      alert('Please select a confirmation date');
+      alert('Please select a session date');
       return;
     }
     
     if (reminderStudents.length === 0) {
-      alert(t.adminNoReminderStudents || 'No students found for reminders with the selected confirmation date and future session date.');
+      alert(t.adminNoReminderStudents || 'No students found for reminders with the selected session date.');
       return;
     }
     
@@ -1270,13 +1278,13 @@ We look forward to seeing you soon!`;
             <button
               onClick={handleGenerateReminderEmail}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                availableConfirmationDates.length > 0
+                availableSessionDates.length > 0
                   ? 'bg-orange-600 dark:bg-orange-700 text-white hover:bg-orange-700 dark:hover:bg-orange-600'
                   : 'bg-orange-400 dark:bg-orange-800 text-white opacity-75 cursor-pointer hover:opacity-100'
               }`}
               title={
-                availableConfirmationDates.length > 0
-                  ? `Select confirmation date to generate reminder emails`
+                availableSessionDates.length > 0
+                  ? `Select session date to generate reminder emails`
                   : t.adminNoReminderStudents || 'No students found for reminders. Please ensure students are confirmed or assigned to upcoming sessions.'
               }
             >
@@ -1977,7 +1985,7 @@ We look forward to seeing you soon!`;
             <div className="p-4 sm:p-6 space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Select confirmation date (when students registered):
+                  Select session date:
                 </label>
                 <select
                   value={selectedReminderDate}
@@ -1985,7 +1993,7 @@ We look forward to seeing you soon!`;
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-orange-500 dark:focus:border-orange-600 focus:ring-1 focus:ring-orange-500 dark:focus:ring-orange-600 outline-none"
                 >
                   <option value="">Select a date...</option>
-                  {availableConfirmationDates.map(date => {
+                  {availableSessionDates.map(date => {
                     const dateObj = new Date(date + 'T00:00:00');
                     const formattedDate = dateObj.toLocaleDateString(
                       language === 'en' ? 'en-GB' : 
@@ -1993,17 +2001,22 @@ We look forward to seeing you soon!`;
                       language === 'ru' ? 'ru-RU' : 'ar-SA',
                       { day: '2-digit', month: 'short', year: 'numeric' }
                     );
-                    // Count students for this date with future session dates
+                    // Count students confirmed or assigned for this session date
                     const count = students.filter(s => {
-                      const regDate = new Date(s.registeredAt);
-                      regDate.setHours(0, 0, 0, 0);
-                      const regDateStr = regDate.toISOString().split('T')[0];
-                      if (regDateStr !== date) return false;
+                      // Must have email
+                      if (!s.email) return false;
+                      
+                      // Must be confirmed (isCompleted) or assigned (assignedSessionId)
+                      if (!s.isCompleted && !s.assignedSessionId) return false;
                       
                       // Get session date (if both dates exist, use assignedSessionDate)
                       const sessionDateStr = s.assignedSessionDate || s.userSelectedSessionDate;
                       if (!sessionDateStr) return false;
                       
+                      // Filter by session date
+                      if (sessionDateStr !== date) return false;
+                      
+                      // Check that session date is in the future
                       const today = new Date();
                       today.setHours(0, 0, 0, 0);
                       const sessionDate = new Date(sessionDateStr + 'T00:00:00');
