@@ -928,14 +928,17 @@ We look forward to having you join us for this course. If you have any questions
       // URL encode parameters
       const encodedSubject = encodeURIComponent(subject);
       const encodedBody = encodeURIComponent(body);
-      // Split emails by semicolon, filter empty, and join with semicolons (for Outlook compatibility)
-      // Note: Email addresses in mailto: links don't need encoding, but we encode the whole parameter
-      // Outlook requires semicolons to separate multiple email addresses
-      const emailList = emails.split(';').map(e => e.trim()).filter(e => e).join(';');
+      // Split emails by semicolon and join with semicolons (for Outlook compatibility)
+      // Outlook requires semicolons to separate multiple email addresses in BCC
+      // Note: Email addresses in mailto: don't need encoding (they only contain @ and dots)
+      const emailList = emails.split(';')
+        .map(e => e.trim())
+        .filter(e => e)
+        .join(';');
       
       // Build mailto link
       // Note: Outlook requires semicolons for multiple addresses in BCC
-      // For mailto: links, semicolons in BCC should remain unencoded
+      // Email addresses are not encoded to preserve semicolon separators
       const mailtoUrl = `mailto:?bcc=${emailList}&subject=${encodedSubject}&body=${encodedBody}`;
 
       // Check URL length (browsers typically limit to ~2000 characters)
@@ -1102,11 +1105,17 @@ We look forward to seeing you soon!`;
       // URL encode parameters
       const encodedSubject = encodeURIComponent(subject);
       const encodedBody = encodeURIComponent(body);
-      // Split emails by semicolon, filter empty, and join with semicolons (for Outlook compatibility)
-      const emailList = emails.split(';').map(e => e.trim()).filter(e => e).join(';');
+      // Split emails by semicolon and join with semicolons (for Outlook compatibility)
+      // Outlook requires semicolons to separate multiple email addresses in BCC
+      // Note: Email addresses in mailto: don't need encoding (they only contain @ and dots)
+      const emailList = emails.split(';')
+        .map(e => e.trim())
+        .filter(e => e)
+        .join(';');
       
       // Build mailto link
       // Note: Outlook requires semicolons for multiple addresses in BCC
+      // Email addresses are not encoded to preserve semicolon separators
       const mailtoUrl = `mailto:?bcc=${emailList}&subject=${encodedSubject}&body=${encodedBody}`;
 
       // Check URL length (browsers typically limit to ~2000 characters)
