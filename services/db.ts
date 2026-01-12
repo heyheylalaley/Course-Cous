@@ -2677,8 +2677,8 @@ We look forward to seeing you soon!`,
         status: 'active'
       };
       
-      if (address !== undefined) insertData.address = address;
-      if (sessionTime !== undefined) insertData.session_time = sessionTime;
+      if (address !== undefined) insertData.address = address || null;
+      if (sessionTime !== undefined) insertData.session_time = sessionTime || null;
 
       const { data, error } = await supabase
         .from('course_sessions')
@@ -2719,8 +2719,13 @@ We look forward to seeing you soon!`,
       if (updates.sessionDate !== undefined) updateData.session_date = updates.sessionDate;
       if (updates.maxCapacity !== undefined) updateData.max_capacity = updates.maxCapacity;
       if (updates.status !== undefined) updateData.status = updates.status;
-      if (updates.address !== undefined) updateData.address = updates.address;
-      if (updates.sessionTime !== undefined) updateData.session_time = updates.sessionTime;
+      // Use 'in' operator to check if key exists, allowing null values to be set
+      if ('address' in updates) {
+        updateData.address = updates.address || null;
+      }
+      if ('sessionTime' in updates) {
+        updateData.session_time = updates.sessionTime || null;
+      }
 
       const { data, error } = await supabase
         .from('course_sessions')

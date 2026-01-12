@@ -96,15 +96,19 @@ export const AdminCourseSessionsModal: React.FC<AdminCourseSessionsModalProps> =
 
     try {
       if (editingSession) {
+        const addressValue = formAddress.trim() || null;
+        const timeValue = formTime.trim() || null;
         await db.updateCourseSession(editingSession.id, {
           sessionDate: formDate,
           maxCapacity: formCapacity,
           status: formStatus,
-          address: formAddress || undefined,
-          sessionTime: formTime || undefined
+          address: addressValue,
+          sessionTime: timeValue
         });
       } else {
-        await db.createCourseSession(course.id, formDate, formCapacity, formAddress || undefined, formTime || undefined);
+        const addressValue = formAddress.trim() || null;
+        const timeValue = formTime.trim() || null;
+        await db.createCourseSession(course.id, formDate, formCapacity, addressValue, timeValue);
       }
       await loadSessions();
       setIsFormOpen(false);
