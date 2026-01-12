@@ -3246,6 +3246,16 @@ We look forward to seeing you soon!`,
         throw new Error(`Failed to delete registrations: ${registrationsError.message}`);
       }
 
+      // Delete all calendar events created by this user
+      const { error: calendarEventsError } = await supabase
+        .from('calendar_events')
+        .delete()
+        .eq('created_by', userId);
+
+      if (calendarEventsError && calendarEventsError.code !== 'PGRST301') {
+        throw new Error(`Failed to delete calendar events: ${calendarEventsError.message}`);
+      }
+
       // Delete user profile (requires admin policy)
       const { error: profileError } = await supabase
         .from('profiles')
