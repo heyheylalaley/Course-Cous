@@ -59,16 +59,8 @@ export default defineConfig(({ mode }) => {
             footer: undefined,
           },
           // Дополнительная минификация через плагины Rollup
-          plugins: isProduction ? [
-            // Удаляем все комментарии из кода
-            {
-              name: 'remove-comments',
-              renderChunk(code) {
-                // Удаляем все однострочные и многострочные комментарии
-                return code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*/g, '');
-              }
-            }
-          ] : []
+          // Примечание: esbuild уже удаляет комментарии через legalComments: 'none'
+          plugins: []
         },
         // Дополнительные настройки безопасности
         cssCodeSplit: true, // Разделяем CSS для лучшей минификации
