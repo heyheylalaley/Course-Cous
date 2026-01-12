@@ -2721,11 +2721,20 @@ We look forward to seeing you soon!`,
       if (updates.status !== undefined) updateData.status = updates.status;
       // Use 'in' operator to check if key exists, allowing null values to be set
       if ('address' in updates) {
-        updateData.address = updates.address || null;
+        // Convert empty string to null, but keep non-empty strings as is
+        updateData.address = updates.address === '' || updates.address === null || updates.address === undefined 
+          ? null 
+          : updates.address;
       }
       if ('sessionTime' in updates) {
-        updateData.session_time = updates.sessionTime || null;
+        // Convert empty string to null, but keep non-empty strings as is
+        updateData.session_time = updates.sessionTime === '' || updates.sessionTime === null || updates.sessionTime === undefined 
+          ? null 
+          : updates.sessionTime;
       }
+
+      console.log('updateCourseSession - updateData:', JSON.stringify(updateData, null, 2));
+      console.log('updateCourseSession - updates object:', JSON.stringify(updates, null, 2));
 
       const { data, error } = await supabase
         .from('course_sessions')
@@ -2734,7 +2743,12 @@ We look forward to seeing you soon!`,
         .select()
         .single();
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw new Error(error.message);
+      }
+      
+      console.log('updateCourseSession - response data:', data);
 
       // Get enrollment count
       const { data: countData } = await supabase.rpc('get_session_enrollment_count', {

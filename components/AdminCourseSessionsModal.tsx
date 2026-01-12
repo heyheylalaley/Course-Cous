@@ -96,8 +96,10 @@ export const AdminCourseSessionsModal: React.FC<AdminCourseSessionsModalProps> =
 
     try {
       if (editingSession) {
-        const addressValue = formAddress.trim() || null;
-        const timeValue = formTime.trim() || null;
+        // Trim values and convert empty strings to null
+        const addressValue = formAddress.trim() === '' ? null : formAddress.trim();
+        const timeValue = formTime.trim() === '' ? null : formTime.trim();
+        console.log('Saving session with:', { address: addressValue, time: timeValue, formAddress, formTime });
         await db.updateCourseSession(editingSession.id, {
           sessionDate: formDate,
           maxCapacity: formCapacity,
@@ -106,8 +108,9 @@ export const AdminCourseSessionsModal: React.FC<AdminCourseSessionsModalProps> =
           sessionTime: timeValue
         });
       } else {
-        const addressValue = formAddress.trim() || null;
-        const timeValue = formTime.trim() || null;
+        // Trim values and convert empty strings to null
+        const addressValue = formAddress.trim() === '' ? null : formAddress.trim();
+        const timeValue = formTime.trim() === '' ? null : formTime.trim();
         await db.createCourseSession(course.id, formDate, formCapacity, addressValue, timeValue);
       }
       await loadSessions();
