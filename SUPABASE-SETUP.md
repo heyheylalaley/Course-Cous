@@ -163,8 +163,33 @@ The GitHub Actions workflow will automatically use these secrets during deployme
 1. In Supabase dashboard, go to **Authentication** → **Providers**
 2. Make sure **Email** is enabled
 3. Configure email settings:
-   - **Site URL**: `https://yourusername.github.io/Course-Cous/`
-   - **Redirect URLs**: Add your production URL
+   - **Site URL**: `https://yourusername.github.io/Course-Cous/` (or your custom domain)
+   - **Redirect URLs**: Add your production URL(s):
+     - `https://yourusername.github.io/yourrepository/**` (for GitHub Pages)
+     - `https://yourcustomdomain.com/**` (if using custom domain)
+     - `http://localhost:5173/**` (for local development)
+
+### Google OAuth Setup
+
+1. In Supabase dashboard, go to **Authentication** → **Providers**
+2. Enable **Google** provider
+3. You'll need to configure Google OAuth in Google Cloud Console:
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new OAuth 2.0 Client ID (or use existing)
+   - Add **Authorized redirect URI**: `https://your-project-id.supabase.co/auth/v1/callback`
+   - Copy the **Client ID** and **Client Secret**
+4. In Supabase, paste the Client ID and Client Secret
+5. **Important**: Configure URL settings:
+   - Go to **Authentication** → **URL Configuration**
+   - Set **Site URL** to your actual site URL (e.g., `https://ccplearn.pages.dev/`)
+   - Add your site URL to **Redirect URLs** with wildcard: `https://yourdomain.com/**`
+
+**Note about Google OAuth domain display:**
+- Google will show "to continue to your-project-id.supabase.co" in the account selection screen
+- This is expected behavior on the free Supabase tier
+- After authorization, users will be redirected to your actual site (configured in `redirectTo`)
+- To show your custom domain in Google's UI, you need a paid Supabase plan with custom domain add-on
+- See `OAUTH-CUSTOM-DOMAIN-SETUP.md` for detailed information and alternatives
 
 ### IMPORTANT: Disable Email Confirmation for Registration
 

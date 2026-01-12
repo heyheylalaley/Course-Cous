@@ -108,11 +108,16 @@ export const db = {
     }
 
     try {
+      // Note: Google OAuth will show Supabase domain in the account selection screen
+      // This is expected behavior on the free tier. After authorization, users will be
+      // redirected back to the actual site URL specified in redirectTo.
+      // To show your custom domain in Google's UI, you need a paid Supabase plan with custom domain.
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
-        queryParams: {
+          // This ensures users are redirected to the actual site after OAuth, not Supabase
+          redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
+          queryParams: {
             access_type: 'offline',
             prompt: 'consent',
           },
