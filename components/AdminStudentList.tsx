@@ -824,7 +824,15 @@ export const AdminStudentList: React.FC<AdminStudentListProps> = ({
     const datesList = activeSessions.length > 0
       ? activeSessions.map(session => {
           const spotsLeft = (session.maxCapacity || 0) - (session.currentEnrollment || 0);
-          return `• ${formatDateForEmail(session.sessionDate)}${spotsLeft > 0 ? ` (${spotsLeft} spot${spotsLeft !== 1 ? 's' : ''} available)` : ' (Full)'}`;
+          let dateLine = `• ${formatDateForEmail(session.sessionDate)}`;
+          if (session.sessionTime) {
+            dateLine += ` at ${session.sessionTime}`;
+          }
+          if (session.address) {
+            dateLine += ` - ${session.address}`;
+          }
+          dateLine += spotsLeft > 0 ? ` (${spotsLeft} spot${spotsLeft !== 1 ? 's' : ''} available)` : ' (Full)';
+          return dateLine;
         }).join('\n')
       : '• Dates will be announced soon';
 
@@ -920,15 +928,14 @@ We look forward to having you join us for this course. If you have any questions
       // URL encode parameters
       const encodedSubject = encodeURIComponent(subject);
       const encodedBody = encodeURIComponent(body);
-      // Split emails by semicolon, filter empty, and join with commas
+      // Split emails by semicolon, filter empty, and join with semicolons (for Outlook compatibility)
       // Note: Email addresses in mailto: links don't need encoding, but we encode the whole parameter
-      // Actually, commas should remain unencoded in mailto: links for multiple addresses
-      const emailList = emails.split(';').map(e => e.trim()).filter(e => e).join(',');
+      // Outlook requires semicolons to separate multiple email addresses
+      const emailList = emails.split(';').map(e => e.trim()).filter(e => e).join(';');
       
       // Build mailto link
-      // Note: Some email clients prefer semicolon, some comma for multiple addresses
-      // We'll use comma which is more widely supported
-      // For mailto: links, commas in BCC should remain unencoded
+      // Note: Outlook requires semicolons for multiple addresses in BCC
+      // For mailto: links, semicolons in BCC should remain unencoded
       const mailtoUrl = `mailto:?bcc=${emailList}&subject=${encodedSubject}&body=${encodedBody}`;
 
       // Check URL length (browsers typically limit to ~2000 characters)
@@ -1000,9 +1007,12 @@ We look forward to having you join us for this course. If you have any questions
     };
 
     // Use the earliest upcoming session date, or a generic message if none
-    const sessionDate = upcomingSessions.length > 0 
-      ? formatDateForEmail(upcomingSessions[0].sessionDate)
+    const firstSession = upcomingSessions.length > 0 ? upcomingSessions[0] : null;
+    const sessionDate = firstSession 
+      ? formatDateForEmail(firstSession.sessionDate)
       : 'soon';
+    const sessionTime = firstSession?.sessionTime ? ` at ${firstSession.sessionTime}` : '';
+    const sessionAddress = firstSession?.address ? (sessionTime ? `, ${firstSession.address}` : ` at ${firstSession.address}`) : '';
 
     // Load email template from database
     const template = await db.getEmailTemplate('course_reminder');
@@ -1015,7 +1025,7 @@ Hello!
 
 This is a friendly reminder that you are confirmed to attend our course: ${course.title}.
 
-The course session is scheduled for ${sessionDate}.
+The course session is scheduled for ${sessionDate}${sessionTime}${sessionAddress ? ` at ${sessionAddress}` : ''}.
 
 Please make sure you are available on this date. If you have any questions or need to make changes, please don't hesitate to contact us.
 
@@ -1031,6 +1041,8 @@ We look forward to seeing you soon!`;
     let body = template.body
       .replace(/{courseTitle}/g, course.title)
       .replace(/{sessionDate}/g, sessionDate)
+      .replace(/{sessionTime}/g, sessionTime)
+      .replace(/{sessionAddress}/g, sessionAddress)
       .replace(/{websiteUrl}/g, websiteUrl);
 
     return `Subject: ${subject}\n\n${body}`;
@@ -1090,9 +1102,11 @@ We look forward to seeing you soon!`;
       // URL encode parameters
       const encodedSubject = encodeURIComponent(subject);
       const encodedBody = encodeURIComponent(body);
-      const emailList = emails.split(';').map(e => e.trim()).filter(e => e).join(',');
+      // Split emails by semicolon, filter empty, and join with semicolons (for Outlook compatibility)
+      const emailList = emails.split(';').map(e => e.trim()).filter(e => e).join(';');
       
       // Build mailto link
+      // Note: Outlook requires semicolons for multiple addresses in BCC
       const mailtoUrl = `mailto:?bcc=${emailList}&subject=${encodedSubject}&body=${encodedBody}`;
 
       // Check URL length (browsers typically limit to ~2000 characters)

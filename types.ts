@@ -153,6 +153,8 @@ export interface CourseSession {
   sessionDate: string; // ISO date string (YYYY-MM-DD)
   maxCapacity: number;
   status: 'active' | 'archived';
+  address?: string; // Address where the course session will take place
+  sessionTime?: string; // Time when the course session starts (format: HH:MM)
   currentEnrollment?: number; // Number of users assigned/selected for this session
   createdAt?: Date;
   updatedAt?: Date;

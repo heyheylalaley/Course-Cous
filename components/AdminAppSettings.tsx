@@ -800,7 +800,7 @@ We look forward to seeing you soon!`);
               {(t as any).adminReminderEmailTemplate || 'Reminder Email Template'}
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {(t as any).adminReminderEmailTemplateDesc || 'Customize the reminder email template sent to students. Use {courseTitle}, {sessionDate}, and {websiteUrl} as placeholders.'}
+              {(t as any).adminReminderEmailTemplateDesc || 'Customize the reminder email template sent to students. Use {courseTitle}, {sessionDate}, {sessionTime}, {sessionAddress}, and {websiteUrl} as placeholders.'}
             </p>
           </div>
         </div>
@@ -852,7 +852,7 @@ We look forward to seeing you soon!`);
                 placeholder="Enter email body..."
               />
               <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                Available placeholders: {'{courseTitle}'}, {'{sessionDate}'}, {'{websiteUrl}'}
+                Available placeholders: {'{courseTitle}'}, {'{sessionDate}'}, {'{sessionTime}'}, {'{sessionAddress}'}, {'{websiteUrl}'}
               </p>
             </div>
 

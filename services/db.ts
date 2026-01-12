@@ -2124,14 +2124,14 @@ We look forward to having you join us for this course. If you have any questions
 
 This is a friendly reminder that you are confirmed to attend our course: {courseTitle}.
 
-The course session is scheduled for {sessionDate}.
+The course session is scheduled for {sessionDate}{sessionTime}{sessionAddress}.
 
 Please make sure you are available on this date. If you have any questions or need to make changes, please don't hesitate to contact us.
 
 You can also visit our website at {websiteUrl} for more information.
 
 We look forward to seeing you soon!`,
-          variables: ['courseTitle', 'sessionDate', 'websiteUrl']
+          variables: ['courseTitle', 'sessionDate', 'sessionTime', 'sessionAddress', 'websiteUrl']
         }
       };
       return defaultTemplates[templateKey] || null;
@@ -2623,6 +2623,8 @@ We look forward to seeing you soon!`,
         sessionDate: s.session_date,
         maxCapacity: s.max_capacity,
         status: s.status as 'active' | 'archived',
+        address: s.address || undefined,
+        sessionTime: s.session_time || undefined,
         currentEnrollment: s.current_enrollment || 0,
         createdAt: s.created_at ? new Date(s.created_at) : undefined,
         updatedAt: s.updated_at ? new Date(s.updated_at) : undefined
@@ -2658,7 +2660,7 @@ We look forward to seeing you soon!`,
     }
   },
 
-  createCourseSession: async (courseId: string, sessionDate: string, maxCapacity: number): Promise<CourseSession> => {
+  createCourseSession: async (courseId: string, sessionDate: string, maxCapacity: number, address?: string, sessionTime?: string): Promise<CourseSession> => {
     const session = db.getCurrentSession();
     if (!session) throw new Error("Not authenticated");
 
@@ -2668,14 +2670,19 @@ We look forward to seeing you soon!`,
     }
 
     if (supabase) {
+      const insertData: any = {
+        course_id: courseId,
+        session_date: sessionDate,
+        max_capacity: maxCapacity,
+        status: 'active'
+      };
+      
+      if (address !== undefined) insertData.address = address;
+      if (sessionTime !== undefined) insertData.session_time = sessionTime;
+
       const { data, error } = await supabase
         .from('course_sessions')
-        .insert({
-          course_id: courseId,
-          session_date: sessionDate,
-          max_capacity: maxCapacity,
-          status: 'active'
-        })
+        .insert(insertData)
         .select()
         .single();
 
@@ -2687,6 +2694,8 @@ We look forward to seeing you soon!`,
         sessionDate: data.session_date,
         maxCapacity: data.max_capacity,
         status: data.status as 'active' | 'archived',
+        address: data.address || undefined,
+        sessionTime: data.session_time || undefined,
         currentEnrollment: 0,
         createdAt: data.created_at ? new Date(data.created_at) : undefined,
         updatedAt: data.updated_at ? new Date(data.updated_at) : undefined
@@ -2696,7 +2705,7 @@ We look forward to seeing you soon!`,
     throw new Error("Supabase not configured");
   },
 
-  updateCourseSession: async (sessionId: string, updates: Partial<Pick<CourseSession, 'sessionDate' | 'maxCapacity' | 'status'>>): Promise<CourseSession> => {
+  updateCourseSession: async (sessionId: string, updates: Partial<Pick<CourseSession, 'sessionDate' | 'maxCapacity' | 'status' | 'address' | 'sessionTime'>>): Promise<CourseSession> => {
     const session = db.getCurrentSession();
     if (!session) throw new Error("Not authenticated");
 
@@ -2710,6 +2719,8 @@ We look forward to seeing you soon!`,
       if (updates.sessionDate !== undefined) updateData.session_date = updates.sessionDate;
       if (updates.maxCapacity !== undefined) updateData.max_capacity = updates.maxCapacity;
       if (updates.status !== undefined) updateData.status = updates.status;
+      if (updates.address !== undefined) updateData.address = updates.address;
+      if (updates.sessionTime !== undefined) updateData.session_time = updates.sessionTime;
 
       const { data, error } = await supabase
         .from('course_sessions')
@@ -2731,6 +2742,8 @@ We look forward to seeing you soon!`,
         sessionDate: data.session_date,
         maxCapacity: data.max_capacity,
         status: data.status as 'active' | 'archived',
+        address: data.address || undefined,
+        sessionTime: data.session_time || undefined,
         currentEnrollment: countData || 0,
         createdAt: data.created_at ? new Date(data.created_at) : undefined,
         updatedAt: data.updated_at ? new Date(data.updated_at) : undefined

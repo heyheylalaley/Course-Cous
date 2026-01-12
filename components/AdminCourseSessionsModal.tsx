@@ -30,6 +30,8 @@ export const AdminCourseSessionsModal: React.FC<AdminCourseSessionsModalProps> =
   const [editingSession, setEditingSession] = useState<CourseSession | null>(null);
   const [formDate, setFormDate] = useState('');
   const [formCapacity, setFormCapacity] = useState(20);
+  const [formAddress, setFormAddress] = useState('');
+  const [formTime, setFormTime] = useState('');
   const [formStatus, setFormStatus] = useState<'active' | 'archived'>('active');
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -61,6 +63,8 @@ export const AdminCourseSessionsModal: React.FC<AdminCourseSessionsModalProps> =
     setEditingSession(null);
     setFormDate('');
     setFormCapacity(20);
+    setFormAddress('');
+    setFormTime('');
     setFormStatus('active');
     setFormError(null);
     setIsFormOpen(true);
@@ -70,6 +74,8 @@ export const AdminCourseSessionsModal: React.FC<AdminCourseSessionsModalProps> =
     setEditingSession(session);
     setFormDate(session.sessionDate);
     setFormCapacity(session.maxCapacity);
+    setFormAddress(session.address || '');
+    setFormTime(session.sessionTime || '');
     setFormStatus(session.status);
     setFormError(null);
     setIsFormOpen(true);
@@ -93,10 +99,12 @@ export const AdminCourseSessionsModal: React.FC<AdminCourseSessionsModalProps> =
         await db.updateCourseSession(editingSession.id, {
           sessionDate: formDate,
           maxCapacity: formCapacity,
-          status: formStatus
+          status: formStatus,
+          address: formAddress || undefined,
+          sessionTime: formTime || undefined
         });
       } else {
-        await db.createCourseSession(course.id, formDate, formCapacity);
+        await db.createCourseSession(course.id, formDate, formCapacity, formAddress || undefined, formTime || undefined);
       }
       await loadSessions();
       setIsFormOpen(false);
@@ -348,6 +356,33 @@ export const AdminCourseSessionsModal: React.FC<AdminCourseSessionsModalProps> =
                       value={formCapacity}
                       onChange={(e) => setFormCapacity(parseInt(e.target.value) || 1)}
                       min={1}
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-1 focus:ring-indigo-500 outline-none"
+                    />
+                  </div>
+                  
+                  {/* Address */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {t.adminSessionAddress || 'Address'}
+                    </label>
+                    <input
+                      type="text"
+                      value={formAddress}
+                      onChange={(e) => setFormAddress(e.target.value)}
+                      placeholder={t.adminSessionAddressPlaceholder || 'Enter course address (optional)'}
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-1 focus:ring-indigo-500 outline-none"
+                    />
+                  </div>
+                  
+                  {/* Time */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {t.adminSessionTime || 'Time'}
+                    </label>
+                    <input
+                      type="time"
+                      value={formTime}
+                      onChange={(e) => setFormTime(e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-1 focus:ring-indigo-500 outline-none"
                     />
                   </div>
