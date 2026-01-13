@@ -12,7 +12,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CoursesProvider, useCourses } from './contexts/CoursesContext';
 import { UIProvider, useUI } from './contexts/UIContext';
 import { useDebounce } from './hooks/useDebounce';
-import { Menu, X, MessageSquare, LayoutDashboard, LogOut, Shield, Info, Calendar, Sparkles } from 'lucide-react';
+import { Menu, X, MessageSquare, LayoutDashboard, LogOut, Shield, Info, Calendar, Sparkles, Globe } from 'lucide-react';
 import { ContactModal } from './components/ContactModal';
 import { CalendarModal } from './components/CalendarModal';
 import { UpdatePasswordPage } from './components/UpdatePasswordPage';
@@ -664,21 +664,37 @@ const AppContent: React.FC = () => {
           {/* Sidebar Footer */}
           <div className="p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0">
             <div className="flex items-center justify-between gap-2 mb-3 min-w-0">
-              <div className="flex gap-1 sm:gap-1.5 flex-shrink-0">
-                {(['en', 'ua', 'ru', 'ar'] as const).map((lang) => (
-                  <button
-                    key={lang}
-                    onClick={() => setLanguage(lang)}
-                    className={`h-8 w-8 sm:h-7 sm:w-7 flex items-center justify-center text-[10px] font-bold rounded-full transition-colors border active:scale-95 flex-shrink-0 ${
-                      language === lang 
-                        ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700' 
-                        : 'bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-100 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
-                    }`}
-                    aria-label={`Switch to ${lang.toUpperCase()} language`}
-                  >
-                    {lang.toUpperCase()}
-                  </button>
-                ))}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Globe 
+                  size={16} 
+                  className="text-gray-500 dark:text-gray-400 flex-shrink-0" 
+                  aria-hidden="true"
+                />
+                <div className="flex gap-1 sm:gap-1.5 flex-shrink-0">
+                  {(['en', 'ua', 'ru', 'ar'] as const).map((lang) => {
+                    const langLabels: Record<string, string> = {
+                      en: 'English',
+                      ua: 'Українська',
+                      ru: 'Русский',
+                      ar: 'العربية'
+                    };
+                    return (
+                      <button
+                        key={lang}
+                        onClick={() => setLanguage(lang)}
+                        className={`h-8 w-8 sm:h-8 sm:w-8 flex items-center justify-center text-[11px] sm:text-xs font-bold rounded-lg transition-all border active:scale-95 flex-shrink-0 ${
+                          language === lang 
+                            ? 'bg-green-600 dark:bg-green-700 text-white border-green-600 dark:border-green-700 shadow-md' 
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 hover:border-green-300 dark:hover:border-green-700'
+                        }`}
+                        title={langLabels[lang]}
+                        aria-label={`Switch to ${langLabels[lang]}`}
+                      >
+                        {lang.toUpperCase()}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               <div className="flex gap-1.5 sm:gap-2 flex-shrink-0">
                 <button 

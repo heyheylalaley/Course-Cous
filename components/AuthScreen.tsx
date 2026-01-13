@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../services/db';
-import { Loader2, Moon, Sun, Info, ArrowLeft, Play } from 'lucide-react';
+import { Loader2, Moon, Sun, Info, ArrowLeft, Play, Globe } from 'lucide-react';
 import { Language, Theme } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { ContactModal } from './ContactModal';
@@ -333,20 +333,37 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
       
       {/* Top Bar with Language & Theme */}
       <div className="w-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between flex-shrink-0">
-        <div className="flex gap-1">
-          {(['en', 'ua', 'ru', 'ar'] as Language[]).map((lang) => (
-            <button
-              key={lang}
-              onClick={() => setLanguage(lang)}
-              className={`w-9 h-9 text-xs font-bold rounded-lg transition-colors ${
-                language === lang 
-                  ? 'bg-green-600 dark:bg-green-700 text-white' 
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-            >
-              {lang.toUpperCase()}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <Globe 
+            size={18} 
+            className="text-gray-500 dark:text-gray-400 flex-shrink-0" 
+            aria-hidden="true"
+          />
+          <div className="flex gap-1.5">
+            {(['en', 'ua', 'ru', 'ar'] as Language[]).map((lang) => {
+              const langLabels: Record<string, string> = {
+                en: 'English',
+                ua: 'Українська',
+                ru: 'Русский',
+                ar: 'العربية'
+              };
+              return (
+                <button
+                  key={lang}
+                  onClick={() => setLanguage(lang)}
+                  className={`w-9 h-9 text-xs font-bold rounded-lg transition-all border ${
+                    language === lang 
+                      ? 'bg-green-600 dark:bg-green-700 text-white border-green-600 dark:border-green-700 shadow-md' 
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-400 hover:border-green-300 dark:hover:border-green-700'
+                  }`}
+                  title={langLabels[lang]}
+                  aria-label={`Switch to ${langLabels[lang]}`}
+                >
+                  {lang.toUpperCase()}
+                </button>
+              );
+            })}
+          </div>
         </div>
         <div className="flex gap-2">
           <button
