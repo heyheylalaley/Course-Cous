@@ -33,9 +33,16 @@ const maskPhone = (phone: string): string => {
 
 const maskAddress = (address: string): string => {
   if (!address) return '-';
-  // Show first 10 characters
-  if (address.length <= 10) return address;
-  return address.substring(0, 10) + '***';
+  // Show first 6 characters
+  if (address.length <= 6) return address;
+  return address.substring(0, 6) + '***';
+};
+
+const maskEircode = (eircode: string): string => {
+  if (!eircode) return '-';
+  // Show first 4 characters
+  if (eircode.length <= 4) return eircode;
+  return eircode.substring(0, 4) + '***';
 };
 
 const formatDateDisplay = (dateString: string): string => {
@@ -376,7 +383,7 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
               <div>
                 <span className="text-gray-500 dark:text-gray-400">{t.eircodeLabel}:</span>
                 <span className="ml-2 text-gray-900 dark:text-white font-medium">
-                  {userProfile.eircode || '-'}
+                  {maskEircode(userProfile.eircode || '')}
                 </span>
               </div>
               <div className="sm:col-span-2">
