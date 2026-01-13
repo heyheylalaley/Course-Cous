@@ -71,6 +71,7 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
   
   // Tooltip state for course list
   const [hoveredUserId, setHoveredUserId] = useState<string | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
 
   // Callback to load users
   const loadUsers = useCallback(async () => {
@@ -756,14 +757,20 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                           <div className="flex items-center gap-2">
                             {user.registeredCourses.length > 0 && (
                               <div 
-                                className="relative group"
+                                className="relative inline-block"
                                 onMouseEnter={(e) => {
                                   e.stopPropagation();
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  setTooltipPosition({
+                                    x: rect.left + rect.width / 2,
+                                    y: rect.bottom + 8
+                                  });
                                   setHoveredUserId(user.userId);
                                 }}
                                 onMouseLeave={(e) => {
                                   e.stopPropagation();
                                   setHoveredUserId(null);
+                                  setTooltipPosition(null);
                                 }}
                                 onClick={(e) => e.stopPropagation()}
                               >
@@ -771,34 +778,6 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                                   <BookOpen size={12} />
                                   {user.registeredCourses.length}
                                 </span>
-                                {hoveredUserId === user.userId && (
-                                  <div 
-                                    className="absolute left-0 bottom-full mb-2 z-50 min-w-[200px] max-w-[300px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-3"
-                                    onMouseEnter={(e) => {
-                                      e.stopPropagation();
-                                      setHoveredUserId(user.userId);
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.stopPropagation();
-                                      setHoveredUserId(null);
-                                    }}
-                                  >
-                                    <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
-                                      <BookOpen size={12} />
-                                      {t.adminRegisteredCourses || 'Registered Courses'}:
-                                    </div>
-                                    <div className="space-y-1 max-h-[200px] overflow-y-auto">
-                                      {user.registeredCourses.map((courseId) => (
-                                        <div 
-                                          key={courseId}
-                                          className="text-xs text-gray-600 dark:text-gray-400 py-1 px-2 rounded bg-gray-50 dark:bg-gray-700/50"
-                                        >
-                                          • {getCourseTitle(courseId)}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
                               </div>
                             )}
                             {user.completedCourses.length > 0 && (
@@ -952,6 +931,43 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
           irisId: editingUser.irisId
         } : null}
       />
+
+      {/* Course List Tooltip */}
+      {hoveredUserId && tooltipPosition && (() => {
+        const user = filteredAndSortedUsers.find(u => u.userId === hoveredUserId);
+        if (!user || user.registeredCourses.length === 0) return null;
+        
+        return (
+          <div
+            className="fixed z-[9999] min-w-[200px] max-w-[300px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-3 pointer-events-auto"
+            style={{
+              left: `${tooltipPosition.x}px`,
+              top: `${tooltipPosition.y}px`,
+              transform: 'translateX(-50%)'
+            }}
+            onMouseEnter={() => setHoveredUserId(hoveredUserId)}
+            onMouseLeave={() => {
+              setHoveredUserId(null);
+              setTooltipPosition(null);
+            }}
+          >
+            <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
+              <BookOpen size={12} />
+              {t.adminRegisteredCourses || 'Registered Courses'}:
+            </div>
+            <div className="space-y-1 max-h-[200px] overflow-y-auto">
+              {user.registeredCourses.map((courseId) => (
+                <div
+                  key={courseId}
+                  className="text-xs text-gray-600 dark:text-gray-400 py-1 px-2 rounded bg-gray-50 dark:bg-gray-700/50"
+                >
+                  • {getCourseTitle(courseId)}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
