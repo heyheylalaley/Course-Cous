@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
+import React, { useState, useRef, useEffect, memo, useCallback, useMemo } from 'react';
 import { Message, Language, Course } from '../types';
 import { sendMessageToGemini, initializeChat } from '../services/geminiService';
 import { MessageBubble } from './MessageBubble';
@@ -32,7 +32,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
   const [courseQueues, setCourseQueues] = useState<Map<string, number>>(new Map());
   const [registrations, setRegistrations] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
+  const streamingMessageIdRef = useRef<string | null>(null);
+  const streamingContentRef = useRef<string>('');
+  const updateAnimationFrameRef = useRef<number | null>(null);
+  const shouldAutoScrollRef = useRef<boolean>(true);
   const t = TRANSLATIONS[language] as any;
   
   // Load courses for clickable course names and get refresh function
@@ -241,13 +246,64 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
     };
   }, [language, t.welcomeMessage]); // Added t.welcomeMessage to update when language changes
 
-  // Auto-scroll to bottom
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  // Check if user is near bottom of scroll container
+  const checkIfNearBottom = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return true;
+    
+    const threshold = 100; // pixels from bottom
+    const isNearBottom = 
+      container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+    shouldAutoScrollRef.current = isNearBottom;
+    return isNearBottom;
+  }, []);
 
+  // Auto-scroll to bottom (only if user is near bottom)
+  const scrollToBottom = useCallback((force = false) => {
+    if (!force && !shouldAutoScrollRef.current) return;
+    
+    // Use requestAnimationFrame for smoother scrolling
+    requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    });
+  }, []);
+
+  // Track scroll position to determine if we should auto-scroll
   useEffect(() => {
-    scrollToBottom();
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      checkIfNearBottom();
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [checkIfNearBottom]);
+
+  // Cleanup animation frame on unmount
+  useEffect(() => {
+    return () => {
+      if (updateAnimationFrameRef.current !== null) {
+        cancelAnimationFrame(updateAnimationFrameRef.current);
+      }
+    };
+  }, []);
+
+  // Optimized scroll effect - only scroll when messages change significantly
+  useEffect(() => {
+    // Only auto-scroll if user is near bottom
+    if (shouldAutoScrollRef.current) {
+      scrollToBottom();
+    }
+  }, [messages.length, scrollToBottom]); // Only depend on length, not full array
+
+  // Memoize messages list to prevent unnecessary re-renders
+  const displayedMessages = useMemo(() => {
+    if (messages.length > 100) {
+      return messages.slice(-100);
+    }
+    return messages;
   }, [messages]);
 
   // Handle course click - show confirmation modal instead of direct registration
@@ -455,33 +511,87 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
     try {
       // Use profile from context (avoids extra DB call)
       let fullContent = '';
+      streamingMessageIdRef.current = botMessageId;
+      streamingContentRef.current = '';
       const stream = sendMessageToGemini(userMessage.content, userProfile, language);
+      
+      // Throttle updates using requestAnimationFrame to prevent blocking
+      const updateMessage = () => {
+        if (updateAnimationFrameRef.current !== null) {
+          cancelAnimationFrame(updateAnimationFrameRef.current);
+        }
+        
+        updateAnimationFrameRef.current = requestAnimationFrame(() => {
+          const currentContent = streamingContentRef.current;
+          const currentId = streamingMessageIdRef.current;
+          
+          if (currentId) {
+            setMessages(prev => {
+              // Only update if content actually changed to prevent unnecessary re-renders
+              const existingMsg = prev.find(msg => msg.id === currentId);
+              if (existingMsg && existingMsg.content === currentContent) {
+                return prev; // No change, return same reference
+              }
+              
+              return prev.map(msg => 
+                msg.id === currentId 
+                  ? { ...msg, content: currentContent } 
+                  : msg
+              );
+            });
+            
+            // Only scroll if user is at bottom
+            if (shouldAutoScrollRef.current) {
+              scrollToBottom(true);
+            }
+          }
+          
+          updateAnimationFrameRef.current = null;
+        });
+      };
       
       for await (const chunk of stream) {
         fullContent += chunk;
-        setMessages(prev => 
-          prev.map(msg => 
-            msg.id === botMessageId 
-              ? { ...msg, content: fullContent } 
-              : msg
-          )
-        );
+        streamingContentRef.current = fullContent;
+        updateMessage(); // Throttled update
       }
       
-      // Save bot response to database after streaming completes
-      await saveChatMessage('model', fullContent);
+      // Final update after streaming completes - ensure last chunk is rendered
+      streamingContentRef.current = fullContent;
+      if (updateAnimationFrameRef.current !== null) {
+        cancelAnimationFrame(updateAnimationFrameRef.current);
+      }
       
+      // Force final update synchronously
       setMessages(prev => 
         prev.map(msg => 
           msg.id === botMessageId 
-            ? { ...msg, isStreaming: false } 
+            ? { ...msg, content: fullContent, isStreaming: false } 
             : msg
         )
       );
+      
+      streamingMessageIdRef.current = null;
+      updateAnimationFrameRef.current = null;
+      
+      // Scroll to bottom after final update
+      shouldAutoScrollRef.current = true;
+      scrollToBottom(true);
+      
+      // Save bot response to database after streaming completes
+      await saveChatMessage('model', fullContent);
 
     } catch (error: any) {
       console.error("Chat error:", error);
       const errorMessage = error?.message || "Sorry, a connection error occurred. Please try again.";
+      
+      // Clean up streaming refs
+      if (updateAnimationFrameRef.current !== null) {
+        cancelAnimationFrame(updateAnimationFrameRef.current);
+        updateAnimationFrameRef.current = null;
+      }
+      streamingMessageIdRef.current = null;
+      
       // Save error message to database
       await saveChatMessage('model', errorMessage).catch(() => {});
       
@@ -492,6 +602,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
             : msg
         )
       );
+      
+      // Scroll to bottom after error
+      shouldAutoScrollRef.current = true;
+      scrollToBottom(true);
     } finally {
       setIsLoading(false);
     }
@@ -500,7 +614,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
   return (
     <div className="flex flex-col h-full min-h-0 bg-white dark:bg-gray-900 relative">
       {/* Scrollable container with sticky header inside */}
-      <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0">
         {/* Header - Sticky inside scroll container for mobile */}
         <div className="sticky top-0 z-20 flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-green-600 to-green-700">
           <div className="flex items-center gap-3">
@@ -536,33 +650,25 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
         </div>
 
         {/* Messages Area */}
-        <div className="flex-1 p-3 sm:p-4 md:p-6 bg-gray-50/50 dark:bg-gray-800/50">
+        <div 
+          ref={messagesContainerRef}
+          className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 bg-gray-50/50 dark:bg-gray-800/50"
+        >
           <div className="max-w-3xl mx-auto">
             {/* Ограничение отображаемых сообщений для оптимизации памяти на мобильных */}
-            {messages.length > 100 ? (
-              <>
-                <div className="text-center text-xs text-gray-500 dark:text-gray-400 mb-2 py-2">
-                  {t.showingRecentMessages || 'Showing recent messages'} ({messages.length - 100} {t.hidden || 'hidden'})
-                </div>
-                {messages.slice(-100).map((msg) => (
-                  <MessageBubble 
-                    key={msg.id} 
-                    message={msg} 
-                    courses={courses}
-                    onCourseClick={handleCourseClick}
-                  />
-                ))}
-              </>
-            ) : (
-              messages.map((msg) => (
-                <MessageBubble 
-                  key={msg.id} 
-                  message={msg} 
-                  courses={courses}
-                  onCourseClick={handleCourseClick}
-                />
-              ))
+            {messages.length > 100 && (
+              <div className="text-center text-xs text-gray-500 dark:text-gray-400 mb-2 py-2">
+                {t.showingRecentMessages || 'Showing recent messages'} ({messages.length - 100} {t.hidden || 'hidden'})
+              </div>
             )}
+            {displayedMessages.map((msg) => (
+              <MessageBubble 
+                key={msg.id} 
+                message={msg} 
+                courses={courses}
+                onCourseClick={handleCourseClick}
+              />
+            ))}
             <div ref={messagesEndRef} />
           </div>
         </div>
