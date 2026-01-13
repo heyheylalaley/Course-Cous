@@ -42,6 +42,7 @@ const AppContent: React.FC = () => {
   const [showCourseDetails, setShowCourseDetails] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [errorActionButton, setErrorActionButton] = useState<{ text: string; onClick: () => void } | undefined>(undefined);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [courseSearchQuery, setCourseSearchQuery] = useState<string>('');
   const [showContactModal, setShowContactModal] = useState(false);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
@@ -453,6 +454,10 @@ const AppContent: React.FC = () => {
             await refreshRegistrations();
             setShowCourseDetails(false);
             setSelectedCourse(null);
+            // Show success modal with course name and email info
+            const course = courses.find(c => c.id === courseId);
+            const courseTitle = course?.title || '';
+            setSuccessMessage(`${t.courseRegistrationSuccess}: "${courseTitle}". ${t.courseRegistrationEmailInfo || 'You will receive email information as soon as you are invited to the course.'}`);
           } else if (result.error) {
             // Check if error is about max courses reached - show extended message with dashboard link
             if (result.error.includes('Maximum') || result.error.includes('Максимум') || result.error.includes('الحد الأقصى')) {
@@ -759,6 +764,15 @@ const AppContent: React.FC = () => {
           language={language}
           type="error"
           actionButton={errorActionButton}
+        />
+        <AlertModal
+          isOpen={!!successMessage}
+          onClose={() => {
+            setSuccessMessage(null);
+          }}
+          message={successMessage || ''}
+          language={language}
+          type="success"
         />
         <ContactModal 
           isOpen={showContactModal}

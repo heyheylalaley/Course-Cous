@@ -330,7 +330,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
       setSelectedCourse(null);
       setAlertModal({
         isOpen: true,
-        message: `${t.courseRegistrationSuccess}: "${course.title}"`,
+        message: `${t.courseRegistrationSuccess}: "${course.title}". ${t.courseRegistrationEmailInfo || 'You will receive email information as soon as you are invited to the course.'}`,
         type: 'success'
       });
     } catch (error: any) {
