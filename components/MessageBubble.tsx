@@ -9,20 +9,63 @@ interface MessageBubbleProps {
   onCourseClick?: (courseId: string, courseTitle: string) => void;
 }
 
+// Helper function to extract base course title (without level tags and language suffixes)
+const getBaseCourseTitle = (title: string): string => {
+  // Remove English level tags like [A2+], [B1+], [B2+], etc.
+  let base = title.replace(/\s*\[[A-Z0-9]+\+?\]\s*/gi, '').trim();
+  // Remove language suffixes like (Ukrainian), (Arabic), etc.
+  base = base.replace(/\s*\([^)]+\)\s*$/gi, '').trim();
+  return base;
+};
+
+// Helper function to extract language suffix from title
+const getLanguageSuffix = (title: string): string | null => {
+  const match = title.match(/\s*\(([^)]+)\)\s*$/i);
+  return match ? match[1].toLowerCase() : null;
+};
+
+// Helper function to extract level tag from title
+const getLevelTag = (title: string): string | null => {
+  const match = title.match(/\s*\[([A-Z0-9]+\+?)\]\s*/i);
+  return match ? match[1].toUpperCase() : null;
+};
+
 export const MessageBubble: React.FC<MessageBubbleProps> = memo(({ message, courses, onCourseClick }) => {
   const isBot = message.role === 'model';
 
-  // Create a map of course titles to course IDs for quick lookup
-  const courseTitleMap = useMemo(() => {
-    const map = new Map<string, { id: string; title: string }>();
+  // Create comprehensive maps for course lookup
+  const { courseTitleMap, coursesByBaseTitle } = useMemo(() => {
+    const titleMap = new Map<string, { id: string; title: string; baseTitle: string; languageSuffix: string | null; levelTag: string | null }>();
+    const baseTitleMap = new Map<string, Array<{ id: string; title: string; baseTitle: string; languageSuffix: string | null; levelTag: string | null }>>();
+    
     if (courses) {
       courses.forEach(course => {
-        // Add both exact title and lowercase version for matching
-        map.set(course.title.toLowerCase(), { id: course.id, title: course.title });
-        map.set(course.title, { id: course.id, title: course.title });
+        const baseTitle = getBaseCourseTitle(course.title);
+        const languageSuffix = getLanguageSuffix(course.title);
+        const levelTag = getLevelTag(course.title);
+        
+        const courseInfo = {
+          id: course.id,
+          title: course.title,
+          baseTitle,
+          languageSuffix,
+          levelTag
+        };
+        
+        // Add exact title (original) - case sensitive and case insensitive
+        titleMap.set(course.title.toLowerCase(), courseInfo);
+        titleMap.set(course.title, courseInfo);
+        
+        // Group courses by base title for smart matching
+        const baseKey = baseTitle.toLowerCase();
+        if (!baseTitleMap.has(baseKey)) {
+          baseTitleMap.set(baseKey, []);
+        }
+        baseTitleMap.get(baseKey)!.push(courseInfo);
       });
     }
-    return map;
+    
+    return { courseTitleMap: titleMap, coursesByBaseTitle: baseTitleMap };
   }, [courses]);
 
   // Custom markdown components to make course names clickable and style external links
@@ -35,8 +78,55 @@ export const MessageBubble: React.FC<MessageBubbleProps> = memo(({ message, cour
           ? children.map(c => typeof c === 'string' ? c : '').join('')
           : '';
       
-      // Check if this bold text matches a course title
-      const courseMatch = courseTitleMap.get(text) || courseTitleMap.get(text.toLowerCase());
+      if (!text) {
+        return <strong {...props}>{children}</strong>;
+      }
+      
+      // Step 1: Try exact match first (case sensitive, then case insensitive)
+      let courseMatch = courseTitleMap.get(text) || courseTitleMap.get(text.toLowerCase());
+      
+      // Step 2: If no exact match, try smart matching based on text content
+      if (!courseMatch) {
+        const textLanguageSuffix = getLanguageSuffix(text);
+        const textLevelTag = getLevelTag(text);
+        const textBaseTitle = getBaseCourseTitle(text);
+        
+        // Find all courses with matching base title
+        const matchingCourses = coursesByBaseTitle.get(textBaseTitle.toLowerCase()) || [];
+        
+        if (matchingCourses.length > 0) {
+          // If text has language suffix, prefer course with matching language suffix
+          if (textLanguageSuffix) {
+            const languageMatch = matchingCourses.find(c => 
+              c.languageSuffix && c.languageSuffix.toLowerCase() === textLanguageSuffix
+            );
+            if (languageMatch) {
+              courseMatch = languageMatch;
+            }
+          }
+          
+          // If text has level tag and no language match found, prefer course with matching level tag
+          if (!courseMatch && textLevelTag) {
+            const levelMatch = matchingCourses.find(c => 
+              c.levelTag && c.levelTag.toUpperCase() === textLevelTag
+            );
+            if (levelMatch) {
+              courseMatch = levelMatch;
+            }
+          }
+          
+          // If still no match, prefer course without language suffix (base course)
+          if (!courseMatch) {
+            const baseMatch = matchingCourses.find(c => !c.languageSuffix);
+            if (baseMatch) {
+              courseMatch = baseMatch;
+            } else {
+              // Fallback to first matching course
+              courseMatch = matchingCourses[0];
+            }
+          }
+        }
+      }
       
       if (courseMatch && onCourseClick) {
         return (
@@ -84,7 +174,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = memo(({ message, cour
         </li>
       );
     }
-  }), [courseTitleMap, onCourseClick]);
+  }), [courseTitleMap, coursesByBaseTitle, onCourseClick]);
 
   return (
     <div className={`flex w-full mb-4 sm:mb-6 ${isBot ? 'justify-start' : 'justify-end'}`}>
