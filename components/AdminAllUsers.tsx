@@ -68,6 +68,9 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
   
   // Edit profile modal
   const [editingUser, setEditingUser] = useState<UserWithDetails | null>(null);
+  
+  // Tooltip state for course list
+  const [hoveredUserId, setHoveredUserId] = useState<string | null>(null);
 
   // Callback to load users
   const loadUsers = useCallback(async () => {
@@ -752,10 +755,51 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                         <td className="px-3 py-3 text-sm whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             {user.registeredCourses.length > 0 && (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs">
-                                <BookOpen size={12} />
-                                {user.registeredCourses.length}
-                              </span>
+                              <div 
+                                className="relative group"
+                                onMouseEnter={(e) => {
+                                  e.stopPropagation();
+                                  setHoveredUserId(user.userId);
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.stopPropagation();
+                                  setHoveredUserId(null);
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs cursor-pointer hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors">
+                                  <BookOpen size={12} />
+                                  {user.registeredCourses.length}
+                                </span>
+                                {hoveredUserId === user.userId && (
+                                  <div 
+                                    className="absolute left-0 bottom-full mb-2 z-50 min-w-[200px] max-w-[300px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-3"
+                                    onMouseEnter={(e) => {
+                                      e.stopPropagation();
+                                      setHoveredUserId(user.userId);
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.stopPropagation();
+                                      setHoveredUserId(null);
+                                    }}
+                                  >
+                                    <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
+                                      <BookOpen size={12} />
+                                      {t.adminRegisteredCourses || 'Registered Courses'}:
+                                    </div>
+                                    <div className="space-y-1 max-h-[200px] overflow-y-auto">
+                                      {user.registeredCourses.map((courseId) => (
+                                        <div 
+                                          key={courseId}
+                                          className="text-xs text-gray-600 dark:text-gray-400 py-1 px-2 rounded bg-gray-50 dark:bg-gray-700/50"
+                                        >
+                                          • {getCourseTitle(courseId)}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             )}
                             {user.completedCourses.length > 0 && (
                               <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs">
