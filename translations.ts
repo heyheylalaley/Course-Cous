@@ -264,7 +264,7 @@ export const TRANSLATIONS = {
     forgotPasswordTitle: 'Reset Password',
     forgotPasswordDesc: 'Enter your email address and we will send you a link to reset your password.',
     resetPasswordBtn: 'Send Reset Link',
-    resetPasswordSuccess: 'Password reset link sent! Please check your email.',
+    resetPasswordSuccess: 'Password reset link sent! Please check your email (including spam folder).',
     backToLogin: 'Back to Login',
     // Email Confirmation
     emailConfirmationTitle: 'Verify Your Email',
@@ -719,7 +719,7 @@ export const TRANSLATIONS = {
     forgotPasswordTitle: 'Скидання пароля',
     forgotPasswordDesc: 'Введіть вашу електронну пошту, і ми надішлемо вам посилання для скидання пароля.',
     resetPasswordBtn: 'Надіслати посилання',
-    resetPasswordSuccess: 'Посилання для скидання пароля надіслано! Перевірте свою пошту.',
+    resetPasswordSuccess: 'Посилання для скидання пароля надіслано! Перевірте свою пошту (включно зі спамом).',
     backToLogin: 'Повернутися до входу',
     // Email Confirmation
     emailConfirmationTitle: 'Підтвердіть email',
@@ -1174,7 +1174,7 @@ export const TRANSLATIONS = {
     forgotPasswordTitle: 'Сброс пароля',
     forgotPasswordDesc: 'Введите ваш email, и мы отправим вам ссылку для сброса пароля.',
     resetPasswordBtn: 'Отправить ссылку',
-    resetPasswordSuccess: 'Ссылка для сброса пароля отправлена! Проверьте вашу почту.',
+    resetPasswordSuccess: 'Ссылка для сброса пароля отправлена! Проверьте вашу почту (включая папку спам).',
     backToLogin: 'Вернуться к входу',
     // Email Confirmation
     emailConfirmationTitle: 'Подтвердите email',
@@ -1629,7 +1629,7 @@ export const TRANSLATIONS = {
     forgotPasswordTitle: 'إعادة تعيين كلمة المرور',
     forgotPasswordDesc: 'أدخل بريدك الإلكتروني وسنرسل لك رابطًا لإعادة تعيين كلمة المرور.',
     resetPasswordBtn: 'إرسال الرابط',
-    resetPasswordSuccess: 'تم إرسال رابط إعادة تعيين كلمة المرور! يرجى التحقق من بريدك الإلكتروني.',
+    resetPasswordSuccess: 'تم إرسال رابط إعادة تعيين كلمة المرور! يرجى التحقق من بريدك الإلكتروني (بما في ذلك مجلد البريد المزعج).',
     backToLogin: 'العودة إلى تسجيل الدخول',
     // Email Confirmation
     emailConfirmationTitle: 'تحقق من بريدك الإلكتروني',
