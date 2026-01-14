@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { Course, Language, CourseCategory } from '../types';
 import { TRANSLATIONS } from '../translations';
-import { BookOpen, Shield, Coffee, Users, Globe, HardHat, Warehouse, Sparkles, HeartPulse, Trash2, Users as UsersIcon, Cpu, Briefcase, ShoppingBag, Scissors, Baby, Leaf, Car, Heart, TreePine, GraduationCap, Hammer } from 'lucide-react';
+import { BookOpen, Shield, Coffee, Users, Globe, HardHat, Warehouse, Sparkles, HeartPulse, Trash2, Users as UsersIcon, Cpu, Briefcase, ShoppingBag, Scissors, Baby, Leaf, Car, Heart, TreePine, GraduationCap, Hammer, CheckCircle } from 'lucide-react';
 import { AVAILABLE_ICONS } from './AdminCategoryManagement';
 
 interface CourseCardProps {
@@ -105,9 +105,20 @@ export const CourseCard: React.FC<CourseCardProps> = memo(({
         {onViewDetails ? (
           <button
             onClick={() => onViewDetails(course)}
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+              isRegistered
+                ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30'
+                : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+            }`}
           >
-            {t.viewDetails}
+            {isRegistered ? (
+              <>
+                <CheckCircle className="w-3.5 h-3.5" />
+                {t.registered}
+              </>
+            ) : (
+              t.viewDetails
+            )}
           </button>
         ) : null}
 
