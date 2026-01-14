@@ -61,6 +61,8 @@ export const AdminUserProfileModal: React.FC<AdminUserProfileModalProps> = ({
       setLdcRef(user.ldcRef || '');
       setIrisId(user.irisId || '');
       setError(null);
+      setIsDeleting(false);
+      setIsSaving(false);
       initializedUserIdRef.current = currentUserId;
     }
     
@@ -130,6 +132,9 @@ export const AdminUserProfileModal: React.FC<AdminUserProfileModalProps> = ({
       
       // Close confirmation modal and main modal
       setShowDeleteConfirm(false);
+      
+      // Reset deleting state before closing
+      setIsDeleting(false);
       
       // Wait for onSave to complete before closing
       await onSave();
