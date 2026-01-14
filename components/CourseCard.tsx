@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { Course, Language, CourseCategory } from '../types';
 import { TRANSLATIONS } from '../translations';
-import { BookOpen, Shield, Coffee, Users, Globe, HardHat, Warehouse, Sparkles, HeartPulse, CheckCircle, PlusCircle, Trash2, Users as UsersIcon, Cpu, Briefcase, ShoppingBag, Scissors, Baby, Leaf, Car, Heart, TreePine, GraduationCap, Hammer } from 'lucide-react';
+import { BookOpen, Shield, Coffee, Users, Globe, HardHat, Warehouse, Sparkles, HeartPulse, Trash2, Users as UsersIcon, Cpu, Briefcase, ShoppingBag, Scissors, Baby, Leaf, Car, Heart, TreePine, GraduationCap, Hammer } from 'lucide-react';
 import { AVAILABLE_ICONS } from './AdminCategoryManagement';
 
 interface CourseCardProps {
@@ -102,49 +102,23 @@ export const CourseCard: React.FC<CourseCardProps> = memo(({
       </div>
       
       <div className="flex items-center justify-between mt-auto gap-2">
-        <button
-          onClick={() => onViewDetails?.(course)}
-          className="text-xs sm:text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline"
-        >
-          {t.viewDetails}
-        </button>
+        {onViewDetails ? (
+          <button
+            onClick={() => onViewDetails(course)}
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+          >
+            {t.viewDetails}
+          </button>
+        ) : null}
 
-        {onToggleRegistration && (
-          showRemoveOnly ? (
-            <button
-              onClick={() => onToggleRegistration(course.id)}
-              className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              {t.remove}
-            </button>
-          ) : isRegistered && !allowUnregister ? (
-            <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400">
-              <CheckCircle className="w-3.5 h-3.5" />
-              {t.registered}
-            </div>
-          ) : (
-            <button
-              onClick={() => onToggleRegistration(course.id)}
-              className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0
-                ${isRegistered 
-                  ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30' 
-                  : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30'
-                }`}
-            >
-              {isRegistered ? (
-                <>
-                  <CheckCircle className="w-3.5 h-3.5" />
-                  {t.registered}
-                </>
-              ) : (
-                <>
-                  <PlusCircle className="w-3.5 h-3.5" />
-                  {t.register}
-                </>
-              )}
-            </button>
-          )
+        {onToggleRegistration && showRemoveOnly && (
+          <button
+            onClick={() => onToggleRegistration(course.id)}
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            {t.remove}
+          </button>
         )}
       </div>
     </div>
