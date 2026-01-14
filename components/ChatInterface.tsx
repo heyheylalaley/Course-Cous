@@ -10,6 +10,7 @@ import { TRANSLATIONS } from '../translations';
 import { useCourses } from '../contexts/CoursesContext';
 import { useUI } from '../contexts/UIContext';
 import { useAuth } from '../contexts/AuthContext';
+import { chatMessageSchema, validateData } from '../utils/validation';
 
 interface ChatInterfaceProps {
   language: Language;
@@ -481,12 +482,27 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = memo(({ language, onO
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!inputText.trim() || isLoading) return;
+    if (isLoading) return;
+
+    // Валидация сообщения
+    const trimmedText = inputText.trim();
+    const validation = validateData(chatMessageSchema, trimmedText);
+    
+    if (!validation.success) {
+      setAlertModal({
+        isOpen: true,
+        message: validation.error,
+        type: 'error'
+      });
+      return;
+    }
+
+    const validatedMessage = validation.data;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: inputText.trim(),
+      content: validatedMessage,
       timestamp: new Date()
     };
 

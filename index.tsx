@@ -17,11 +17,26 @@ try {
   );
 } catch (error) {
   console.error('Error rendering app:', error);
-  rootElement.innerHTML = `
-    <div style="padding: 20px; font-family: sans-serif;">
-      <h1>Error loading application</h1>
-      <p>${error instanceof Error ? error.message : 'Unknown error'}</p>
-      <p>Check the browser console for more details.</p>
-    </div>
-  `;
+  // Безопасный рендеринг ошибки без использования innerHTML
+  const errorDiv = document.createElement('div');
+  errorDiv.style.cssText = 'padding: 20px; font-family: sans-serif;';
+  
+  const title = document.createElement('h1');
+  title.textContent = 'Error loading application';
+  errorDiv.appendChild(title);
+  
+  const errorMsg = document.createElement('p');
+  // Безопасное отображение сообщения об ошибке
+  errorMsg.textContent = error instanceof Error 
+    ? `Error: ${error.message}` 
+    : 'Unknown error occurred';
+  errorDiv.appendChild(errorMsg);
+  
+  const consoleMsg = document.createElement('p');
+  consoleMsg.textContent = 'Check the browser console for more details.';
+  errorDiv.appendChild(consoleMsg);
+  
+  // Очистить root и добавить безопасный контент
+  rootElement.innerHTML = '';
+  rootElement.appendChild(errorDiv);
 }

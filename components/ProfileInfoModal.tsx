@@ -3,6 +3,7 @@ import { X, User, Save } from 'lucide-react';
 import { Language, UserProfile } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { db } from '../services/db';
+import { profileSchema, validateData } from '../utils/validation';
 
 interface ProfileInfoModalProps {
   isOpen: boolean;
@@ -68,51 +69,39 @@ export const ProfileInfoModal: React.FC<ProfileInfoModalProps> = ({
   }
 
   const handleSave = async () => {
-    // Validation
-    if (!firstName.trim()) {
-      setError('First name is required');
-      return;
-    }
-    if (!lastName.trim()) {
-      setError('Last name is required');
-      return;
-    }
-    if (!mobileNumber.trim()) {
-      setError('Mobile number is required');
-      return;
-    }
-    if (!address.trim()) {
-      setError('Address is required');
-      return;
-    }
-    if (!eircode.trim()) {
-      setError('Eircode is required');
-      return;
-    }
-    if (!dateOfBirth.trim()) {
-      setError('Date of birth is required');
-      return;
-    }
-
     setIsSaving(true);
     setError(null);
     
     try {
-      await db.updateProfileInfo({
+      // Валидация данных с помощью Zod
+      const formData = {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         mobileNumber: mobileNumber.trim(),
         address: address.trim(),
         eircode: eircode.trim(),
         dateOfBirth: dateOfBirth.trim()
-      });
+      };
+
+      const validation = validateData(profileSchema, formData);
+      
+      if (!validation.success) {
+        setError(validation.error);
+        setIsSaving(false);
+        return;
+      }
+
+      // Данные валидированы, сохраняем
+      await db.updateProfileInfo(validation.data);
 
       // Reload profile from database
       const updatedProfile = await db.getProfile();
       onSave(updatedProfile);
       onClose();
     } catch (error: any) {
-      console.error('Failed to save profile info:', error);
+      if (import.meta.env.DEV) {
+        console.error('Failed to save profile info:', error);
+      }
       setError(error?.message || 'Failed to save profile information. Please try again.');
     } finally {
       setIsSaving(false);

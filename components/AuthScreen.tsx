@@ -5,6 +5,7 @@ import { Language, Theme } from '../types';
 import { TRANSLATIONS } from '../translations';
 import { ContactModal } from './ContactModal';
 import { AlertModal } from './AlertModal';
+import { emailSchema, passwordSchema, registrationFormSchema, authFormSchema, validateData } from '../utils/validation';
 
 interface AuthScreenProps {
   onLoginSuccess: () => void;
@@ -46,11 +47,39 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
     setSuccessMessage(null);
 
     try {
+      // Валидация email
+      const emailValidation = validateData(emailSchema, email.trim());
+      if (!emailValidation.success) {
+        setError(emailValidation.error);
+        setIsLoading(false);
+        return;
+      }
+
+      const validatedEmail = emailValidation.data;
+
+      // Валидация пароля в зависимости от типа формы
+      if (authView === 'register') {
+        // Для регистрации - строгая валидация пароля
+        const passwordValidation = validateData(passwordSchema, password);
+        if (!passwordValidation.success) {
+          setError(passwordValidation.error);
+          setIsLoading(false);
+          return;
+        }
+      } else {
+        // Для входа - только проверка на наличие
+        if (!password || password.length === 0) {
+          setError('Password is required');
+          setIsLoading(false);
+          return;
+        }
+      }
+
       // Delay for effect
       await new Promise(r => setTimeout(r, 800));
       
       if (authView === 'login') {
-        const { user, error } = await db.signIn(email, password);
+        const { user, error } = await db.signIn(validatedEmail, password);
         if (error) {
           setError(error);
         } else if (user) {
@@ -58,7 +87,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
         }
       } else if (authView === 'register') {
         // Registration without email confirmation - user is logged in immediately
-        const { user, error } = await db.signUp(email, password);
+        const { user, error } = await db.signUp(validatedEmail, password);
         if (error) {
           setError(error);
         } else if (user) {
@@ -79,8 +108,16 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
     setSuccessMessage(null);
 
     try {
+      // Валидация email
+      const emailValidation = validateData(emailSchema, email.trim());
+      if (!emailValidation.success) {
+        setError(emailValidation.error);
+        setIsLoading(false);
+        return;
+      }
+
       await new Promise(r => setTimeout(r, 800));
-      const { error } = await db.resetPassword(email);
+      const { error } = await db.resetPassword(emailValidation.data);
       
       if (error) {
         setError(error);
