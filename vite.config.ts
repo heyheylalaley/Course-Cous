@@ -57,6 +57,43 @@ export default defineConfig(({ mode }) => {
             // Удаляем комментарии из выходных файлов
             banner: undefined,
             footer: undefined,
+            // Оптимизация разделения чанков для уменьшения размера бандлов
+            manualChunks: (id) => {
+              // React и React-DOM в отдельный чанк
+              if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+                return 'vendor-react';
+              }
+              // Большие библиотеки для экспорта документов (используются только в админке)
+              if (id.includes('node_modules/docxtemplater') || 
+                  id.includes('node_modules/pizzip') || 
+                  id.includes('node_modules/jszip')) {
+                return 'vendor-documents';
+              }
+              // Google GenAI SDK (может быть большим)
+              if (id.includes('node_modules/@google/genai')) {
+                return 'vendor-ai';
+              }
+              // Supabase клиент
+              if (id.includes('node_modules/@supabase')) {
+                return 'vendor-supabase';
+              }
+              // Библиотеки для работы с файлами (используются в админке)
+              if (id.includes('node_modules/file-saver')) {
+                return 'vendor-documents';
+              }
+              // Иконки Lucide (средний размер, используется везде)
+              if (id.includes('node_modules/lucide-react')) {
+                return 'vendor-icons';
+              }
+              // React Markdown
+              if (id.includes('node_modules/react-markdown')) {
+                return 'vendor-markdown';
+              }
+              // Остальные node_modules в общий vendor чанк
+              if (id.includes('node_modules')) {
+                return 'vendor';
+              }
+            },
           },
           // Дополнительная минификация через плагины Rollup
           // Примечание: esbuild уже удаляет комментарии через legalComments: 'none'
