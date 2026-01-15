@@ -380,10 +380,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
         right: 0,
         bottom: 0,
         width: '100%',
-        minHeight: '100vh',
-        minHeight: '100dvh',
-        maxHeight: '100vh',
-        maxHeight: '100dvh'
+        height: '100dvh'
       }}
     >
       
@@ -440,9 +437,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col justify-start sm:justify-center items-center p-2 sm:p-4 py-4 sm:py-8 min-h-0 w-full overflow-y-auto" style={{ paddingTop: '0.5rem', paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px) + 1rem)' }}>
+      <div className="flex-1 flex flex-col justify-center items-center p-2 sm:p-4 py-2 sm:py-4 min-h-0 w-full overflow-y-auto">
 
-      <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 pb-4 sm:pb-6 md:pb-8 border border-gray-100 dark:border-gray-700">
+      <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 pb-4 sm:pb-6 md:pb-8 border border-gray-100 dark:border-gray-700">
         <div className="flex flex-col items-center mb-4 sm:mb-6 md:mb-8">
           <img 
             src={`${import.meta.env.BASE_URL}logo.svg`}
@@ -461,7 +458,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
       </div>
       
       {/* Footer with organization name */}
-      <div className="mt-2 sm:mt-4 mb-2 sm:mb-4 text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400" style={{ marginBottom: 'max(1rem, env(safe-area-inset-bottom, 0px) + 1rem)' }}>
+      <div className="mt-2 sm:mt-3 mb-2 text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         &copy; {new Date().getFullYear()} {t.orgName}. All rights reserved.
       </div>
       </div>
