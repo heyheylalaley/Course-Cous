@@ -138,8 +138,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = memo(({ language, o
         <div className="w-10" /> {/* Spacer for centering */}
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto w-full p-4 sm:p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="max-w-7xl mx-auto w-full p-4 sm:p-6 space-y-6" style={{ contentVisibility: 'auto' }}>
           {/* Header - Desktop only */}
           <div className="hidden lg:flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -173,88 +173,96 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = memo(({ language, o
           <div className="flex flex-wrap gap-2 mb-6 border-b border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setActiveView('overview')}
-              className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
+              className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 relative ${
                 activeView === 'overview'
                   ? 'border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400'
                   : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
+              style={{ willChange: 'border-color, color' }}
             >
               <BookOpen size={18} className="inline mr-2" />
               {t.adminEnrollmentOverview || 'Courses'}
             </button>
             <button
               onClick={() => setActiveView('all-users')}
-              className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
+              className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 relative ${
                 activeView === 'all-users'
                   ? 'border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400'
                   : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
+              style={{ willChange: 'border-color, color' }}
             >
               <Database size={18} className="inline mr-2" />
               {t.adminAllUsers || 'All Users'}
             </button>
             <button
               onClick={() => setActiveView('management')}
-              className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
+              className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 relative ${
                 activeView === 'management'
                   ? 'border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400'
                   : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
+              style={{ willChange: 'border-color, color' }}
             >
               <Settings size={18} className="inline mr-2" />
               {t.adminCourseManagement || 'Manage Courses'}
             </button>
             <button
               onClick={() => setActiveView('categories')}
-              className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
+              className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 relative ${
                 activeView === 'categories'
                   ? 'border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400'
                   : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
+              style={{ willChange: 'border-color, color' }}
             >
               <FolderOpen size={18} className="inline mr-2" />
               {t.adminCategoryManagement || 'Categories'}
             </button>
             <button
               onClick={() => setActiveView('calendar-events')}
-              className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
+              className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 relative ${
                 activeView === 'calendar-events'
                   ? 'border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400'
                   : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
+              style={{ willChange: 'border-color, color' }}
             >
               <Calendar size={18} className="inline mr-2" />
               {t.adminCalendarEvents || 'Calendar'}
             </button>
             <button
               onClick={() => setActiveView('analytics')}
-              className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
+              className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 relative ${
                 activeView === 'analytics'
                   ? 'border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400'
                   : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
+              style={{ willChange: 'border-color, color' }}
             >
               <BarChart3 size={18} className="inline mr-2" />
               {language === 'ru' ? 'Аналитика' : language === 'ua' ? 'Аналітика' : language === 'ar' ? 'التحليلات' : 'Analytics'}
             </button>
             <button
               onClick={() => setActiveView('bot-instructions')}
-              className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
+              className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 relative ${
                 activeView === 'bot-instructions'
                   ? 'border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400'
                   : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
+              style={{ willChange: 'border-color, color' }}
             >
               <Bot size={18} className="inline mr-2" />
               {t.adminBotInstructions || 'Bot'}
             </button>
             <button
               onClick={() => setActiveView('app-settings')}
-              className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
+              className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 relative ${
                 activeView === 'app-settings'
                   ? 'border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400'
                   : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
+              style={{ willChange: 'border-color, color' }}
             >
               <Cog size={18} className="inline mr-2" />
               {t.adminAppSettings || 'Settings'}

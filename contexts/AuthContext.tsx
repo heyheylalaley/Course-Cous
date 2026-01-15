@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { UserProfile, EnglishLevel } from '../types';
 import { db, supabase } from '../services/db';
 
@@ -42,6 +42,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const [isDemoUser, setIsDemoUser] = useState(false);
+  const isPasswordRecoveryRef = useRef(isPasswordRecovery);
+
+  useEffect(() => {
+    isPasswordRecoveryRef.current = isPasswordRecovery;
+  }, [isPasswordRecovery]);
 
   const loadUserProfile = useCallback(async () => {
     try {
@@ -62,128 +67,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     let profileChannel: any = null;
-
-    const initAuth = async () => {
-      setIsLoading(true);
-      
-      // Check for demo session first
-      const isDemo = await db.isDemoUser();
-      if (isDemo) {
-        setIsDemoUser(true);
-        setIsAuthenticated(true);
-        await loadUserProfile();
-        setIsLoading(false);
-        return;
-      }
-      
-      // Handle Supabase auth callback
-      if (supabase) {
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
-        const type = hashParams.get('type');
-        
-        // Check if this is a password recovery flow
-        const isRecoveryFlow = type === 'recovery';
-        
-        if (accessToken && refreshToken) {
-          const { data: { session }, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
-          });
-          
-          if (session && !error) {
-            // Clear URL hash
-            window.history.replaceState({}, document.title, import.meta.env.BASE_URL);
-            
-            if (isRecoveryFlow) {
-              // Password recovery - set flag instead of auto-login
-              setIsPasswordRecovery(true);
-              setIsAuthenticated(true);
-              // Don't load profile yet - let user update password first
-            } else {
-              // Normal login flow
-              setIsAuthenticated(true);
-              await loadUserProfile();
-              
-              // Setup realtime subscription for profile updates
-              setupProfileSubscription(session.user.id);
-            }
-          }
-        }
-
-        // Check existing session (but not if we're in recovery mode)
-        if (!isPasswordRecovery) {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user) {
-            setIsAuthenticated(true);
-            await loadUserProfile();
-            
-            // Setup realtime subscription for profile updates
-            setupProfileSubscription(session.user.id);
-          }
-        }
-
-        // Listen to auth state changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-          // Handle PASSWORD_RECOVERY event from Supabase
-          if (event === 'PASSWORD_RECOVERY' && session) {
-            setIsPasswordRecovery(true);
-            setIsAuthenticated(true);
-            if (window.location.hash) {
-              window.history.replaceState({}, document.title, import.meta.env.BASE_URL);
-            }
-          } else if (event === 'SIGNED_IN' && session) {
-            // Only auto-login if not in password recovery mode
-            if (!isPasswordRecovery) {
-              if (window.location.hash) {
-                window.history.replaceState({}, document.title, import.meta.env.BASE_URL);
-              }
-              setIsAuthenticated(true);
-              loadUserProfile();
-              
-              // Setup realtime subscription for profile updates
-              setupProfileSubscription(session.user.id);
-            }
-          } else if (event === 'SIGNED_OUT') {
-            setIsAuthenticated(false);
-            setIsPasswordRecovery(false);
-            setIsDemoUser(false);
-            setUserProfile(defaultProfile);
-            
-            // Clean up profile subscription
-            if (profileChannel && supabase) {
-              supabase.removeChannel(profileChannel);
-              profileChannel = null;
-            }
-          } else if (event === 'TOKEN_REFRESHED' && session) {
-            setIsAuthenticated(true);
-          } else if (event === 'USER_UPDATED' && session) {
-            // Password was updated successfully
-            if (isPasswordRecovery) {
-              setIsPasswordRecovery(false);
-              loadUserProfile();
-            }
-          }
-        });
-
-        setIsLoading(false);
-        return () => {
-          subscription.unsubscribe();
-          if (profileChannel && supabase) {
-            supabase.removeChannel(profileChannel);
-          }
-        };
-      } else {
-        // Mock mode
-        const session = db.getCurrentSession();
-        if (session) {
-          setIsAuthenticated(true);
-          await loadUserProfile();
-        }
-        setIsLoading(false);
-      }
-    };
+    let authSubscription: { unsubscribe: () => void } | null = null;
 
     // Setup realtime subscription for profile changes
     const setupProfileSubscription = (userId: string) => {
@@ -206,7 +90,159 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .subscribe();
     };
 
+    const initAuth = async () => {
+      setIsLoading(true);
+      
+      // Check for demo session first
+      const isDemo = await db.isDemoUser();
+      if (isDemo) {
+        setIsDemoUser(true);
+        setIsAuthenticated(true);
+        await loadUserProfile();
+        setIsLoading(false);
+        return;
+      }
+      
+      // Handle Supabase auth callback
+      if (supabase) {
+        let skipSessionCheck = false;
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        const type = hashParams.get('type');
+        
+        // Check if this is a password recovery flow
+        const isRecoveryFlow = type === 'recovery';
+        
+        if (accessToken && refreshToken) {
+          const { data: { session }, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          
+          if (session && !error) {
+            // Clear URL hash
+            window.history.replaceState({}, document.title, import.meta.env.BASE_URL);
+            
+            if (isRecoveryFlow) {
+              // Password recovery - set flag instead of auto-login
+              setIsPasswordRecovery(true);
+              setIsAuthenticated(true);
+              skipSessionCheck = true;
+              // Don't load profile yet - let user update password first
+            } else {
+              // Normal login flow
+              setIsAuthenticated(true);
+              await loadUserProfile();
+              
+              // Setup realtime subscription for profile updates
+              setupProfileSubscription(session.user.id);
+            }
+          }
+        }
+
+        // Check existing session (but not if we're in recovery mode)
+        if (!skipSessionCheck && !isPasswordRecoveryRef.current) {
+          try {
+            const { data: { session }, error } = await supabase.auth.getSession();
+            if (error) {
+              // Silently handle invalid refresh token errors
+              if (error.message?.includes('Refresh Token') || error.message?.includes('refresh_token')) {
+                // Clear invalid session silently
+                await supabase.auth.signOut();
+              }
+            } else if (session?.user) {
+              setIsAuthenticated(true);
+              await loadUserProfile();
+              
+              // Setup realtime subscription for profile updates
+              setupProfileSubscription(session.user.id);
+            }
+          } catch (err: any) {
+            // Silently handle refresh token errors
+            if (err?.message?.includes('Refresh Token') || err?.message?.includes('refresh_token')) {
+              // Clear invalid session silently
+              try {
+                await supabase.auth.signOut();
+              } catch {
+                // Ignore sign out errors
+              }
+            }
+          }
+        }
+
+        // Listen to auth state changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+          // Handle PASSWORD_RECOVERY event from Supabase
+          if (event === 'PASSWORD_RECOVERY' && session) {
+            setIsPasswordRecovery(true);
+            setIsAuthenticated(true);
+            if (window.location.hash) {
+              window.history.replaceState({}, document.title, import.meta.env.BASE_URL);
+            }
+          } else if (event === 'SIGNED_IN' && session) {
+            // Only auto-login if not in password recovery mode
+            if (!isPasswordRecoveryRef.current) {
+              if (window.location.hash) {
+                window.history.replaceState({}, document.title, import.meta.env.BASE_URL);
+              }
+              setIsAuthenticated(true);
+              loadUserProfile();
+              
+              // Setup realtime subscription for profile updates
+              setupProfileSubscription(session.user.id);
+            }
+          } else if (event === 'SIGNED_OUT') {
+            setIsAuthenticated(false);
+            setIsPasswordRecovery(false);
+            setIsDemoUser(false);
+            setUserProfile(defaultProfile);
+            
+            // Clean up profile subscription
+            if (profileChannel && supabase) {
+              supabase.removeChannel(profileChannel);
+              profileChannel = null;
+            }
+          } else if (event === 'TOKEN_REFRESHED' && session) {
+            setIsAuthenticated(true);
+          } else if (event === 'TOKEN_REFRESHED' && !session) {
+            // Token refresh failed - user needs to sign in again
+            setIsAuthenticated(false);
+            setIsPasswordRecovery(false);
+            setIsDemoUser(false);
+            setUserProfile(defaultProfile);
+          } else if (event === 'USER_UPDATED' && session) {
+            // Password was updated successfully
+            if (isPasswordRecoveryRef.current) {
+              setIsPasswordRecovery(false);
+              loadUserProfile();
+            }
+          }
+        });
+
+        authSubscription = subscription;
+        setIsLoading(false);
+      } else {
+        // Mock mode
+        const session = db.getCurrentSession();
+        if (session) {
+          setIsAuthenticated(true);
+          await loadUserProfile();
+        }
+        setIsLoading(false);
+      }
+    };
+
     initAuth();
+
+    return () => {
+      if (authSubscription) {
+        authSubscription.unsubscribe();
+      }
+      if (profileChannel && supabase) {
+        supabase.removeChannel(profileChannel);
+      }
+    };
   }, [loadUserProfile]);
 
   const login = useCallback(async () => {

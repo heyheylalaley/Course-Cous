@@ -77,3 +77,37 @@ html, body, #root {
   background-color: #374151;
   color: #f3f4f6;
 }
+
+/* Performance optimizations */
+/* Use transform and opacity for animations instead of other properties */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Optimize animations for better performance */
+@media (prefers-reduced-motion: no-preference) {
+  /* Use GPU acceleration for transforms */
+  button, a, [role="button"] {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Content visibility optimization for off-screen content */
+[style*="content-visibility"] {
+  contain-intrinsic-size: auto 500px;
+}

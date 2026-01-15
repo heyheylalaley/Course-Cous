@@ -193,31 +193,31 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
   };
 
   const renderForgotPasswordForm = () => (
-    <form onSubmit={handleForgotPassword} className="space-y-4">
+    <form onSubmit={handleForgotPassword} className="space-y-3 sm:space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.emailLabel}</label>
+        <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.emailLabel}</label>
         <input
           type="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-green-500 dark:focus:ring-green-600 focus:border-green-500 dark:focus:border-green-600 outline-none transition-all"
+          className="w-full px-3 sm:px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-green-500 dark:focus:ring-green-600 focus:border-green-500 dark:focus:border-green-600 outline-none transition-all text-sm sm:text-base"
           placeholder="name@example.com"
         />
       </div>
 
-      <p className="text-sm text-gray-500 dark:text-gray-400">
+      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
         {t.forgotPasswordDesc}
       </p>
 
       {error && (
-        <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg border border-red-100 dark:border-red-800">
+        <div className="p-2 sm:p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs sm:text-sm rounded-lg border border-red-100 dark:border-red-800">
           {error}
         </div>
       )}
 
       {successMessage && (
-        <div className="p-3 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-sm rounded-lg border border-green-100 dark:border-green-800">
+        <div className="p-2 sm:p-3 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-xs sm:text-sm rounded-lg border border-green-100 dark:border-green-800">
           {successMessage}
         </div>
       )}
@@ -225,7 +225,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full bg-green-600 dark:bg-green-700 text-white py-2.5 rounded-lg font-semibold hover:bg-green-700 dark:hover:bg-green-600 active:scale-[0.99] transition-all shadow-md flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-green-600 dark:bg-green-700 text-white py-2 sm:py-2.5 rounded-lg font-semibold hover:bg-green-700 dark:hover:bg-green-600 active:scale-[0.99] transition-all shadow-md flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
       >
         {isLoading ? <Loader2 className="animate-spin w-5 h-5" /> : t.resetPasswordBtn}
       </button>
@@ -233,7 +233,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
       <button
         type="button"
         onClick={() => switchView('login')}
-        className="w-full flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 font-medium mt-2"
+          className="w-full flex items-center justify-center gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 font-medium mt-2"
       >
         <ArrowLeft size={16} />
         {t.backToLogin}
@@ -243,27 +243,27 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
 
   const renderLoginRegisterForm = () => (
     <>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.emailLabel}</label>
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.emailLabel}</label>
           <input
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-green-500 dark:focus:ring-green-600 focus:border-green-500 dark:focus:border-green-600 outline-none transition-all"
+            className="w-full px-3 sm:px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-green-500 dark:focus:ring-green-600 focus:border-green-500 dark:focus:border-green-600 outline-none transition-all text-sm sm:text-base"
             placeholder="name@example.com"
           />
         </div>
         
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t.passwordLabel}</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">{t.passwordLabel}</label>
             {authView === 'login' && (
               <button
                 type="button"
                 onClick={() => switchView('forgotPassword')}
-                className="text-xs text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 font-medium"
+                className="text-[10px] sm:text-xs text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 font-medium"
               >
                 {t.forgotPassword}
               </button>
@@ -274,13 +274,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-green-500 dark:focus:ring-green-600 focus:border-green-500 dark:focus:border-green-600 outline-none transition-all"
+            className="w-full px-3 sm:px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-green-500 dark:focus:ring-green-600 focus:border-green-500 dark:focus:border-green-600 outline-none transition-all text-sm sm:text-base"
             placeholder="••••••••"
           />
         </div>
 
         {error && (
-          <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg border border-red-100 dark:border-red-800">
+          <div className="p-2 sm:p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs sm:text-sm rounded-lg border border-red-100 dark:border-red-800">
             {error}
           </div>
         )}
@@ -288,18 +288,18 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-green-600 dark:bg-green-700 text-white py-2.5 rounded-lg font-semibold hover:bg-green-700 dark:hover:bg-green-600 active:scale-[0.99] transition-all shadow-md flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-green-600 dark:bg-green-700 text-white py-2 sm:py-2.5 rounded-lg font-semibold hover:bg-green-700 dark:hover:bg-green-600 active:scale-[0.99] transition-all shadow-md flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
         >
           {isLoading ? <Loader2 className="animate-spin w-5 h-5" /> : (authView === 'login' ? t.signInBtn : t.signUpBtn)}
         </button>
       </form>
 
-      <div className="mt-6">
+      <div className="mt-4 sm:mt-6">
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
           </div>
-          <div className="relative flex justify-center text-sm">
+          <div className="relative flex justify-center text-xs sm:text-sm">
             <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">{t.orContinueWith}</span>
           </div>
         </div>
@@ -307,9 +307,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
         <button
           onClick={handleGoogleSignIn}
           disabled={isLoading}
-          className="mt-4 w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 py-2.5 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 active:scale-[0.99] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          className="mt-3 sm:mt-4 w-full flex items-center justify-center gap-2 sm:gap-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 py-2 sm:py-2.5 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 active:scale-[0.99] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
         >
-          <svg className="w-5 h-5" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24">
             <path
               fill="currentColor"
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -335,18 +335,18 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
           <button
             onClick={handleDemoSignIn}
             disabled={isLoading}
-            className="mt-3 w-full flex items-center justify-center gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 py-2.5 rounded-lg font-semibold hover:bg-amber-100 dark:hover:bg-amber-900/30 active:scale-[0.99] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className="mt-2 sm:mt-3 w-full flex items-center justify-center gap-2 sm:gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 py-2 sm:py-2.5 rounded-lg font-semibold hover:bg-amber-100 dark:hover:bg-amber-900/30 active:scale-[0.99] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
           >
-            <Play size={18} />
+            <Play size={16} className="sm:w-[18px] sm:h-[18px]" />
             {t.demoMode}
           </button>
         )}
       </div>
 
-      <div className="mt-6 text-center">
+      <div className="mt-3 sm:mt-4 mb-2 sm:mb-4 text-center">
         <button
           onClick={() => switchView(authView === 'login' ? 'register' : 'login')}
-          className="text-sm text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 font-medium"
+          className="text-xs sm:text-sm text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 font-medium"
         >
           {authView === 'login' ? t.switchToSignUp : t.switchToSignIn}
         </button>
@@ -366,10 +366,26 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
 
   return (
     <>
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex flex-col" dir={isRtl ? 'rtl' : 'ltr'}>
+    <div 
+      className="bg-gradient-to-br from-green-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex flex-col overflow-y-auto overflow-x-hidden" 
+      dir={isRtl ? 'rtl' : 'ltr'} 
+      style={{ 
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        WebkitOverflowScrolling: 'touch',
+        touchAction: 'pan-y',
+        overscrollBehavior: 'contain',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100%',
+        height: '100dvh'
+      }}
+    >
       
       {/* Top Bar with Language & Theme */}
-      <div className="w-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between flex-shrink-0">
+      <div className="w-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2">
           <Globe 
             size={18} 
@@ -421,18 +437,18 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col justify-center items-center p-4">
+      <div className="flex-1 flex flex-col justify-center items-center p-2 sm:p-4 py-2 sm:py-4 min-h-0 w-full overflow-y-auto">
 
-      <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 sm:p-8 border border-gray-100 dark:border-gray-700">
-        <div className="flex flex-col items-center mb-6 sm:mb-8">
+      <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 pb-4 sm:pb-6 md:pb-8 border border-gray-100 dark:border-gray-700">
+        <div className="flex flex-col items-center mb-4 sm:mb-6 md:mb-8">
           <img 
             src={`${import.meta.env.BASE_URL}logo.svg`}
             alt="Cork City Partnership" 
-            className="w-16 h-16 mb-3"
+            className="w-12 h-12 sm:w-16 sm:h-16 mb-2 sm:mb-3"
           />
-          <h1 className="text-xl sm:text-2xl font-bold text-green-700 dark:text-green-400">{t.orgName}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">{t.appTitle}</p>
-          <h2 className="text-base sm:text-lg font-medium text-gray-600 dark:text-gray-300">{getTitle()}</h2>
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-green-700 dark:text-green-400">{t.orgName}</h1>
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-2 sm:mb-3">{t.appTitle}</p>
+          <h2 className="text-sm sm:text-base md:text-lg font-medium text-gray-600 dark:text-gray-300">{getTitle()}</h2>
           {authView !== 'forgotPassword' && (
             <p className="text-xs sm:text-sm text-gray-400 dark:text-gray-500 mt-1 text-center">{getSubtitle()}</p>
           )}
@@ -442,7 +458,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
       </div>
       
       {/* Footer with organization name */}
-      <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+      <div className="mt-2 sm:mt-3 mb-2 text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         &copy; {new Date().getFullYear()} {t.orgName}. All rights reserved.
       </div>
       </div>

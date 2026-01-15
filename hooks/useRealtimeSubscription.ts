@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { supabase } from '../services/db';
 
 type PostgresChangeEvent = 'INSERT' | 'UPDATE' | 'DELETE' | '*';
@@ -36,6 +36,7 @@ export function useRealtimeSubscription({
 }: UseRealtimeSubscriptionOptions) {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const callbackRef = useRef(onDataChange);
+  const subscriptionsKey = useMemo(() => JSON.stringify(subscriptions), [subscriptions]);
   
   // Keep callback ref updated
   callbackRef.current = onDataChange;
@@ -85,7 +86,7 @@ export function useRealtimeSubscription({
       }
       supabase.removeChannel(channel);
     };
-  }, [channelName, subscriptions, enabled, handleChange]);
+  }, [channelName, subscriptionsKey, enabled, handleChange]);
 
   // Cleanup timeout on unmount
   useEffect(() => {

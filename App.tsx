@@ -519,6 +519,7 @@ const AppContent: React.FC = () => {
                 onClick={() => setSidebarOpen(false)} 
                 className="lg:hidden p-2 rounded-md hover:bg-white/20 text-white transition-colors"
                 aria-label="Close menu"
+                style={{ willChange: 'background-color' }}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -535,6 +536,7 @@ const AppContent: React.FC = () => {
                   ? 'bg-green-600 dark:bg-green-700 text-white shadow-md' 
                   : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-600 hover:text-green-600 dark:hover:text-green-400 border border-transparent'
                 }`}
+              style={{ willChange: 'background-color, transform' }}
             >
               <MessageSquare size={18} />
               {t.chatTab}
@@ -547,6 +549,7 @@ const AppContent: React.FC = () => {
                   ? 'bg-green-600 dark:bg-green-700 text-white shadow-md' 
                   : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-600 hover:text-green-600 dark:hover:text-green-400 border border-transparent'
                 }`}
+              style={{ willChange: 'background-color, transform' }}
             >
               <LayoutDashboard size={18} />
               {t.dashboardTab}
@@ -564,6 +567,7 @@ const AppContent: React.FC = () => {
                     ? 'bg-purple-600 dark:bg-purple-700 text-white shadow-md' 
                     : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-600 hover:text-purple-600 dark:hover:text-purple-400 border border-transparent'
                   }`}
+                style={{ willChange: 'background-color, transform' }}
               >
                 <Shield size={18} />
                 {t.adminPanel}
@@ -575,6 +579,7 @@ const AppContent: React.FC = () => {
               data-tour="calendar-button"
               onClick={() => setShowCalendarModal(true)}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-600 hover:text-green-600 dark:hover:text-green-400 border border-transparent"
+              style={{ willChange: 'background-color, transform' }}
             >
               <Calendar size={18} />
               {t.calendar}
@@ -584,6 +589,7 @@ const AppContent: React.FC = () => {
             <button 
               onClick={() => setShowContactModal(true)}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-600 hover:text-green-600 dark:hover:text-green-400 border border-transparent"
+              style={{ willChange: 'background-color, transform' }}
             >
               <Info size={18} />
               {t.contactInfo}
@@ -689,6 +695,7 @@ const AppContent: React.FC = () => {
                         }`}
                         title={langLabels[lang]}
                         aria-label={`Switch to ${langLabels[lang]}`}
+                        style={{ willChange: 'background-color, transform' }}
                       >
                         {lang.toUpperCase()}
                       </button>
@@ -702,6 +709,7 @@ const AppContent: React.FC = () => {
                   className="h-8 w-8 sm:h-7 sm:w-7 flex items-center justify-center p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors active:scale-95 flex-shrink-0"
                   title={t.tourStartTour || 'Start Tour'}
                   aria-label={t.tourStartTour || 'Start Tour'}
+                  style={{ willChange: 'background-color, transform' }}
                 >
                   <Sparkles size={16} className="sm:w-[18px] sm:h-[18px]" />
                 </button>
@@ -710,6 +718,7 @@ const AppContent: React.FC = () => {
                   className="h-8 w-8 sm:h-7 sm:w-7 flex items-center justify-center p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors active:scale-95 flex-shrink-0"
                   title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
                   aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+                  style={{ willChange: 'background-color, transform' }}
                 >
                   {theme === 'light' ? <Moon size={16} className="sm:w-[18px] sm:h-[18px]" /> : <Sun size={16} className="sm:w-[18px] sm:h-[18px]" />}
                 </button>
@@ -717,6 +726,7 @@ const AppContent: React.FC = () => {
                   onClick={() => setShowLogoutConfirm(true)} 
                   className="h-8 w-8 sm:h-7 sm:w-7 flex items-center justify-center p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors active:scale-95 flex-shrink-0"
                   aria-label={t.logoutBtn || 'Log out'}
+                  style={{ willChange: 'background-color, transform' }}
                 >
                   <LogOut size={16} className="sm:w-[18px] sm:h-[18px]" />
                 </button>
