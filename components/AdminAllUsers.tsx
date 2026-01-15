@@ -764,21 +764,16 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                                 className="relative inline-block"
                                 onMouseEnter={(e) => {
                                   e.stopPropagation();
-                                  const rect = e.currentTarget.getBoundingClientRect();
-                                  const viewportWidth = window.innerWidth;
-                                  const viewportHeight = window.innerHeight;
-                                  
-                                  // Calculate position, ensuring tooltip stays within viewport
-                                  let x = rect.left + rect.width / 2;
-                                  let y = rect.bottom + 8;
-                                  
-                                  // Adjust if tooltip would go off screen
-                                  if (x < 150) x = 150;
-                                  if (x > viewportWidth - 150) x = viewportWidth - 150;
-                                  if (y > viewportHeight - 200) y = rect.top - 8; // Show above if no room below
-                                  
-                                  setTooltipPosition({ x, y });
                                   setHoveredUserId(user.userId);
+                                }}
+                                onMouseMove={(e) => {
+                                  e.stopPropagation();
+                                  // Follow cursor position, tooltip grows downward
+                                  const offset = 12; // Offset from cursor
+                                  setTooltipPosition({ 
+                                    x: e.clientX, 
+                                    y: e.clientY + offset 
+                                  });
                                 }}
                                 onMouseLeave={(e) => {
                                   e.stopPropagation();
@@ -822,21 +817,16 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                               className="relative inline-block"
                               onMouseEnter={(e) => {
                                 e.stopPropagation();
-                                const rect = e.currentTarget.getBoundingClientRect();
-                                const viewportWidth = window.innerWidth;
-                                const viewportHeight = window.innerHeight;
-                                
-                                // Calculate position, ensuring tooltip stays within viewport
-                                let x = rect.left + rect.width / 2;
-                                let y = rect.bottom + 8;
-                                
-                                // Adjust if tooltip would go off screen
-                                if (x < 150) x = 150;
-                                if (x > viewportWidth - 150) x = viewportWidth - 150;
-                                if (y > viewportHeight - 200) y = rect.top - 8; // Show above if no room below
-                                
-                                setCreatedByTooltipPosition({ x, y });
                                 setHoveredCreatedByUserId(user.userId);
+                              }}
+                              onMouseMove={(e) => {
+                                e.stopPropagation();
+                                // Follow cursor position, tooltip grows downward
+                                const offset = 12; // Offset from cursor
+                                setCreatedByTooltipPosition({ 
+                                  x: e.clientX, 
+                                  y: e.clientY + offset 
+                                });
                               }}
                               onMouseLeave={(e) => {
                                 e.stopPropagation();
@@ -980,18 +970,13 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
         
         return (
           <div
-            className="fixed z-[9999] min-w-[200px] max-w-[300px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-3 pointer-events-auto"
+            className="fixed z-[9999] min-w-[200px] max-w-[300px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-3 pointer-events-none"
             style={{
               left: `${tooltipPosition.x}px`,
               top: `${tooltipPosition.y}px`,
               transform: 'translateX(-50%)',
               maxHeight: '300px',
               overflowY: 'auto'
-            }}
-            onMouseEnter={() => setHoveredUserId(hoveredUserId)}
-            onMouseLeave={() => {
-              setHoveredUserId(null);
-              setTooltipPosition(null);
             }}
           >
             <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
@@ -1019,18 +1004,13 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
         
         return (
           <div
-            className="fixed z-[9999] min-w-[200px] max-w-[300px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-3 pointer-events-auto"
+            className="fixed z-[9999] min-w-[200px] max-w-[300px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-3 pointer-events-none"
             style={{
               left: `${createdByTooltipPosition.x}px`,
               top: `${createdByTooltipPosition.y}px`,
               transform: 'translateX(-50%)',
               maxHeight: '300px',
               overflowY: 'auto'
-            }}
-            onMouseEnter={() => setHoveredCreatedByUserId(hoveredCreatedByUserId)}
-            onMouseLeave={() => {
-              setHoveredCreatedByUserId(null);
-              setCreatedByTooltipPosition(null);
             }}
           >
             <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
