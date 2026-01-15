@@ -114,13 +114,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         // Check existing session (but not if we're in recovery mode)
         if (!isPasswordRecovery) {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user) {
-            setIsAuthenticated(true);
-            await loadUserProfile();
-            
-            // Setup realtime subscription for profile updates
-            setupProfileSubscription(session.user.id);
+          try {
+            const { data: { session }, error } = await supabase.auth.getSession();
+            if (error) {
+              // Silently handle invalid refresh token errors
+              if (error.message?.includes('Refresh Token') || error.message?.includes('refresh_token')) {
+                // Clear invalid session silently
+                await supabase.auth.signOut();
+              }
+            } else if (session?.user) {
+              setIsAuthenticated(true);
+              await loadUserProfile();
+              
+              // Setup realtime subscription for profile updates
+              setupProfileSubscription(session.user.id);
+            }
+          } catch (err: any) {
+            // Silently handle refresh token errors
+            if (err?.message?.includes('Refresh Token') || err?.message?.includes('refresh_token')) {
+              // Clear invalid session silently
+              try {
+                await supabase.auth.signOut();
+              } catch {
+                // Ignore sign out errors
+              }
+            }
           }
         }
 
@@ -158,6 +176,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
           } else if (event === 'TOKEN_REFRESHED' && session) {
             setIsAuthenticated(true);
+          } else if (event === 'TOKEN_REFRESHED' && !session) {
+            // Token refresh failed - user needs to sign in again
+            setIsAuthenticated(false);
+            setIsPasswordRecovery(false);
+            setIsDemoUser(false);
+            setUserProfile(defaultProfile);
           } else if (event === 'USER_UPDATED' && session) {
             // Password was updated successfully
             if (isPasswordRecovery) {
