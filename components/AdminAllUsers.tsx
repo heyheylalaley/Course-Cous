@@ -764,15 +764,23 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                                 className="relative inline-block"
                                 onMouseEnter={(e) => {
                                   e.stopPropagation();
+                                  // Set initial position immediately - tooltip appears below and slightly to the right of cursor
+                                  const offsetX = 10;
+                                  const offsetY = 12;
+                                  setTooltipPosition({ 
+                                    x: e.clientX + offsetX, 
+                                    y: e.clientY + offsetY 
+                                  });
                                   setHoveredUserId(user.userId);
                                 }}
                                 onMouseMove={(e) => {
                                   e.stopPropagation();
-                                  // Follow cursor position, tooltip grows downward
-                                  const offset = 12; // Offset from cursor
+                                  // Update position as cursor moves
+                                  const offsetX = 10;
+                                  const offsetY = 12;
                                   setTooltipPosition({ 
-                                    x: e.clientX, 
-                                    y: e.clientY + offset 
+                                    x: e.clientX + offsetX, 
+                                    y: e.clientY + offsetY 
                                   });
                                 }}
                                 onMouseLeave={(e) => {
@@ -817,15 +825,23 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                               className="relative inline-block"
                               onMouseEnter={(e) => {
                                 e.stopPropagation();
+                                // Set initial position immediately - tooltip appears below and slightly to the right of cursor
+                                const offsetX = 10;
+                                const offsetY = 12;
+                                setCreatedByTooltipPosition({ 
+                                  x: e.clientX + offsetX, 
+                                  y: e.clientY + offsetY 
+                                });
                                 setHoveredCreatedByUserId(user.userId);
                               }}
                               onMouseMove={(e) => {
                                 e.stopPropagation();
-                                // Follow cursor position, tooltip grows downward
-                                const offset = 12; // Offset from cursor
+                                // Update position as cursor moves
+                                const offsetX = 10;
+                                const offsetY = 12;
                                 setCreatedByTooltipPosition({ 
-                                  x: e.clientX, 
-                                  y: e.clientY + offset 
+                                  x: e.clientX + offsetX, 
+                                  y: e.clientY + offsetY 
                                 });
                               }}
                               onMouseLeave={(e) => {
@@ -974,7 +990,6 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
             style={{
               left: `${tooltipPosition.x}px`,
               top: `${tooltipPosition.y}px`,
-              transform: 'translateX(-50%)',
               maxHeight: '300px',
               overflowY: 'auto'
             }}
@@ -1008,7 +1023,6 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
             style={{
               left: `${createdByTooltipPosition.x}px`,
               top: `${createdByTooltipPosition.y}px`,
-              transform: 'translateX(-50%)',
               maxHeight: '300px',
               overflowY: 'auto'
             }}
