@@ -3279,6 +3279,16 @@ We look forward to seeing you soon!`,
         throw new Error(`Failed to delete calendar events: ${calendarEventsError.message}`);
       }
 
+      // Delete all course_date_options created by this user
+      const { error: courseDateOptionsError } = await supabase
+        .from('course_date_options')
+        .delete()
+        .eq('created_by', userId);
+
+      if (courseDateOptionsError && courseDateOptionsError.code !== 'PGRST301') {
+        throw new Error(`Failed to delete course date options: ${courseDateOptionsError.message}`);
+      }
+
       // Delete user profile (requires admin policy)
       const { error: profileError } = await supabase
         .from('profiles')
