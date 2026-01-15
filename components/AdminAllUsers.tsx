@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Language, EnglishLevel, Course } from '../types';
 import { db } from '../services/db';
 import { useCourses } from '../hooks/useCourses';
@@ -72,18 +73,48 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
   // Edit profile modal
   const [editingUser, setEditingUser] = useState<UserWithDetails | null>(null);
   
-  // Tooltip state - track mouse position globally
-  const [mousePosition, setMousePosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [hoveredCourseUserId, setHoveredCourseUserId] = useState<string | null>(null);
-  const [hoveredDateUserId, setHoveredDateUserId] = useState<string | null>(null);
+  // Tooltip state for courses and date
+  const [tooltipData, setTooltipData] = useState<{
+    type: 'courses' | 'date';
+    user: UserWithDetails;
+    position: { x: number; y: number };
+  } | null>(null);
+  const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Track mouse position globally
+  // Show tooltip with position calculation
+  const showTooltip = useCallback((
+    e: React.MouseEvent, 
+    type: 'courses' | 'date', 
+    user: UserWithDetails
+  ) => {
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current);
+    }
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setTooltipData({
+      type,
+      user,
+      position: {
+        x: rect.left,
+        y: rect.bottom + 5
+      }
+    });
+  }, []);
+
+  // Hide tooltip with small delay
+  const hideTooltip = useCallback(() => {
+    tooltipTimeoutRef.current = setTimeout(() => {
+      setTooltipData(null);
+    }, 100);
+  }, []);
+
+  // Clear timeout on unmount
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
+    return () => {
+      if (tooltipTimeoutRef.current) {
+        clearTimeout(tooltipTimeoutRef.current);
+      }
     };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
   // Callback to load users
@@ -641,8 +672,8 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
           </p>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="overflow-x-auto">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="overflow-x-auto rounded-t-2xl">
             <table className="w-full min-w-[1200px]">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
@@ -768,9 +799,9 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                             {user.registeredCourses.length > 0 && (
                               <span 
                                 className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs cursor-pointer hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors"
-                                onMouseEnter={() => setHoveredCourseUserId(user.userId)}
-                                onMouseLeave={() => setHoveredCourseUserId(null)}
                                 onClick={(e) => e.stopPropagation()}
+                                onMouseEnter={(e) => showTooltip(e, 'courses', user)}
+                                onMouseLeave={hideTooltip}
                               >
                                 <BookOpen size={12} />
                                 {user.registeredCourses.length}
@@ -803,12 +834,19 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                           {user.createdAt ? (
                             <div 
                               className="flex items-center gap-1 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-                              onMouseEnter={() => setHoveredDateUserId(user.userId)}
-                              onMouseLeave={() => setHoveredDateUserId(null)}
                               onClick={(e) => e.stopPropagation()}
+                              onMouseEnter={(e) => showTooltip(e, 'date', user)}
+                              onMouseLeave={hideTooltip}
                             >
                               <Calendar size={14} className="text-gray-400" />
                               {formatDate(user.createdAt)}
+                              {/* Dot indicator for users created by admin */}
+                              {user.createdBy && (
+                                <span 
+                                  className="w-2 h-2 rounded-full bg-purple-500 dark:bg-purple-400 flex-shrink-0 ml-1"
+                                  title={t.adminCreatedByAdmin || 'Created by admin'}
+                                />
+                              )}
                             </div>
                           ) : '-'}
                         </td>
@@ -933,101 +971,88 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
         } : null}
       />
 
-      {/* Course List Tooltip */}
-      {hoveredCourseUserId && (() => {
-        const user = filteredAndSortedUsers.find(u => u.userId === hoveredCourseUserId);
-        if (!user || user.registeredCourses.length === 0) return null;
-        
-        return (
-          <div
-            className="fixed z-[9999] min-w-[200px] max-w-[300px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-3 pointer-events-none"
-            style={{
-              left: `${mousePosition.x + 15}px`,
-              top: `${mousePosition.y + 15}px`,
-              maxHeight: '300px',
-              overflowY: 'auto'
-            }}
-          >
-            <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
-              <BookOpen size={12} />
-              {t.adminRegisteredCourses || 'Registered Courses'}:
-            </div>
-            <div className="space-y-1 max-h-[200px] overflow-y-auto">
-              {user.registeredCourses.map((courseId) => (
-                <div
-                  key={courseId}
-                  className="text-xs text-gray-600 dark:text-gray-400 py-1 px-2 rounded bg-gray-50 dark:bg-gray-700/50"
-                >
-                  • {getCourseTitle(courseId)}
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* Date Tooltip */}
-      {hoveredDateUserId && (() => {
-        const user = filteredAndSortedUsers.find(u => u.userId === hoveredDateUserId);
-        if (!user || !user.createdAt) return null;
-        
-        return (
-          <div
-            className="fixed z-[9999] min-w-[200px] max-w-[300px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-3 pointer-events-none"
-            style={{
-              left: `${mousePosition.x + 15}px`,
-              top: `${mousePosition.y + 15}px`,
-              maxHeight: '300px',
-              overflowY: 'auto'
-            }}
-          >
-            <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
-              <Calendar size={12} />
-              {t.adminCreatedAt || 'Created At'}:
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-              <div className="py-1 px-2 rounded bg-gray-50 dark:bg-gray-700/50">
-                {user.createdAt.toLocaleString(language === 'en' ? 'en-GB' : language === 'ua' ? 'uk-UA' : language === 'ru' ? 'ru-RU' : 'ar-SA', {
-                  year: 'numeric',
-                  month: '2-digit',
-                  day: '2-digit',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit'
-                })}
+      {/* Tooltip Portal */}
+      {tooltipData && createPortal(
+        <div
+          className="fixed z-[99999] min-w-[200px] max-w-[300px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-3 pointer-events-none"
+          style={{
+            left: `${Math.min(tooltipData.position.x, window.innerWidth - 320)}px`,
+            top: `${Math.min(tooltipData.position.y, window.innerHeight - 200)}px`
+          }}
+          onMouseEnter={() => {
+            if (tooltipTimeoutRef.current) {
+              clearTimeout(tooltipTimeoutRef.current);
+            }
+          }}
+          onMouseLeave={hideTooltip}
+        >
+          {tooltipData.type === 'courses' && (
+            <>
+              <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
+                <BookOpen size={12} />
+                {t.adminRegisteredCourses || 'Registered Courses'}:
               </div>
-            </div>
-            {(user.createdBy || user.createdByName || user.createdByEmail) && (
-              <>
-                <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
-                  <Users size={12} />
-                  {t.adminCreatedBy || 'Created by'}:
+              <div className="space-y-1 max-h-[200px] overflow-y-auto">
+                {tooltipData.user.registeredCourses.map((courseId) => (
+                  <div
+                    key={courseId}
+                    className="text-xs text-gray-600 dark:text-gray-400 py-1 px-2 rounded bg-gray-50 dark:bg-gray-700/50"
+                  >
+                    • {getCourseTitle(courseId)}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+          {tooltipData.type === 'date' && tooltipData.user.createdAt && (
+            <>
+              <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
+                <Calendar size={12} />
+                {t.adminCreatedAt || 'Created At'}:
+              </div>
+              <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                <div className="py-1 px-2 rounded bg-gray-50 dark:bg-gray-700/50">
+                  {tooltipData.user.createdAt.toLocaleString(language === 'en' ? 'en-GB' : language === 'ua' ? 'uk-UA' : language === 'ru' ? 'ru-RU' : 'ar-SA', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                  })}
                 </div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">
-                  {user.createdByName ? (
-                    <div className="py-1 px-2 rounded bg-gray-50 dark:bg-gray-700/50">
-                      {user.createdByName}
-                      {user.createdByEmail && (
-                        <div className="text-gray-500 dark:text-gray-500 mt-1">
-                          {user.createdByEmail}
-                        </div>
+              </div>
+              {tooltipData.user.createdBy && (
+                <>
+                  <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
+                    <Users size={12} />
+                    {t.adminCreatedBy || 'Created by'}:
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">
+                    <div className="py-1 px-2 rounded bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
+                      {tooltipData.user.createdByName ? (
+                        <>
+                          <div className="font-medium text-purple-700 dark:text-purple-300">{tooltipData.user.createdByName}</div>
+                          {tooltipData.user.createdByEmail && (
+                            <div className="text-gray-500 dark:text-gray-400 mt-0.5">
+                              {tooltipData.user.createdByEmail}
+                            </div>
+                          )}
+                        </>
+                      ) : tooltipData.user.createdByEmail ? (
+                        <div className="font-medium text-purple-700 dark:text-purple-300">{tooltipData.user.createdByEmail}</div>
+                      ) : (
+                        <div className="text-gray-500 dark:text-gray-500">{t.adminUnknown || 'Unknown'}</div>
                       )}
                     </div>
-                  ) : user.createdByEmail ? (
-                    <div className="py-1 px-2 rounded bg-gray-50 dark:bg-gray-700/50">
-                      {user.createdByEmail}
-                    </div>
-                  ) : (
-                    <div className="py-1 px-2 rounded bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-500">
-                      {t.adminUnknown || 'Unknown'}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        );
-      })()}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </div>,
+        document.body
+      )}
     </div>
   );
 };
