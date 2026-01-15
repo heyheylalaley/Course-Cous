@@ -343,7 +343,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
         )}
       </div>
 
-      <div className="mt-6 mb-6 sm:mb-4 text-center" style={{ marginBottom: 'max(1.5rem, env(safe-area-inset-bottom, 0px) + 1.5rem)' }}>
+      <div className="mt-4 mb-8 sm:mb-6 text-center" style={{ marginBottom: 'max(2rem, env(safe-area-inset-bottom, 0px) + 2rem)' }}>
         <button
           onClick={() => switchView(authView === 'login' ? 'register' : 'login')}
           className="text-sm text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 font-medium"
@@ -421,9 +421,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col justify-center items-center p-4 pb-12 sm:pb-6 min-h-0" style={{ paddingBottom: 'max(3rem, env(safe-area-inset-bottom, 0px) + 3rem)' }}>
+      <div className="flex-1 flex flex-col justify-center items-center p-4 pb-20 sm:pb-8 min-h-0" style={{ paddingBottom: 'max(5rem, env(safe-area-inset-bottom, 0px) + 5rem)' }}>
 
-      <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 sm:p-8 pb-8 sm:pb-8 border border-gray-100 dark:border-gray-700">
+      <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 sm:p-8 pb-6 sm:pb-8 border border-gray-100 dark:border-gray-700">
         <div className="flex flex-col items-center mb-6 sm:mb-8">
           <img 
             src={`${import.meta.env.BASE_URL}logo.svg`}
@@ -442,7 +442,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
       </div>
       
       {/* Footer with organization name */}
-      <div className="mt-6 mb-6 sm:mb-4 text-center text-sm text-gray-500 dark:text-gray-400" style={{ marginBottom: 'max(1.5rem, env(safe-area-inset-bottom, 0px) + 1.5rem)' }}>
+      <div className="mt-4 mb-10 sm:mb-6 text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400" style={{ marginBottom: 'max(2.5rem, env(safe-area-inset-bottom, 0px) + 2.5rem)' }}>
         &copy; {new Date().getFullYear()} {t.orgName}. All rights reserved.
       </div>
       </div>
