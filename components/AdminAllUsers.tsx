@@ -32,6 +32,9 @@ interface UserWithDetails {
   isProfileComplete: boolean;
   ldcRef?: string;
   irisId?: string;
+  createdBy?: string;
+  createdByName?: string;
+  createdByEmail?: string;
 }
 
 type SortField = 'firstName' | 'lastName' | 'email' | 'englishLevel' | 'createdAt' | 'registeredCourses' | 'completedCourses' | 'isProfileComplete' | 'ldcRef';
@@ -72,6 +75,10 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
   // Tooltip state for course list
   const [hoveredUserId, setHoveredUserId] = useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
+  
+  // Tooltip state for created by info
+  const [hoveredCreatedByUserId, setHoveredCreatedByUserId] = useState<string | null>(null);
+  const [createdByTooltipPosition, setCreatedByTooltipPosition] = useState<{ x: number; y: number } | null>(null);
 
   // Callback to load users
   const loadUsers = useCallback(async () => {
@@ -802,9 +809,30 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                         </td>
                         <td className="px-3 py-3 text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
                           {user.createdAt ? (
-                            <div className="flex items-center gap-1">
-                              <Calendar size={14} className="text-gray-400" />
-                              {formatDate(user.createdAt)}
+                            <div 
+                              className="relative inline-block"
+                              onMouseEnter={(e) => {
+                                e.stopPropagation();
+                                if (user.createdBy || user.createdByName || user.createdByEmail) {
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  setCreatedByTooltipPosition({
+                                    x: rect.left + rect.width / 2,
+                                    y: rect.bottom + 8
+                                  });
+                                  setHoveredCreatedByUserId(user.userId);
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                e.stopPropagation();
+                                setHoveredCreatedByUserId(null);
+                                setCreatedByTooltipPosition(null);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="flex items-center gap-1 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                                <Calendar size={14} className="text-gray-400" />
+                                {formatDate(user.createdAt)}
+                              </div>
                             </div>
                           ) : '-'}
                         </td>
@@ -961,6 +989,53 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                   • {getCourseTitle(courseId)}
                 </div>
               ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Created By Tooltip */}
+      {hoveredCreatedByUserId && createdByTooltipPosition && (() => {
+        const user = filteredAndSortedUsers.find(u => u.userId === hoveredCreatedByUserId);
+        if (!user || (!user.createdBy && !user.createdByName && !user.createdByEmail)) return null;
+        
+        return (
+          <div
+            className="fixed z-[9999] min-w-[200px] max-w-[300px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-3 pointer-events-auto"
+            style={{
+              left: `${createdByTooltipPosition.x}px`,
+              top: `${createdByTooltipPosition.y}px`,
+              transform: 'translateX(-50%)'
+            }}
+            onMouseEnter={() => setHoveredCreatedByUserId(hoveredCreatedByUserId)}
+            onMouseLeave={() => {
+              setHoveredCreatedByUserId(null);
+              setCreatedByTooltipPosition(null);
+            }}
+          >
+            <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
+              <Users size={12} />
+              {t.adminCreatedBy || 'Created by'}:
+            </div>
+            <div className="text-xs text-gray-600 dark:text-gray-400">
+              {user.createdByName ? (
+                <div className="py-1 px-2 rounded bg-gray-50 dark:bg-gray-700/50">
+                  {user.createdByName}
+                  {user.createdByEmail && (
+                    <div className="text-gray-500 dark:text-gray-500 mt-1">
+                      {user.createdByEmail}
+                    </div>
+                  )}
+                </div>
+              ) : user.createdByEmail ? (
+                <div className="py-1 px-2 rounded bg-gray-50 dark:bg-gray-700/50">
+                  {user.createdByEmail}
+                </div>
+              ) : (
+                <div className="py-1 px-2 rounded bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-500">
+                  {t.adminUnknown || 'Unknown'}
+                </div>
+              )}
             </div>
           </div>
         );

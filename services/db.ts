@@ -1043,6 +1043,11 @@ export const db = {
     registeredCourses: string[];
     completedCourses: string[];
     isProfileComplete: boolean;
+    ldcRef?: string;
+    irisId?: string;
+    createdBy?: string;
+    createdByName?: string;
+    createdByEmail?: string;
   }>> => {
     const session = db.getCurrentSession();
     if (!session) throw new Error("Not authenticated");
@@ -1079,7 +1084,10 @@ export const db = {
           completedCourses: row.completed_courses || [],
           isProfileComplete: row.is_profile_complete || false,
           ldcRef: row.ldc_ref || undefined,
-          irisId: row.iris_id || undefined
+          irisId: row.iris_id || undefined,
+          createdBy: row.created_by || undefined,
+          createdByName: row.created_by_name || undefined,
+          createdByEmail: row.created_by_email || undefined
         };
       });
     }
@@ -3094,27 +3102,31 @@ We look forward to seeing you soon!`,
     }
 
     const userId = signUpData.user.id;
+    const adminUserId = session.id; // Current admin user ID
 
-    // Update profile with additional data if provided
+    // Update profile with additional data if provided, including created_by
+    const updateData: any = {
+      created_by: adminUserId // Set the admin who created this user
+    };
+    
     if (profileData && (profileData.firstName || profileData.lastName || profileData.mobileNumber || profileData.englishLevel)) {
-      const updateData: any = {};
       if (profileData.firstName !== undefined) updateData.first_name = profileData.firstName.trim() || null;
       if (profileData.lastName !== undefined) updateData.last_name = profileData.lastName.trim() || null;
       if (profileData.mobileNumber !== undefined) updateData.mobile_number = profileData.mobileNumber.trim() || null;
       if (profileData.englishLevel !== undefined) updateData.english_level = profileData.englishLevel;
+    }
 
-      // Wait a bit for profile to be created by trigger
-      await new Promise(resolve => setTimeout(resolve, 500));
+    // Wait a bit for profile to be created by trigger
+    await new Promise(resolve => setTimeout(resolve, 500));
 
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update(updateData)
-        .eq('id', userId);
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update(updateData)
+      .eq('id', userId);
 
-      if (updateError) {
-        console.error('Failed to update profile after user creation:', updateError);
-        // Don't throw error here - user is created, profile update can be done later
-      }
+    if (updateError) {
+      console.error('Failed to update profile after user creation:', updateError);
+      // Don't throw error here - user is created, profile update can be done later
     }
 
     return { userId, email: signUpData.user.email! };
