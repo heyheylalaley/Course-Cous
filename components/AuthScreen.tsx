@@ -343,7 +343,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
         )}
       </div>
 
-      <div className="mt-6 text-center">
+      <div className="mt-6 mb-4 text-center">
         <button
           onClick={() => switchView(authView === 'login' ? 'register' : 'login')}
           className="text-sm text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 font-medium"
@@ -366,7 +366,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
 
   return (
     <>
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex flex-col" dir={isRtl ? 'rtl' : 'ltr'}>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex flex-col overflow-y-auto" dir={isRtl ? 'rtl' : 'ltr'}>
       
       {/* Top Bar with Language & Theme */}
       <div className="w-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between flex-shrink-0">
@@ -421,7 +421,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col justify-center items-center p-4">
+      <div className="flex-1 flex flex-col justify-center items-center p-4 pb-8 sm:pb-4 min-h-0" style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 0px) + 2rem)' }}>
 
       <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 sm:p-8 border border-gray-100 dark:border-gray-700">
         <div className="flex flex-col items-center mb-6 sm:mb-8">
@@ -442,7 +442,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, language
       </div>
       
       {/* Footer with organization name */}
-      <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+      <div className="mt-6 mb-4 text-center text-sm text-gray-500 dark:text-gray-400" style={{ marginBottom: 'max(1rem, env(safe-area-inset-bottom, 0px) + 1rem)' }}>
         &copy; {new Date().getFullYear()} {t.orgName}. All rights reserved.
       </div>
       </div>
