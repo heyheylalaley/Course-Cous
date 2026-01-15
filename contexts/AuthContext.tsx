@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { UserProfile, EnglishLevel } from '../types';
 import { db, supabase } from '../services/db';
 
@@ -42,6 +42,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const [isDemoUser, setIsDemoUser] = useState(false);
+  const isPasswordRecoveryRef = useRef(isPasswordRecovery);
+
+  useEffect(() => {
+    isPasswordRecoveryRef.current = isPasswordRecovery;
+  }, [isPasswordRecovery]);
 
   const loadUserProfile = useCallback(async () => {
     try {
@@ -62,6 +67,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     let profileChannel: any = null;
+    let authSubscription: { unsubscribe: () => void } | null = null;
+
+    // Setup realtime subscription for profile changes
+    const setupProfileSubscription = (userId: string) => {
+      if (!supabase || profileChannel) return;
+      
+      profileChannel = supabase
+        .channel(`profile-changes-${userId}`)
+        .on('postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'profiles',
+            filter: `id=eq.${userId}`
+          },
+          () => {
+            // Reload profile when it changes (e.g., admin updated it)
+            loadUserProfile();
+          }
+        )
+        .subscribe();
+    };
 
     const initAuth = async () => {
       setIsLoading(true);
@@ -78,6 +105,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Handle Supabase auth callback
       if (supabase) {
+        let skipSessionCheck = false;
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
@@ -100,6 +128,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               // Password recovery - set flag instead of auto-login
               setIsPasswordRecovery(true);
               setIsAuthenticated(true);
+              skipSessionCheck = true;
               // Don't load profile yet - let user update password first
             } else {
               // Normal login flow
@@ -113,7 +142,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
 
         // Check existing session (but not if we're in recovery mode)
-        if (!isPasswordRecovery) {
+        if (!skipSessionCheck && !isPasswordRecoveryRef.current) {
           try {
             const { data: { session }, error } = await supabase.auth.getSession();
             if (error) {
@@ -153,7 +182,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
           } else if (event === 'SIGNED_IN' && session) {
             // Only auto-login if not in password recovery mode
-            if (!isPasswordRecovery) {
+            if (!isPasswordRecoveryRef.current) {
               if (window.location.hash) {
                 window.history.replaceState({}, document.title, import.meta.env.BASE_URL);
               }
@@ -184,20 +213,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setUserProfile(defaultProfile);
           } else if (event === 'USER_UPDATED' && session) {
             // Password was updated successfully
-            if (isPasswordRecovery) {
+            if (isPasswordRecoveryRef.current) {
               setIsPasswordRecovery(false);
               loadUserProfile();
             }
           }
         });
 
+        authSubscription = subscription;
         setIsLoading(false);
-        return () => {
-          subscription.unsubscribe();
-          if (profileChannel && supabase) {
-            supabase.removeChannel(profileChannel);
-          }
-        };
       } else {
         // Mock mode
         const session = db.getCurrentSession();
@@ -209,28 +233,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     };
 
-    // Setup realtime subscription for profile changes
-    const setupProfileSubscription = (userId: string) => {
-      if (!supabase || profileChannel) return;
-      
-      profileChannel = supabase
-        .channel(`profile-changes-${userId}`)
-        .on('postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'profiles',
-            filter: `id=eq.${userId}`
-          },
-          () => {
-            // Reload profile when it changes (e.g., admin updated it)
-            loadUserProfile();
-          }
-        )
-        .subscribe();
-    };
-
     initAuth();
+
+    return () => {
+      if (authSubscription) {
+        authSubscription.unsubscribe();
+      }
+      if (profileChannel && supabase) {
+        supabase.removeChannel(profileChannel);
+      }
+    };
   }, [loadUserProfile]);
 
   const login = useCallback(async () => {
