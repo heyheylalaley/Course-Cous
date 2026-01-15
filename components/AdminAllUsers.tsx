@@ -72,13 +72,19 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
   // Edit profile modal
   const [editingUser, setEditingUser] = useState<UserWithDetails | null>(null);
   
-  // Tooltip state for course list
-  const [hoveredUserId, setHoveredUserId] = useState<string | null>(null);
-  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
-  
-  // Tooltip state for created by info
-  const [hoveredCreatedByUserId, setHoveredCreatedByUserId] = useState<string | null>(null);
-  const [createdByTooltipPosition, setCreatedByTooltipPosition] = useState<{ x: number; y: number } | null>(null);
+  // Tooltip state - track mouse position globally
+  const [mousePosition, setMousePosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [hoveredCourseUserId, setHoveredCourseUserId] = useState<string | null>(null);
+  const [hoveredDateUserId, setHoveredDateUserId] = useState<string | null>(null);
+
+  // Track mouse position globally
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
   // Callback to load users
   const loadUsers = useCallback(async () => {
@@ -760,41 +766,15 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                         <td className="px-3 py-3 text-sm whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             {user.registeredCourses.length > 0 && (
-                              <div 
-                                className="relative inline-block"
-                                onMouseEnter={(e) => {
-                                  e.stopPropagation();
-                                  // Set initial position immediately - tooltip appears below and slightly to the right of cursor
-                                  const offsetX = 10;
-                                  const offsetY = 12;
-                                  setTooltipPosition({ 
-                                    x: e.clientX + offsetX, 
-                                    y: e.clientY + offsetY 
-                                  });
-                                  setHoveredUserId(user.userId);
-                                }}
-                                onMouseMove={(e) => {
-                                  e.stopPropagation();
-                                  // Update position as cursor moves
-                                  const offsetX = 10;
-                                  const offsetY = 12;
-                                  setTooltipPosition({ 
-                                    x: e.clientX + offsetX, 
-                                    y: e.clientY + offsetY 
-                                  });
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.stopPropagation();
-                                  setHoveredUserId(null);
-                                  setTooltipPosition(null);
-                                }}
+                              <span 
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs cursor-pointer hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors"
+                                onMouseEnter={() => setHoveredCourseUserId(user.userId)}
+                                onMouseLeave={() => setHoveredCourseUserId(null)}
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs cursor-pointer hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors">
-                                  <BookOpen size={12} />
-                                  {user.registeredCourses.length}
-                                </span>
-                              </div>
+                                <BookOpen size={12} />
+                                {user.registeredCourses.length}
+                              </span>
                             )}
                             {user.completedCourses.length > 0 && (
                               <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs">
@@ -822,39 +802,13 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                         <td className="px-3 py-3 text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
                           {user.createdAt ? (
                             <div 
-                              className="relative inline-block"
-                              onMouseEnter={(e) => {
-                                e.stopPropagation();
-                                // Set initial position immediately - tooltip appears below and slightly to the right of cursor
-                                const offsetX = 10;
-                                const offsetY = 12;
-                                setCreatedByTooltipPosition({ 
-                                  x: e.clientX + offsetX, 
-                                  y: e.clientY + offsetY 
-                                });
-                                setHoveredCreatedByUserId(user.userId);
-                              }}
-                              onMouseMove={(e) => {
-                                e.stopPropagation();
-                                // Update position as cursor moves
-                                const offsetX = 10;
-                                const offsetY = 12;
-                                setCreatedByTooltipPosition({ 
-                                  x: e.clientX + offsetX, 
-                                  y: e.clientY + offsetY 
-                                });
-                              }}
-                              onMouseLeave={(e) => {
-                                e.stopPropagation();
-                                setHoveredCreatedByUserId(null);
-                                setCreatedByTooltipPosition(null);
-                              }}
+                              className="flex items-center gap-1 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                              onMouseEnter={() => setHoveredDateUserId(user.userId)}
+                              onMouseLeave={() => setHoveredDateUserId(null)}
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <div className="flex items-center gap-1 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                                <Calendar size={14} className="text-gray-400" />
-                                {formatDate(user.createdAt)}
-                              </div>
+                              <Calendar size={14} className="text-gray-400" />
+                              {formatDate(user.createdAt)}
                             </div>
                           ) : '-'}
                         </td>
@@ -980,16 +934,16 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
       />
 
       {/* Course List Tooltip */}
-      {hoveredUserId && tooltipPosition && (() => {
-        const user = filteredAndSortedUsers.find(u => u.userId === hoveredUserId);
+      {hoveredCourseUserId && (() => {
+        const user = filteredAndSortedUsers.find(u => u.userId === hoveredCourseUserId);
         if (!user || user.registeredCourses.length === 0) return null;
         
         return (
           <div
             className="fixed z-[9999] min-w-[200px] max-w-[300px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-3 pointer-events-none"
             style={{
-              left: `${tooltipPosition.x}px`,
-              top: `${tooltipPosition.y}px`,
+              left: `${mousePosition.x + 15}px`,
+              top: `${mousePosition.y + 15}px`,
               maxHeight: '300px',
               overflowY: 'auto'
             }}
@@ -1012,17 +966,17 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
         );
       })()}
 
-      {/* Created By Tooltip */}
-      {hoveredCreatedByUserId && createdByTooltipPosition && (() => {
-        const user = filteredAndSortedUsers.find(u => u.userId === hoveredCreatedByUserId);
+      {/* Date Tooltip */}
+      {hoveredDateUserId && (() => {
+        const user = filteredAndSortedUsers.find(u => u.userId === hoveredDateUserId);
         if (!user || !user.createdAt) return null;
         
         return (
           <div
             className="fixed z-[9999] min-w-[200px] max-w-[300px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-3 pointer-events-none"
             style={{
-              left: `${createdByTooltipPosition.x}px`,
-              top: `${createdByTooltipPosition.y}px`,
+              left: `${mousePosition.x + 15}px`,
+              top: `${mousePosition.y + 15}px`,
               maxHeight: '300px',
               overflowY: 'auto'
             }}
