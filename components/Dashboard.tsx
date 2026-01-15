@@ -313,8 +313,8 @@ export const Dashboard: React.FC<DashboardProps> = memo(({
         <div className="w-10" /> {/* Spacer for centering */}
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto w-full p-4 sm:p-6 space-y-6 sm:space-y-8">
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="max-w-4xl mx-auto w-full p-4 sm:p-6 space-y-6 sm:space-y-8" style={{ contentVisibility: 'auto' }}>
         
           {/* Header - Desktop only */}
           <div className="mb-4 sm:mb-6 hidden lg:block">
