@@ -765,10 +765,19 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                                 onMouseEnter={(e) => {
                                   e.stopPropagation();
                                   const rect = e.currentTarget.getBoundingClientRect();
-                                  setTooltipPosition({
-                                    x: rect.left + rect.width / 2,
-                                    y: rect.bottom + 8
-                                  });
+                                  const viewportWidth = window.innerWidth;
+                                  const viewportHeight = window.innerHeight;
+                                  
+                                  // Calculate position, ensuring tooltip stays within viewport
+                                  let x = rect.left + rect.width / 2;
+                                  let y = rect.bottom + 8;
+                                  
+                                  // Adjust if tooltip would go off screen
+                                  if (x < 150) x = 150;
+                                  if (x > viewportWidth - 150) x = viewportWidth - 150;
+                                  if (y > viewportHeight - 200) y = rect.top - 8; // Show above if no room below
+                                  
+                                  setTooltipPosition({ x, y });
                                   setHoveredUserId(user.userId);
                                 }}
                                 onMouseLeave={(e) => {
@@ -813,14 +822,21 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
                               className="relative inline-block"
                               onMouseEnter={(e) => {
                                 e.stopPropagation();
-                                if (user.createdBy || user.createdByName || user.createdByEmail) {
-                                  const rect = e.currentTarget.getBoundingClientRect();
-                                  setCreatedByTooltipPosition({
-                                    x: rect.left + rect.width / 2,
-                                    y: rect.bottom + 8
-                                  });
-                                  setHoveredCreatedByUserId(user.userId);
-                                }
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const viewportWidth = window.innerWidth;
+                                const viewportHeight = window.innerHeight;
+                                
+                                // Calculate position, ensuring tooltip stays within viewport
+                                let x = rect.left + rect.width / 2;
+                                let y = rect.bottom + 8;
+                                
+                                // Adjust if tooltip would go off screen
+                                if (x < 150) x = 150;
+                                if (x > viewportWidth - 150) x = viewportWidth - 150;
+                                if (y > viewportHeight - 200) y = rect.top - 8; // Show above if no room below
+                                
+                                setCreatedByTooltipPosition({ x, y });
+                                setHoveredCreatedByUserId(user.userId);
                               }}
                               onMouseLeave={(e) => {
                                 e.stopPropagation();
@@ -968,7 +984,9 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
             style={{
               left: `${tooltipPosition.x}px`,
               top: `${tooltipPosition.y}px`,
-              transform: 'translateX(-50%)'
+              transform: 'translateX(-50%)',
+              maxHeight: '300px',
+              overflowY: 'auto'
             }}
             onMouseEnter={() => setHoveredUserId(hoveredUserId)}
             onMouseLeave={() => {
@@ -997,7 +1015,7 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
       {/* Created By Tooltip */}
       {hoveredCreatedByUserId && createdByTooltipPosition && (() => {
         const user = filteredAndSortedUsers.find(u => u.userId === hoveredCreatedByUserId);
-        if (!user || (!user.createdBy && !user.createdByName && !user.createdByEmail)) return null;
+        if (!user || !user.createdAt) return null;
         
         return (
           <div
@@ -1005,7 +1023,9 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
             style={{
               left: `${createdByTooltipPosition.x}px`,
               top: `${createdByTooltipPosition.y}px`,
-              transform: 'translateX(-50%)'
+              transform: 'translateX(-50%)',
+              maxHeight: '300px',
+              overflowY: 'auto'
             }}
             onMouseEnter={() => setHoveredCreatedByUserId(hoveredCreatedByUserId)}
             onMouseLeave={() => {
@@ -1014,29 +1034,49 @@ export const AdminAllUsers: React.FC<AdminAllUsersProps> = ({ language }) => {
             }}
           >
             <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
-              <Users size={12} />
-              {t.adminCreatedBy || 'Created by'}:
+              <Calendar size={12} />
+              {t.adminCreatedAt || 'Created At'}:
             </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400">
-              {user.createdByName ? (
-                <div className="py-1 px-2 rounded bg-gray-50 dark:bg-gray-700/50">
-                  {user.createdByName}
-                  {user.createdByEmail && (
-                    <div className="text-gray-500 dark:text-gray-500 mt-1">
+            <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+              <div className="py-1 px-2 rounded bg-gray-50 dark:bg-gray-700/50">
+                {user.createdAt.toLocaleString(language === 'en' ? 'en-GB' : language === 'ua' ? 'uk-UA' : language === 'ru' ? 'ru-RU' : 'ar-SA', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit'
+                })}
+              </div>
+            </div>
+            {(user.createdBy || user.createdByName || user.createdByEmail) && (
+              <>
+                <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
+                  <Users size={12} />
+                  {t.adminCreatedBy || 'Created by'}:
+                </div>
+                <div className="text-xs text-gray-600 dark:text-gray-400">
+                  {user.createdByName ? (
+                    <div className="py-1 px-2 rounded bg-gray-50 dark:bg-gray-700/50">
+                      {user.createdByName}
+                      {user.createdByEmail && (
+                        <div className="text-gray-500 dark:text-gray-500 mt-1">
+                          {user.createdByEmail}
+                        </div>
+                      )}
+                    </div>
+                  ) : user.createdByEmail ? (
+                    <div className="py-1 px-2 rounded bg-gray-50 dark:bg-gray-700/50">
                       {user.createdByEmail}
+                    </div>
+                  ) : (
+                    <div className="py-1 px-2 rounded bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-500">
+                      {t.adminUnknown || 'Unknown'}
                     </div>
                   )}
                 </div>
-              ) : user.createdByEmail ? (
-                <div className="py-1 px-2 rounded bg-gray-50 dark:bg-gray-700/50">
-                  {user.createdByEmail}
-                </div>
-              ) : (
-                <div className="py-1 px-2 rounded bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-500">
-                  {t.adminUnknown || 'Unknown'}
-                </div>
-              )}
-            </div>
+              </>
+            )}
           </div>
         );
       })()}
